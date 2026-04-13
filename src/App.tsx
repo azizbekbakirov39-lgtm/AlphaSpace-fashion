@@ -726,14 +726,10 @@ export default function App() {
     setSelectedPostForDetails(null); // Close product details
     setActiveTab('Search');
     
-    // Create a query string that gives the AI context about the product
-    const query = language === 'uz' 
-      ? `Shu mahsulot haqida ma'lumot bering: ${product.outfitName} (${product.price}). Sotuvchi: ${product.seller.name}.`
-      : language === 'ru'
-      ? `Расскажите об этом товаре: ${product.outfitName} (${product.price}). Продавец: ${product.seller.name}.`
-      : `Tell me about this product: ${product.outfitName} (${product.price}). Seller: ${product.seller.name}.`;
+    // Create a direct link to the product
+    const productLink = `${window.location.origin}?post=${product.id}`;
       
-    setAiInitialQuery(query);
+    setAiInitialQuery(productLink);
     
     if (workspace === 'Marketplace') {
       window.history.pushState({ 
@@ -742,7 +738,7 @@ export default function App() {
         workspace
       }, '');
     }
-  }, [workspace, language]);
+  }, [workspace]);
 
   const handleOpenChat = React.useCallback((sellerId: string, product?: PostData) => {
     setInitialChatSellerId(sellerId);

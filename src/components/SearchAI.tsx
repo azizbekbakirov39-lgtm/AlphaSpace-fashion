@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
-import { AIMessage } from '../types';
+import { AIMessage, PostData } from '../types';
 import { motion } from 'motion/react';
 
 interface SearchAIProps {
@@ -10,6 +10,7 @@ interface SearchAIProps {
   setMessages?: React.Dispatch<React.SetStateAction<AIMessage[]>>;
   initialQuery?: string;
   onClearInitialQuery?: () => void;
+  allPosts?: PostData[];
 }
 
 const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 
@@ -40,7 +41,8 @@ const SearchAI: React.FC<SearchAIProps> = ({
   messages = [],
   setMessages,
   initialQuery,
-  onClearInitialQuery
+  onClearInitialQuery,
+  allPosts = []
 }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +50,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
   useEffect(() => {
     if (initialQuery) {
-      setInput(initialQuery);
+      setInput(initialQuery + ' ');
       if (onClearInitialQuery) onClearInitialQuery();
     }
   }, [initialQuery, onClearInitialQuery]);
@@ -72,9 +74,28 @@ const SearchAI: React.FC<SearchAIProps> = ({
     setMessages?.(prev => [...prev, userMessage]);
     if (!textOverride) setInput('');
     setIsLoading(true);
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      // Detect product link in message to provide context
+      let enhancedMessageText = messageText;
+      const postMatch = messageText.match(/\?post=([a-zA-Z0-9_]+)/);
+      if (postMatch) {
+        const postId = postMatch[1];
+        const product = allPosts.find(p => p.id === postId);
+        if (product) {
+          enhancedMessageText = `[KONTEKST: Foydalanuvchi quyidagi mahsulot haqida so'ramoqda:
+Nomi: ${product.outfitName}
+Narxi: ${product.price}
+Sotuvchi: ${product.seller.name}
+Tavsif: ${product.description || 'Tavsif yo\'q'}
+O'lchamlar: ${product.sizes?.join(', ') || 'Noma\'lum'}
+Ranglar: ${product.colors?.map(c => c.name).join(', ') || 'Noma\'lum'}
+Holati: ${product.inStock !== false ? 'Mavjud' : 'Tugagan'}]
+
+Foydalanuvchi xabari: ${messageText}`;
+        }
+      }
 
       const history = messages.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
@@ -83,7 +104,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
       const contents = [
         ...history,
-        { role: 'user', parts: [{ text: messageText }] }
+        { role: 'user', parts: [{ text: enhancedMessageText }] }
       ];
 
       const response = await ai.models.generateContent({
@@ -200,8 +221,8 @@ const SearchAI: React.FC<SearchAIProps> = ({
       <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 pointer-events-none z-20">
         <div className="relative z-10 flex items-center gap-2 pointer-events-auto max-w-2xl mx-auto">
           <div className="flex-1 relative group overflow-hidden rounded-3xl shadow-2xl shadow-black/5 border border-neutral-200 dark:border-neutral-800">
-            {/* Liquid Background Effect - 2x Brighter and more vibrant */}
-            <div className="absolute inset-0 pointer-events-none opacity-60 z-0">
+            {/* Liquid Background Effect - Saturated and slower */}
+            <div className="absolute inset-0 pointer-events-none opacity-100 z-0">
               <motion.div 
                 animate={{
                   scale: [1, 1.3, 1],
@@ -210,11 +231,11 @@ const SearchAI: React.FC<SearchAIProps> = ({
                   y: [-15, 15, -15],
                 }}
                 transition={{
-                  duration: 1.8,
+                  duration: 3.6,
                   repeat: Infinity,
                   ease: "linear"
                 }}
-                className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-blue/60 rounded-[40%] blur-xl"
+                className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-blue rounded-[40%] blur-xl"
               />
               <motion.div 
                 animate={{
@@ -224,11 +245,11 @@ const SearchAI: React.FC<SearchAIProps> = ({
                   y: [15, -15, 15],
                 }}
                 transition={{
-                  duration: 1.4,
+                  duration: 2.8,
                   repeat: Infinity,
                   ease: "linear"
                 }}
-                className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/50 rounded-[30%] blur-2xl"
+                className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-600 rounded-[30%] blur-2xl"
               />
             </div>
 
