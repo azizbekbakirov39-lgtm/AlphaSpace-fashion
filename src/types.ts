@@ -114,6 +114,13 @@ export interface PostData {
   sizes?: string[];
   colors?: { name: string; hex: string }[];
   inStock?: boolean;
+  aiMetadata?: {
+    color?: string;
+    category?: string;
+    style?: string;
+    description?: string;
+    tags?: string[];
+  };
 }
 
 export interface Obraz {

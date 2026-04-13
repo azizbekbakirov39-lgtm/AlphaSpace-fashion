@@ -82,6 +82,7 @@ import { useKeyboard } from '../hooks/useKeyboard';
 import { toast } from 'sonner';
 import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, Obraz, User } from '../types';
 import { uploadImageToImgBB } from '../services/imgbb';
+import { analyzeProductImage } from '../services/aiService';
 import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
@@ -478,6 +479,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }
 
       toast.loading("Ma'lumotlar saqlanmoqda...", { id: toastId });
+      
+      // AI Analysis
+      let aiMetadata = null;
+      if (uploadedUrls.length > 0) {
+        toast.loading("AI tahlil qilmoqda...", { id: toastId });
+        aiMetadata = await analyzeProductImage(uploadedUrls[0]);
+      }
+
       const newPost: any = {
         sellerId: shopData.id,
         mediaType: newPostForm.mediaType,
@@ -489,7 +498,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         likes: 0,
         comments: 0,
         createdAt: serverTimestamp(),
-        ownerUid: user.uid
+        ownerUid: user.uid,
+        aiMetadata
       };
 
       await addDoc(collection(db, 'posts'), newPost);

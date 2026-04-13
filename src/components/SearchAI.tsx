@@ -118,6 +118,28 @@ const SearchAI: React.FC<SearchAIProps> = ({
                    !!selectedImage);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const callAiWithRetry = async (contents: any, config: any, retries = 3): Promise<any> => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await ai.models.generateContent({
+            model: 'gemini-1.5-flash', // Reverted to 1.5-flash as 3-flash was not found
+            contents: contents,
+            config: config
+          });
+        } catch (error: any) {
+          if (error.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED')) && i < retries - 1) {
+            const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+            console.warn(`Rate limit hit, retrying in ${delay}ms...`);
+            await sleep(delay);
+            continue;
+          }
+          throw error;
+        }
+      }
+    };
+
     try {
       // Provide a summary of all available products to the AI so it knows what it can find
       const productsSummary = allPosts.map(p => `- ${p.outfitName} (ID: ${p.id}, Narxi: ${p.price})`).join('\n');
@@ -153,7 +175,8 @@ Foydalanuvchi xabari: ${messageText}`;
         }
       }
 
-      const history = messages.map(m => ({
+      // Limit history to last 5 messages to save tokens
+      const history = messages.slice(-5).map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.content }]
       }));
@@ -197,13 +220,9 @@ Foydalanuvchi xabari: ${messageText}`;
         }
       };
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: contents as any,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION + contextInstruction,
-          tools: [{ functionDeclarations: [findProductsTool, findOutfitsTool] }]
-        }
+      const response = await callAiWithRetry(contents as any, {
+        systemInstruction: SYSTEM_INSTRUCTION + contextInstruction,
+        tools: [{ functionDeclarations: [findProductsTool, findOutfitsTool] }]
       });
 
       let aiResponseText = response.text;
@@ -225,7 +244,11 @@ Foydalanuvchi xabari: ${messageText}`;
                 p.outfitName.toLowerCase().includes(q) || 
                 p.description?.toLowerCase().includes(q) ||
                 p.items.some(item => item.name.toLowerCase().includes(q)) ||
-                p.seller.name.toLowerCase().includes(q)
+                p.seller.name.toLowerCase().includes(q) ||
+                p.aiMetadata?.tags?.some(tag => tag.toLowerCase().includes(q)) ||
+                p.aiMetadata?.color?.toLowerCase().includes(q) ||
+                p.aiMetadata?.category?.toLowerCase().includes(q) ||
+                p.aiMetadata?.style?.toLowerCase().includes(q)
               );
               
               // If no results found with specific query, try a broader search if it's a generic term
