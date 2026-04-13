@@ -1,0 +1,9 @@
+{
+  "name": "Remix: Remix: Marketplace Platform",
+  "description": "A comprehensive, live-editable marketplace for products and services with real-time updates.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera",
+    "microphone"
+  ]
+}

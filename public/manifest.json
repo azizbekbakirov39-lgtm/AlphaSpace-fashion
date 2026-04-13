@@ -1,0 +1,18 @@
+{
+  "name": "AlphaSpace Marketplace",
+  "short_name": "AlphaSpace",
+  "description": "Video-commerce marketplace for fashion and lifestyle.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0095FF",
+  "theme_color": "#0095FF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
