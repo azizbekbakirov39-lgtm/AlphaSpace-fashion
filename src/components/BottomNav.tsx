@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Sparkles, MapPin, User, Users, Tag } from 'lucide-react';
+import { Home, Sparkles, MapPin, User, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
