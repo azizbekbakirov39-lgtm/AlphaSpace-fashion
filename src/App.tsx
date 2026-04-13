@@ -17,7 +17,7 @@ import CreateShopModal from './components/CreateShopModal';
 import ShopConstruction from './components/ShopConstruction';
 import DownloadPage from './components/DownloadPage';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Sparkles, Store, ArrowLeftRight, Tag, Mail, X, Send, Zap, CheckCircle2, Check, Plus } from 'lucide-react';
+import { Search, Sparkles, Store, Mail, X, Zap, CheckCircle2, Check, Plus } from 'lucide-react';
 import Logo from './components/Logo';
 import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
@@ -42,10 +42,6 @@ import {
   limit, 
   serverTimestamp,
   increment,
-  storage, 
-  ref, 
-  uploadBytes, 
-  getDownloadURL,
   handleFirestoreError,
   OperationType
 } from './firebase';

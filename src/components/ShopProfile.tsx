@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Phone, Instagram, Send, MapPin, Clock, Users, Grid, Play, 
-  Heart, MessageCircle, Navigation, Store, Sparkles, Zap, Award, 
-  TrendingUp, ShoppingBag, Eye, ChevronRight, Star, Check, ChevronLeft
+  MessageCircle, Navigation, Store, Sparkles, Zap, Award, 
+  ChevronRight, Star, Check
 } from 'lucide-react';
 import { Seller, PostData } from '../types';
 import { Language, translations } from '../translations';

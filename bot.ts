@@ -12,8 +12,6 @@ if (!botToken) {
   console.warn('TELEGRAM_BOT_TOKEN is not set. Telegram bot will not start.');
 }
 
-const ai = geminiApiKey ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
-
 export const startBot = async () => {
   console.log('Bot startup sequence initiated...');
   if (!botToken) {

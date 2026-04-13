@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Phone, Send, Instagram, MessageCircle, Clock, MapPin, 
-  Navigation, Sparkles, Share2, ShoppingBag, ChevronRight, ChevronLeft,
-  ShieldCheck, Truck, Star, Heart, ArrowLeft, Plus, Volume2, VolumeX, Check
+  Navigation, Sparkles, Share2, ChevronRight, ChevronLeft,
+  Star, Heart, ArrowLeft, Volume2, VolumeX, Check
 } from 'lucide-react';
 import { PostData } from '../types';
 import { Language, translations } from '../translations';
