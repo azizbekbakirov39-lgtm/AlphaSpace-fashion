@@ -214,7 +214,7 @@ const Post: React.FC<PostProps> = ({
   };
 
   return (
-    <div className="w-full bg-bg-primary flex flex-col border-b border-border-primary/30 pb-6">
+    <div className="w-full bg-bg-primary flex flex-col border-b border-border-primary/30 pb-2">
       {/* Top Header - Premium Shop Card Style */}
       <div className="mx-4 mt-4 mb-3 flex items-center justify-between group">
         <div 
@@ -471,18 +471,18 @@ const Post: React.FC<PostProps> = ({
       </div>
 
       {/* Post Info */}
-      <div className="px-4 flex flex-col gap-1">
-        <p className="text-text-primary text-sm font-bold">
+      <div className="px-4 flex flex-col gap-0.5">
+        <p className="text-text-primary text-xs font-bold">
           {(post.likes || 0).toLocaleString()} {t.likes}
         </p>
-        <div className="flex flex-col gap-1.5 mb-1">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-black text-[15px] font-black tracking-tight">{post.seller.name}</span>
-            <span className="text-black/80 text-[14px] font-bold">{post.outfitName}</span>
+        <div className="flex flex-col gap-0.5 mb-0.5">
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <span className="text-black text-[14px] font-black tracking-tight">{post.seller.name}</span>
+            <span className="text-black/80 text-[13px] font-bold">{post.outfitName}</span>
           </div>
           {post.description && (
             <div className="relative">
-              <p className={`text-black text-[14px] font-bold leading-snug transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
+              <p className={`text-black text-[13px] font-bold leading-snug transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
                 {post.description}
               </p>
               {!isDescriptionExpanded && post.description.length > 40 && (
@@ -491,7 +491,7 @@ const Post: React.FC<PostProps> = ({
                     e.stopPropagation();
                     setIsDescriptionExpanded(true);
                   }}
-                  className="text-text-secondary text-[13px] font-black mt-0.5 hover:text-accent-blue transition-colors"
+                  className="text-text-secondary text-[12px] font-black mt-0.5 hover:text-accent-blue transition-colors"
                 >
                   ...davomi
                 </button>
@@ -502,7 +502,7 @@ const Post: React.FC<PostProps> = ({
                     e.stopPropagation();
                     setIsDescriptionExpanded(false);
                   }}
-                  className="text-text-secondary text-[13px] font-black mt-1 hover:text-accent-blue transition-colors"
+                  className="text-text-secondary text-[12px] font-black mt-1 hover:text-accent-blue transition-colors"
                 >
                   yashirish
                 </button>
@@ -512,9 +512,9 @@ const Post: React.FC<PostProps> = ({
         </div>
         
         {/* Royal Blue Price */}
-        <div className="mt-5 flex items-center justify-between">
+        <div className="mt-2 flex items-center justify-between">
           <div>
-            <span className="bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent font-black text-3xl tracking-tight">
+            <span className="bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent font-black text-2xl tracking-tight">
               {post.price}
             </span>
           </div>
@@ -524,21 +524,11 @@ const Post: React.FC<PostProps> = ({
               e.stopPropagation();
               if (onOpenDetails) onOpenDetails();
             }}
-            className="px-6 py-3 bg-gradient-to-r from-accent-blue to-accent-light hover:shadow-lg hover:shadow-accent-blue/20 text-white rounded-xl font-black tracking-wide text-xs uppercase transition-all active:scale-95 shadow-md shadow-accent-blue/10"
+            className="px-5 py-2.5 bg-gradient-to-r from-accent-blue to-accent-light hover:shadow-lg hover:shadow-accent-blue/20 text-white rounded-xl font-black tracking-wide text-[10px] uppercase transition-all active:scale-95 shadow-md shadow-accent-blue/10"
           >
             {t.shop_now}
           </button>
         </div>
-        
-        <button 
-          className="text-text-primary/40 text-xs mt-1 text-left"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onOpenComments) onOpenComments();
-          }}
-        >
-          {t.view_comments.replace('{count}', (post.comments || 0).toString())}
-        </button>
       </div>
       {/* Comment Drawer and Product Details moved to global level in App.tsx */}
     </div>
