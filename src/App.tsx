@@ -1262,23 +1262,15 @@ export default function App() {
                   >
                     <SearchAI 
                       language={language} 
-                      pendingTryOn={pendingTryOn} 
-                      onClearPendingTryOn={() => setPendingTryOn(null)}
                       messages={aiMessages}
                       setMessages={setAiMessages}
                       foundPosts={aiFoundPosts}
                       setFoundPosts={setAiFoundPosts}
                       foundObrazlar={aiFoundObrazlar}
                       setFoundObrazlar={setAiFoundObrazlar}
-                      foundSellers={aiFoundSellers}
-                      setFoundSellers={setAiFoundSellers}
                       onOpenPostDetails={openPostDetails}
-                      onOpenShopProfile={openShopProfile}
-                      globalMuted={globalMuted}
-                      setGlobalMuted={setGlobalMuted}
                       allPosts={postsWithUserStatus}
                       allObrazlar={obrazlar}
-                      allSellers={sellersWithUserStatus}
                       initialQuery={aiInitialQuery}
                       onClearInitialQuery={() => setAiInitialQuery(undefined)}
                     />

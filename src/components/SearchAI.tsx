@@ -17,13 +17,6 @@ interface SearchAIProps {
   foundObrazlar?: Obraz[];
   setFoundObrazlar?: React.Dispatch<React.SetStateAction<Obraz[]>>;
   onOpenPostDetails?: (post: PostData) => void;
-  pendingTryOn?: any;
-  onClearPendingTryOn?: () => void;
-  foundSellers?: any[];
-  setFoundSellers?: React.Dispatch<React.SetStateAction<any[]>>;
-  onOpenShopProfile?: (shop: any) => void;
-  globalMuted?: boolean;
-  setGlobalMuted?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 

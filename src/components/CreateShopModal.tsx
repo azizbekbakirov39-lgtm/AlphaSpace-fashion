@@ -39,7 +39,13 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
         reader.readAsDataURL(compressedFile);
       } catch (error) {
         console.error("Error compressing logo:", error);
+        // Fallback to original file
         setLogoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogo(reader.result as string);
+        };
+        reader.readAsDataURL(file);
       }
     }
   };
