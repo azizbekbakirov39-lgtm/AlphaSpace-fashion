@@ -168,82 +168,67 @@ const SearchAI: React.FC<SearchAIProps> = ({
       </div>
 
       {/* Input Panel with AI Liquid Effect */}
-      <div className="p-6 border-t border-border-primary bg-bg-primary relative overflow-hidden">
-        {/* Liquid Background Effect */}
-        <div className="absolute inset-0 pointer-events-none opacity-40">
-          <motion.div 
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-              x: [-20, 20, -20],
-              y: [-10, 10, -10],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-blue/30 rounded-[40%] blur-2xl"
-          />
-          <motion.div 
-            animate={{
-              scale: [1.2, 1, 1.2],
-              rotate: [360, 180, 0],
-              x: [20, -20, 20],
-              y: [10, -10, 10],
-            }}
-            transition={{
-              duration: 2.5,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/20 rounded-[30%] blur-3xl"
-          />
-          <motion.div 
-            animate={{
-              rotate: [0, -360],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute top-0 left-0 w-[200%] h-[200%] bg-gradient-to-tr from-accent-blue/10 via-transparent to-purple-500/5 blur-xl opacity-50"
-          />
-        </div>
+      <div className="p-3 pb-24 border-t border-border-primary bg-bg-primary relative">
+        <div className="relative z-10 flex items-center gap-2">
+          <div className="flex-1 relative group overflow-hidden rounded-2xl">
+            {/* Liquid Background Effect - Now inside the input container */}
+            <div className="absolute inset-0 pointer-events-none opacity-30 z-0">
+              <motion.div 
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 180, 360],
+                  x: [-20, 20, -20],
+                  y: [-10, 10, -10],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-blue/40 rounded-[40%] blur-xl"
+              />
+              <motion.div 
+                animate={{
+                  scale: [1.2, 1, 1.2],
+                  rotate: [360, 180, 0],
+                  x: [20, -20, 20],
+                  y: [10, -10, 10],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/30 rounded-[30%] blur-2xl"
+              />
+            </div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex-1 relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-accent-blue to-purple-500 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-300"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-accent-blue to-purple-500 rounded-2xl blur-[2px] opacity-10 group-focus-within:opacity-30 transition duration-300"></div>
+            
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={language === 'uz' ? 'SmartSellerga savol bering...' : 'Спросите у SmartSeller...'}
-              className="relative w-full bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/20 rounded-2xl px-6 py-5 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/30 transition-all placeholder:text-text-secondary/40"
+              className="relative w-full bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/20 rounded-2xl pl-6 pr-14 py-4 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/20 transition-all placeholder:text-text-secondary/40 z-10"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none opacity-30">
-              <Sparkles size={14} className="text-accent-blue animate-pulse" />
-              <span className="text-[8px] font-black uppercase tracking-tighter">AI Powered</span>
+            
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none opacity-20 z-20">
+              <Sparkles size={12} className="text-accent-blue animate-pulse" />
             </div>
+
+            {/* Integrated Smaller Send Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isLoading}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-accent-blue text-white rounded-xl disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-accent-blue/20 flex items-center justify-center z-30 group/btn"
+            >
+              <Send size={16} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+            </motion.button>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isLoading}
-            className="relative p-5 bg-accent-blue text-white rounded-2xl disabled:opacity-50 disabled:grayscale transition-all shadow-xl shadow-accent-blue/30 overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-            <Send size={22} className="relative z-10" />
-          </motion.button>
-        </div>
-        
-        <div className="mt-3 flex items-center justify-center gap-2 opacity-40">
-          <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-text-primary/10"></div>
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-text-primary">SmartSeller AI</span>
-          <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-text-primary/10"></div>
         </div>
       </div>
     </div>
