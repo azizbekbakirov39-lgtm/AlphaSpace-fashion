@@ -23,13 +23,6 @@ const SearchAI: React.FC<SearchAIProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const quickActions = [
-    { id: 'how_to_buy', text: language === 'uz' ? 'Qanday sotib olaman?' : 'Как купить?' },
-    { id: 'delivery', text: language === 'uz' ? 'Yetkazib berish bormi?' : 'Есть доставка?' },
-    { id: 'quality', text: language === 'uz' ? 'Sifatiga kafolat bormi?' : 'Есть гарантия качества?' },
-    { id: 'discount', text: language === 'uz' ? 'Chegirmalar bormi?' : 'Есть скидки?' },
-  ];
-
   useEffect(() => {
     if (initialQuery) {
       setInput(initialQuery);
@@ -104,26 +97,31 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-bg-primary relative">
-      {/* Header */}
-      <div className="p-4 border-b border-border-primary flex items-center justify-between bg-bg-primary/80 backdrop-blur-md z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-accent-blue flex items-center justify-center shadow-lg shadow-accent-blue/20">
-            <Sparkles size={20} className="text-white" />
-          </div>
-          <div>
-            <h2 className="text-sm font-black text-text-primary">SmartSeller</h2>
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Onlayn</span>
-            </div>
-          </div>
+      {/* Floating Header */}
+      <div className="absolute top-0 left-0 right-0 p-8 flex flex-col items-center justify-center pointer-events-none z-30">
+        <div className="flex flex-col items-center gap-3">
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="w-14 h-14 rounded-[2rem] bg-gradient-to-br from-purple-600 to-accent-blue flex items-center justify-center shadow-2xl shadow-accent-blue/30 pointer-events-auto"
+          >
+            <Sparkles size={28} className="text-white" />
+          </motion.div>
+          <motion.h2 
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-[10px] font-black text-text-primary uppercase tracking-[0.5em] pointer-events-auto"
+          >
+            SmartSeller
+          </motion.h2>
         </div>
       </div>
 
       {/* Messages */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide"
+        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide pt-32 pb-40"
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
@@ -167,43 +165,43 @@ const SearchAI: React.FC<SearchAIProps> = ({
         )}
       </div>
 
-      {/* Input Panel with AI Liquid Effect */}
-      <div className="p-3 pb-24 border-t border-border-primary bg-bg-primary relative">
-        <div className="relative z-10 flex items-center gap-2">
-          <div className="flex-1 relative group overflow-hidden rounded-2xl">
-            {/* Liquid Background Effect - Now inside the input container */}
-            <div className="absolute inset-0 pointer-events-none opacity-30 z-0">
+      {/* Floating Input Panel with AI Liquid Effect */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 pb-24 pointer-events-none z-20">
+        <div className="relative z-10 flex items-center gap-2 pointer-events-auto">
+          <div className="flex-1 relative group overflow-hidden rounded-2xl shadow-2xl shadow-accent-blue/10">
+            {/* Liquid Background Effect - 2x Brighter and more vibrant */}
+            <div className="absolute inset-0 pointer-events-none opacity-60 z-0">
               <motion.div 
                 animate={{
-                  scale: [1, 1.2, 1],
+                  scale: [1, 1.3, 1],
                   rotate: [0, 180, 360],
-                  x: [-20, 20, -20],
-                  y: [-10, 10, -10],
+                  x: [-25, 25, -25],
+                  y: [-15, 15, -15],
                 }}
                 transition={{
-                  duration: 2,
+                  duration: 1.8,
                   repeat: Infinity,
                   ease: "linear"
                 }}
-                className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-blue/40 rounded-[40%] blur-xl"
+                className="absolute -top-1/2 -left-1/2 w-full h-full bg-accent-blue/60 rounded-[40%] blur-xl"
               />
               <motion.div 
                 animate={{
-                  scale: [1.2, 1, 1.2],
+                  scale: [1.3, 1, 1.3],
                   rotate: [360, 180, 0],
-                  x: [20, -20, 20],
-                  y: [10, -10, 10],
+                  x: [25, -25, 25],
+                  y: [15, -15, 15],
                 }}
                 transition={{
-                  duration: 1.5,
+                  duration: 1.4,
                   repeat: Infinity,
                   ease: "linear"
                 }}
-                className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/30 rounded-[30%] blur-2xl"
+                className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/50 rounded-[30%] blur-2xl"
               />
             </div>
 
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-accent-blue to-purple-500 rounded-2xl blur-[2px] opacity-10 group-focus-within:opacity-30 transition duration-300"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-accent-blue via-accent-light to-purple-500 rounded-2xl blur-[3px] opacity-20 group-focus-within:opacity-50 transition duration-300"></div>
             
             <input
               type="text"
@@ -211,10 +209,10 @@ const SearchAI: React.FC<SearchAIProps> = ({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={language === 'uz' ? 'SmartSellerga savol bering...' : 'Спросите у SmartSeller...'}
-              className="relative w-full bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl border border-white/20 rounded-2xl pl-6 pr-14 py-4 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/20 transition-all placeholder:text-text-secondary/40 z-10"
+              className="relative w-full bg-white/40 dark:bg-neutral-900/40 backdrop-blur-2xl border border-white/30 rounded-2xl pl-6 pr-14 py-4 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/40 transition-all placeholder:text-text-secondary/60 z-10"
             />
             
-            <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none opacity-20 z-20">
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none opacity-40 z-20">
               <Sparkles size={12} className="text-accent-blue animate-pulse" />
             </div>
 
@@ -224,7 +222,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
               whileTap={{ scale: 0.9 }}
               onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-accent-blue text-white rounded-xl disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-accent-blue/20 flex items-center justify-center z-30 group/btn"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-accent-blue text-white rounded-xl disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-accent-blue/40 flex items-center justify-center z-30 group/btn"
             >
               <Send size={16} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
             </motion.button>
