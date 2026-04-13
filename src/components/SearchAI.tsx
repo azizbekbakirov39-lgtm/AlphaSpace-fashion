@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { AIMessage } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 interface SearchAIProps {
   language?: string;
@@ -11,6 +11,12 @@ interface SearchAIProps {
   initialQuery?: string;
   onClearInitialQuery?: () => void;
 }
+
+const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 
+Foydalanuvchiga "sen" deb murojaat qil. Ortiqcha xushomadgo'ylik (paxta qo'yish) qilma. 
+Javoblaring qisqa va lo'nda bo'lsin: oddiy savollarga 1-2 qator, murakkabroqlariga 5-6 qatordan oshmasin. 
+Foydalanuvchi xato qilsa, xatosini ochiq va to'g'ridan-to'g'ri ayt, lekin hurmatni saqlagan holda. 
+O'zingni hurmat qiladigan, aqlli va samimiy do'st kabi tut.`;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -75,10 +81,6 @@ const SearchAI: React.FC<SearchAIProps> = ({
         parts: [{ text: m.content }]
       }));
 
-      const systemInstruction = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 
-      Foydalanuvchiga mahsulotlar, do'konlar va platformadan foydalanish bo'yicha yordam bering.
-      Javobingizni ChatGPT uslubida, batafsil va tushunarli qilib bering. Do'stona va samimiy bo'ling.`;
-
       const contents = [
         ...history,
         { role: 'user', parts: [{ text: messageText }] }
@@ -88,7 +90,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
         model: 'gemini-3-flash-preview',
         contents: contents as any,
         config: {
-          systemInstruction
+          systemInstruction: SYSTEM_INSTRUCTION
         }
       });
 
