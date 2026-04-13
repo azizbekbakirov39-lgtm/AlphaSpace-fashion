@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { AIMessage } from '../types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface SearchAIProps {
   language?: string;
@@ -11,6 +11,23 @@ interface SearchAIProps {
   initialQuery?: string;
   onClearInitialQuery?: () => void;
 }
+
+const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, speed);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, text, speed]);
+
+  return <span>{displayedText}</span>;
+};
 
 const SearchAI: React.FC<SearchAIProps> = ({
   language = 'uz',
@@ -34,7 +51,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSend = async (textOverride?: string) => {
     const messageText = textOverride || input;
@@ -60,7 +77,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
       const systemInstruction = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 
       Foydalanuvchiga mahsulotlar, do'konlar va platformadan foydalanish bo'yicha yordam bering.
-      Juda qisqa va aniq javob bering. Do'stona va samimiy bo'ling.`;
+      Javobingizni ChatGPT uslubida, batafsil va tushunarli qilib bering. Do'stona va samimiy bo'ling.`;
 
       const contents = [
         ...history,
@@ -96,7 +113,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-bg-primary relative">
+    <div className="flex flex-col h-full bg-white dark:bg-neutral-950 relative">
       {/* Floating Header - Top Left */}
       <div className="absolute top-0 left-0 p-6 flex flex-col items-start pointer-events-none z-30">
         <div className="flex flex-col items-center gap-1.5">
@@ -121,54 +138,66 @@ const SearchAI: React.FC<SearchAIProps> = ({
       {/* Messages */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide pt-32 pb-40"
+        className="flex-1 overflow-y-auto p-6 space-y-10 scrollbar-hide pt-32 pb-48"
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="w-20 h-20 rounded-[2rem] bg-accent-blue/5 flex items-center justify-center text-accent-blue mb-6">
-              <Sparkles size={40} />
+            <div className="w-16 h-16 rounded-[2rem] bg-accent-blue/5 flex items-center justify-center text-accent-blue mb-6">
+              <Sparkles size={32} />
             </div>
-            <h3 className="text-lg font-black text-text-primary mb-2">
-              {language === 'uz' ? 'Sizga qanday yordam bera olaman?' : 'Чем я могу вам помочь?'}
+            <h3 className="text-xl font-black text-text-primary mb-2">
+              {language === 'uz' ? 'SmartSellerga xush kelibsiz' : 'Добро пожаловать в SmartSeller'}
             </h3>
-            <p className="text-xs font-bold text-text-secondary leading-relaxed">
+            <p className="text-sm font-medium text-text-secondary leading-relaxed max-w-[280px]">
               {language === 'uz' 
-                ? 'Mahsulotlar, do\'konlar yoki platforma haqida istalgan savolingizni bering.' 
-                : 'Задавайте любые вопросы о товарах, магазинах или платформе.'}
+                ? 'Sizga marketplace bo\'yicha istalgan savolga javob berishga tayyorman.' 
+                : 'Я готов ответить на любые вопросы по маркетплейсу.'}
             </p>
           </div>
         )}
 
-        {messages.map((message) => (
+        {messages.map((message, index) => (
           <motion.div
             key={message.id}
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start w-full'}`}
           >
-            <div className={`max-w-[85%] p-4 rounded-3xl text-sm font-bold shadow-sm ${
+            <div className={`w-full ${
               message.role === 'user' 
-                ? 'bg-accent-blue text-white rounded-tr-none' 
-                : 'bg-text-primary/5 text-text-primary border border-border-primary rounded-tl-none'
+                ? 'flex justify-end' 
+                : 'flex justify-start'
             }`}>
-              {message.content}
+              <div className={`max-w-[90%] text-base leading-relaxed ${
+                message.role === 'user' 
+                  ? 'bg-accent-blue text-white px-6 py-4 rounded-[2rem] font-medium shadow-lg shadow-accent-blue/10' 
+                  : 'text-neutral-900 dark:text-neutral-100 font-medium py-2 w-full'
+              }`}>
+                {message.role === 'assistant' && index === messages.length - 1 && !isLoading ? (
+                  <TypewriterText text={message.content} />
+                ) : (
+                  message.content
+                )}
+              </div>
             </div>
           </motion.div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-text-primary/5 border border-border-primary p-4 rounded-3xl rounded-tl-none flex items-center gap-2">
-              <Loader2 size={16} className="animate-spin text-accent-blue" />
-              <span className="text-[10px] font-black text-text-primary/40 uppercase tracking-widest">Yozmoqda...</span>
+          <div className="flex justify-start w-full">
+            <div className="flex items-center gap-3 py-2">
+              <div className="w-6 h-6 rounded-full bg-accent-blue/10 flex items-center justify-center">
+                <Loader2 size={14} className="animate-spin text-accent-blue" />
+              </div>
+              <span className="text-xs font-bold text-text-secondary uppercase tracking-widest animate-pulse">SmartSeller o'ylamoqda...</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Floating Input Panel with AI Liquid Effect */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 pb-24 pointer-events-none z-20">
-        <div className="relative z-10 flex items-center gap-2 pointer-events-auto">
-          <div className="flex-1 relative group overflow-hidden rounded-2xl shadow-2xl shadow-accent-blue/10">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 pointer-events-none z-20">
+        <div className="relative z-10 flex items-center gap-2 pointer-events-auto max-w-2xl mx-auto">
+          <div className="flex-1 relative group overflow-hidden rounded-3xl shadow-2xl shadow-black/5 border border-neutral-200 dark:border-neutral-800">
             {/* Liquid Background Effect - 2x Brighter and more vibrant */}
             <div className="absolute inset-0 pointer-events-none opacity-60 z-0">
               <motion.div 
@@ -201,30 +230,26 @@ const SearchAI: React.FC<SearchAIProps> = ({
               />
             </div>
 
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-accent-blue via-accent-light to-purple-500 rounded-2xl blur-[3px] opacity-20 group-focus-within:opacity-50 transition duration-300"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-accent-blue via-accent-light to-purple-500 rounded-3xl blur-[3px] opacity-20 group-focus-within:opacity-50 transition duration-300"></div>
             
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={language === 'uz' ? 'SmartSellerga savol bering...' : 'Спросите у SmartSeller...'}
-              className="relative w-full bg-white/40 dark:bg-neutral-900/40 backdrop-blur-2xl border border-white/30 rounded-2xl pl-6 pr-14 py-4 text-sm font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue/40 transition-all placeholder:text-text-secondary/60 z-10"
+              placeholder={language === 'uz' ? 'SmartSellerga xabar yozing...' : 'Напишите SmartSeller...'}
+              className="relative w-full bg-white/80 dark:bg-neutral-900/80 backdrop-blur-2xl rounded-3xl pl-6 pr-14 py-5 text-base font-medium text-text-primary focus:outline-none transition-all placeholder:text-text-secondary/60 z-10"
             />
             
-            <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none opacity-40 z-20">
-              <Sparkles size={12} className="text-accent-blue animate-pulse" />
-            </div>
-
             {/* Integrated Smaller Send Button */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-accent-blue text-white rounded-xl disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-accent-blue/40 flex items-center justify-center z-30 group/btn"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-11 h-11 bg-accent-blue text-white rounded-2xl disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-accent-blue/40 flex items-center justify-center z-30 group/btn"
             >
-              <Send size={16} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+              <Send size={18} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
             </motion.button>
           </div>
         </div>
