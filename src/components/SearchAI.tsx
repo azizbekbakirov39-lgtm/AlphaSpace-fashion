@@ -36,8 +36,9 @@ Siz rasm va videolarni tahlil qila olasiz. Ranglar, uslublar va kiyim turlarini 
 Foydalanuvchi rasm tashlasa, undagi kiyimlarni tahlil qil va shunga o'xshash mahsulotlarni topib ber.
 Obraz yaratishda (outfit matching) mohirsiz. Masalan, jigarrang ko'ylak bilan oq shim kabi mos keladigan kiyimlarni tavsiya qiling.
 
-MUHIM: Har doim foydalanuvchiga matnli javob qaytar. Agar mahsulot qidirayotgan bo'lsang, bu haqda foydalanuvchiga ayt (masalan: "Hozir qidirib ko'raman...").
-Agar foydalanuvchi mahsulot yoki obraz qidirsa, "find_products" yoki "find_outfits" funksiyalarini chaqiring.`;
+MUHIM: Agar foydalanuvchi kiyim, poyabzal, shim, ko'ylak yoki biror mahsulot haqida so'rasa, albatta "find_products" funksiyasini chaqir. 
+Hatto rasm tashlab "shunga o'xshashini top" desa ham funksiyani ishlat.
+Javobingda "Hozir qidirib ko'raman..." yoki "Kutib tur, qidiryapman..." kabi iboralarni ishlatsang, tizim avtomatik ravishda qidiruv animatsiyasini ko'rsatadi.`;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -72,6 +73,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -117,6 +119,10 @@ const SearchAI: React.FC<SearchAIProps> = ({
     const currentImage = selectedImage;
     setSelectedImage(null);
     setIsLoading(true);
+    setIsSearching(messageText.toLowerCase().includes('top') || 
+                   messageText.toLowerCase().includes('qidir') || 
+                   messageText.toLowerCase().includes('ko\'rsat') ||
+                   !!selectedImage);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
     try {
@@ -267,6 +273,19 @@ Foydalanuvchi xabari: ${messageText}`;
       };
 
       setMessages?.(prev => [...prev, aiMessage]);
+      
+      // If AI didn't call the tool but the user clearly wanted a search, do a fallback search
+      if (!functionCalls && isSearching) {
+        const q = messageText.toLowerCase();
+        const results = allPosts.filter(p => 
+          p.outfitName.toLowerCase().includes(q) || 
+          p.description?.toLowerCase().includes(q) ||
+          p.items.some(item => item.name.toLowerCase().includes(q))
+        );
+        if (results.length > 0) {
+          setFoundPosts?.(results);
+        }
+      }
     } catch (error) {
       console.error('AI Error:', error);
       const errorMessage: AIMessage = {
@@ -277,6 +296,7 @@ Foydalanuvchi xabari: ${messageText}`;
       setMessages?.(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -482,13 +502,58 @@ Foydalanuvchi xabari: ${messageText}`;
           </motion.div>
         ))}
         {isLoading && (
-          <div className="flex justify-start w-full">
+          <div className="flex flex-col items-start w-full gap-4">
             <div className="flex items-center gap-3 py-2">
               <div className="w-6 h-6 rounded-full bg-accent-blue/10 flex items-center justify-center">
                 <Loader2 size={14} className="animate-spin text-accent-blue" />
               </div>
               <span className="text-xs font-bold text-text-secondary uppercase tracking-widest animate-pulse">SmartSeller o'ylamoqda...</span>
             </div>
+            
+            {/* Magnifying Glass Search Animation - Only show when searching */}
+            <AnimatePresence>
+              {isSearching && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                  className="relative w-24 h-24 flex items-center justify-center ml-4"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-accent-blue to-purple-600 rounded-full blur-2xl opacity-20 animate-pulse" />
+                  <div className="relative w-16 h-16 rounded-full border-4 border-accent-blue flex items-center justify-center overflow-hidden">
+                    <motion.div 
+                      animate={{
+                        x: [-10, 10, -10],
+                        y: [-10, 10, -10],
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-0 bg-gradient-to-tr from-accent-blue/20 to-purple-500/20"
+                    />
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="text-accent-blue"
+                    >
+                      <Sparkles size={24} />
+                    </motion.div>
+                  </div>
+                  <motion.div 
+                    animate={{
+                      x: [0, 5, 0],
+                      y: [0, 5, 0],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute -bottom-2 -right-2 w-8 h-8 bg-white dark:bg-neutral-900 rounded-full shadow-lg flex items-center justify-center border-2 border-accent-blue"
+                  >
+                    <div className="w-4 h-4 text-accent-blue">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                      </svg>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>
