@@ -6,23 +6,8 @@ import { motion } from 'motion/react';
 
 interface SearchAIProps {
   language?: string;
-  pendingTryOn?: any;
-  onClearPendingTryOn?: () => void;
   messages?: AIMessage[];
   setMessages?: React.Dispatch<React.SetStateAction<AIMessage[]>>;
-  foundPosts?: any[];
-  setFoundPosts?: any;
-  foundObrazlar?: any[];
-  setFoundObrazlar?: any;
-  foundSellers?: any[];
-  setFoundSellers?: any;
-  onOpenPostDetails?: any;
-  onOpenShopProfile?: any;
-  globalMuted?: boolean;
-  setGlobalMuted?: any;
-  allPosts?: any[];
-  allObrazlar?: any[];
-  allSellers?: any[];
   initialQuery?: string;
   onClearInitialQuery?: () => void;
 }
@@ -90,7 +75,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
       ];
 
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: contents as any,
         config: {
           systemInstruction

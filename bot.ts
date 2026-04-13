@@ -76,7 +76,7 @@ export const startBot = async () => {
             Return ONLY JSON: {"productName": "...", "price": "...", "description": "...", "imageUrl": "...", "channelName": "...", "tags": []}`;
 
             const result = await genAI.models.generateContent({
-              model: "gemini-1.5-flash",
+              model: "gemini-3-flash-preview",
               contents: [{ role: 'user', parts: [{ text: prompt }] }]
             }) as any;
 
@@ -131,13 +131,13 @@ export const startBot = async () => {
         
         const currentAi = new GoogleGenAI({ apiKey: apiKey });
 
-        const model = "gemini-1.5-flash";
+        const model = "gemini-3-flash-preview";
         const aiPromise = currentAi.models.generateContent({
           model,
           contents: [{ role: 'user', parts: [{ text: userMessage }] }],
           config: {
             systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz.
-            Sizning modelingiz Gemini 1.5 Flash.
+            Sizning modelingiz Gemini 3 Flash.
             Sizning o'zingizni mustaqil Telegram sotuvchilari bazangiz bor. Veb-saytda esa "SmartSeller" ismli AI do'stingiz ishlaydi.
             Siz shunchaki qul yoki bot emassan, balki foydalanuvchiga chin dildan qayg'uradigan yaqin do'st, aka-uka yoki opa-singil kabi samimiy insonsiz.
             
@@ -188,14 +188,14 @@ export const startBot = async () => {
               
               // Ask Gemini again with the website data
               const secondAiPromise = currentAi.models.generateContent({
-                model: "gemini-1.5-flash",
+                model: "gemini-3-flash-preview",
                 contents: [
                   { role: 'user', parts: [{ text: userMessage }] },
                   { role: 'model', parts: [{ text: aiResponse }] },
                   { role: 'user', parts: [{ text: `SmartSellerdan javob keldi:\n${websiteData}\n\nEndi foydalanuvchiga shu ma'lumotlar asosida chiroyli qilib javob bering.` }] }
                 ],
                 config: {
-                  systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz. Sizning modelingiz Gemini 1.5 Flash. Qisqa, erkin va do'stona javob bering.`
+                  systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz. Sizning modelingiz Gemini 3 Flash. Qisqa, erkin va do'stona javob bering.`
                 }
               });
               
