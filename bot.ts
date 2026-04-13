@@ -188,14 +188,14 @@ export const startBot = async () => {
               
               // Ask Gemini again with the website data
               const secondAiPromise = currentAi.models.generateContent({
-                model: "gemini-2.5-flash",
+                model: "gemini-1.5-flash",
                 contents: [
                   { role: 'user', parts: [{ text: userMessage }] },
                   { role: 'model', parts: [{ text: aiResponse }] },
                   { role: 'user', parts: [{ text: `SmartSellerdan javob keldi:\n${websiteData}\n\nEndi foydalanuvchiga shu ma'lumotlar asosida chiroyli qilib javob bering.` }] }
                 ],
                 config: {
-                  systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz. Sizning modelingiz Gemini 2.5 Flash. Qisqa, erkin va do'stona javob bering.`
+                  systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz. Sizning modelingiz Gemini 1.5 Flash. Qisqa, erkin va do'stona javob bering.`
                 }
               });
               
