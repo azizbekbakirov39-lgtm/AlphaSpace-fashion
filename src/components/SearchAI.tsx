@@ -97,21 +97,21 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-bg-primary relative">
-      {/* Floating Header */}
-      <div className="absolute top-0 left-0 right-0 p-8 flex flex-col items-center justify-center pointer-events-none z-30">
-        <div className="flex flex-col items-center gap-3">
+      {/* Floating Header - Top Left */}
+      <div className="absolute top-0 left-0 p-6 flex flex-col items-start pointer-events-none z-30">
+        <div className="flex flex-col items-center gap-1.5">
           <motion.div 
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="w-14 h-14 rounded-[2rem] bg-gradient-to-br from-purple-600 to-accent-blue flex items-center justify-center shadow-2xl shadow-accent-blue/30 pointer-events-auto"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-accent-blue flex items-center justify-center shadow-xl shadow-accent-blue/20 pointer-events-auto"
           >
-            <Sparkles size={28} className="text-white" />
+            <Sparkles size={16} className="text-white" />
           </motion.div>
           <motion.h2 
-            initial={{ y: -10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            initial={{ x: -10, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-[10px] font-black text-text-primary uppercase tracking-[0.5em] pointer-events-auto"
+            className="text-[8px] font-black text-text-primary uppercase tracking-tighter pointer-events-auto"
           >
             SmartSeller
           </motion.h2>
