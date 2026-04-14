@@ -59,15 +59,19 @@ async function startServer() {
 
     // 1. Verify Telegram hash
     const secretKey = crypto.createHash('sha256').update(botToken).digest();
-    const dataCheckString = Object.keys(data)
-      .sort()
-      .map(key => `${key}=${data[key]}`)
-      .join('\n');
+    
+    // Create a copy of data without hash for verification
+    const dataCheckArr = [];
+    for (const key in data) {
+      dataCheckArr.push(`${key}=${data[key]}`);
+    }
+    const dataCheckString = dataCheckArr.sort().join('\n');
     
     const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
     if (hmac !== hash) {
-      return res.status(401).json({ error: "Ma'lumotlar haqiqiyligi tasdiqlanmadi" });
+      console.error("Telegram Hash Mismatch:", { calculated: hmac, received: hash });
+      return res.status(401).json({ error: "Ma'lumotlar haqiqiyligi tasdiqlanmadi (Hash mismatch)" });
     }
 
     // 2. Check auth_date (optional but recommended, e.g., within 24 hours)
