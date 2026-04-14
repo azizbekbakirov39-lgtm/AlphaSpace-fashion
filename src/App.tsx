@@ -271,14 +271,14 @@ export default function App() {
       
       if (!response.ok) {
         const errorText = await response.text();
-        let errorMessage = "Server xatosi";
+        let errorMessage = "Noma'lum xatolik";
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.error || errorMessage;
         } catch (e) {
-          errorMessage = errorText || errorMessage;
+          errorMessage = errorText.substring(0, 50) || errorMessage;
         }
-        throw new Error(errorMessage);
+        throw new Error(`Status: ${response.status}, Xabar: ${errorMessage}`);
       }
 
       const result = await response.json();

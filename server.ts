@@ -13,18 +13,10 @@ import crypto from "crypto";
 dotenv.config();
 
 // Initialize Firebase Admin
-const firebaseConfigPath = path.join(process.cwd(), "firebase-applet-config.json");
 try {
-  if (fs.existsSync(firebaseConfigPath)) {
-    const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        projectId: firebaseConfig.projectId,
-      });
-      console.log("Firebase Admin initialized with project:", firebaseConfig.projectId);
-    }
-  } else {
-    console.warn("Firebase Admin: firebase-applet-config.json topilmadi");
+  if (!admin.apps.length) {
+    admin.initializeApp();
+    console.log("Firebase Admin initialized with default credentials");
   }
 } catch (error) {
   console.error("Firebase Admin Initialization Error:", error);
@@ -53,14 +45,19 @@ async function startServer() {
 
   // Telegram Auth Verification
   app.post("/api/auth/telegram", async (req, res) => {
+    console.log("Telegram Auth Request Received:", JSON.stringify(req.body).slice(0, 100) + "...");
     try {
       const { hash, ...data } = req.body;
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
       if (!botToken) {
-        console.error("Telegram Auth Error: TELEGRAM_BOT_TOKEN is missing");
-        return res.status(500).json({ error: "Serverda Telegram bot tokeni sozlanmagan (TELEGRAM_BOT_TOKEN missing)" });
+        console.error("CRITICAL: TELEGRAM_BOT_TOKEN is missing in environment");
+        return res.status(500).json({ 
+          error: "TELEGRAM_BOT_TOKEN topilmadi. Iltimos, Settings -> Secrets bo'limidan ushbu kalitni qo'shing." 
+        });
       }
+
+      console.log("Bot Token found (starts with):", botToken.substring(0, 5) + "...");
 
       if (!hash) {
         return res.status(400).json({ error: "Telegram hash topilmadi" });
@@ -78,34 +75,45 @@ async function startServer() {
       const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
       if (hmac !== hash) {
-        console.error("Telegram Hash Mismatch:", { calculated: hmac, received: hash });
-        return res.status(401).json({ error: "Ma'lumotlar haqiqiyligi tasdiqlanmadi (Hash mismatch)" });
+        console.error("Telegram Hash Mismatch!");
+        return res.status(401).json({ error: "Xavfsizlik tekshiruvi muvaffaqiyatsiz (Hash mismatch). Bot tokeni to'g'riligini tekshiring." });
       }
 
       // 2. Check auth_date
       const authDate = parseInt(data.auth_date);
       const now = Math.floor(Date.now() / 1000);
       if (now - authDate > 86400) {
-        return res.status(401).json({ error: "Sessiya muddati o'tgan" });
+        return res.status(401).json({ error: "Sessiya muddati o'tgan (Auth date too old)" });
       }
 
       // 3. Create Firebase Custom Token
+      console.log("Attempting to create Firebase Custom Token for UID:", `telegram:${data.id}`);
+      
       if (!admin.apps.length) {
+        console.error("Firebase Admin not initialized!");
         throw new Error("Firebase Admin initialized emas");
       }
 
-      const firebaseUid = `telegram:${data.id}`;
-      const customToken = await admin.auth().createCustomToken(firebaseUid, {
-        telegram_id: String(data.id),
-        username: data.username || "",
-        first_name: data.first_name || "",
-        provider: "telegram"
-      });
+      try {
+        const firebaseUid = `telegram:${data.id}`;
+        const customToken = await admin.auth().createCustomToken(firebaseUid, {
+          telegram_id: String(data.id),
+          username: data.username || "",
+          first_name: data.first_name || "",
+          provider: "telegram"
+        });
 
-      res.json({ token: customToken, user: data });
+        console.log("Custom Token created successfully");
+        res.json({ token: customToken, user: data });
+      } catch (firebaseError: any) {
+        console.error("Firebase createCustomToken Error:", firebaseError);
+        return res.status(500).json({ 
+          error: `Firebase tizimida xatolik: ${firebaseError.message}. Ehtimol, Service Account huquqlari yetishmayapti.` 
+        });
+      }
     } catch (error: any) {
-      console.error("Telegram Auth Route Error:", error);
-      res.status(500).json({ error: `Server xatosi: ${error.message || "Noma'lum xatolik"}` });
+      console.error("Global Telegram Auth Route Error:", error);
+      res.status(500).json({ error: `Kutilmagan xatolik: ${error.message || "Noma'lum"}` });
     }
   });
 
