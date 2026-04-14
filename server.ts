@@ -50,11 +50,12 @@ async function startServer() {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
     if (!botToken) {
-      return res.status(500).json({ error: "Telegram bot tokeni sozlanmagan" });
+      console.error("Telegram Auth Error: TELEGRAM_BOT_TOKEN is missing");
+      return res.status(500).json({ error: "Serverda Telegram bot tokeni sozlanmagan (TELEGRAM_BOT_TOKEN missing)" });
     }
 
     if (!hash) {
-      return res.status(400).json({ error: "Hash topilmadi" });
+      return res.status(400).json({ error: "Telegram hash topilmadi" });
     }
 
     // 1. Verify Telegram hash
@@ -84,17 +85,22 @@ async function startServer() {
     try {
       // 3. Create Firebase Custom Token
       const firebaseUid = `telegram:${data.id}`;
+      
+      if (!admin.apps.length) {
+        throw new Error("Firebase Admin initialized emas");
+      }
+
       const customToken = await admin.auth().createCustomToken(firebaseUid, {
-        telegram_id: data.id,
-        username: data.username,
-        first_name: data.first_name,
+        telegram_id: String(data.id),
+        username: data.username || "",
+        first_name: data.first_name || "",
         provider: "telegram"
       });
 
       res.json({ token: customToken, user: data });
     } catch (error: any) {
-      console.error("Telegram Auth Error:", error);
-      res.status(500).json({ error: "Firebase token yaratishda xatolik" });
+      console.error("Telegram Auth Error (Firebase):", error);
+      res.status(500).json({ error: `Firebase xatosi: ${error.message}` });
     }
   });
 
