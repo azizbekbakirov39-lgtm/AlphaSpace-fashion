@@ -247,7 +247,9 @@ export default function App() {
   }, [user]);
 
   const handleInstagramLogin = () => {
-    const appId = (process.env as any).VITE_INSTAGRAM_APP_ID;
+    // Try to get from env, fallback to hardcoded ID if env is not picked up
+    const appId = (process.env as any).VITE_INSTAGRAM_APP_ID || "968864218927050";
+    
     if (!appId) {
       toast.error("Instagram App ID topilmadi. Iltimos, .env faylini tekshiring.");
       return;
