@@ -35,13 +35,13 @@ import {
   Info,
   Store,
   ShieldCheck,
-  Download
+  Download,
+  Instagram
 } from 'lucide-react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
 import { PostData, Seller, Obraz, User } from '../types';
-import { seedDatabase, clearDatabase } from '../seed';
 import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { uploadImageToImgBB } from '../services/imgbb';
 
@@ -68,6 +68,7 @@ interface ProfileProps {
   setSubView: (view: SubView) => void;
   user: User | null;
   onLogin: () => void;
+  onInstagramLogin?: () => void;
   onLogout: () => void;
   onBackToHome?: () => void;
   onOpenAdminDashboard?: () => void;
@@ -114,6 +115,7 @@ const Profile: React.FC<ProfileProps> = ({
   setSubView,
   user,
   onLogin,
+  onInstagramLogin,
   onLogout,
   onBackToHome,
   onOpenAdminDashboard,
@@ -600,11 +602,22 @@ const Profile: React.FC<ProfileProps> = ({
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={onLogin}
-              className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3"
+              className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3 mb-4"
             >
               <Globe size={20} />
               Google orqali kirish
             </motion.button>
+            
+            {onInstagramLogin && (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={onInstagramLogin}
+                className="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-pink-500/20 flex items-center justify-center gap-3"
+              >
+                <Instagram size={20} />
+                Instagram orqali kirish
+              </motion.button>
+            )}
           </div>
         </div>
       );
@@ -825,25 +838,7 @@ const Profile: React.FC<ProfileProps> = ({
         </motion.button>
       )}
 
-      {/* Dev: Reset Data Button */}
-      <motion.button
-        onClick={async () => {
-          const confirm = window.confirm("Barcha ma'lumotlarni o'chirib, yangidan qo'shishni xohlaysizmi? (10 ta yangi mahsulot qo'shiladi)");
-          if (confirm) {
-            toast.loading("Ma'lumotlar yangilanmoqda...");
-            await clearDatabase();
-            await seedDatabase();
-            toast.success("Ma'lumotlar muvaffaqiyatli yangilandi!");
-            window.location.reload();
-          }
-        }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className="w-full py-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 mt-4"
-      >
-        <RefreshCw size={14} />
-        Dev: Ma'lumotlarni yangilash (10+ mahsulot)
-      </motion.button>
+
 
       {/* Menu Items removed as they are now integrated into other sections */}
 

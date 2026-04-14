@@ -11,7 +11,6 @@ export const auth = getAuth(app);
 
 // Use initializeFirestore with settings for better stability
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
   ignoreUndefinedProperties: true,
 }, firebaseConfig.firestoreDatabaseId);
 

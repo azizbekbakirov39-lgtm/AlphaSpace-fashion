@@ -277,7 +277,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   ];
   
   // Post management states
-  const [isAddingPost, setIsAddingPost] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
@@ -297,17 +296,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     selectedPostIds: [] as string[],
     mediaUrls: [] as string[]
   });
-  const [newPostForm, setNewPostForm] = useState({
-    outfitName: '',
-    description: '',
-    price: '',
-    mediaType: 'carousel' as 'carousel' | 'video',
-    mediaUrls: [] as string[],
-    mediaFiles: [] as File[]
-  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const postMediaRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<any>(null);
   
@@ -408,130 +398,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           console.error("Error detecting location:", error);
         }
       );
-    }
-  };
-
-  const handleAddPost = async () => {
-    if (!newPostForm.outfitName || !newPostForm.price || newPostForm.mediaFiles.length === 0 || !user || isUploading) return;
-
-    const toastId = toast.loading("Tayyorlanmoqda...");
-    setIsUploading(true);
-    setUploadProgress(0);
-    setIsAddingPost(false); 
-
-    try {
-      console.log("Starting upload process for user:", user.uid);
-      const uploadedUrls: string[] = [];
-      const totalFiles = newPostForm.mediaFiles.length;
-      
-      for (let i = 0; i < totalFiles; i++) {
-        const file = newPostForm.mediaFiles[i];
-        let fileToUpload = file;
-        
-        console.log(`Processing file ${i + 1}/${totalFiles}:`, file.name, file.type, file.size);
-
-        // File size limits
-        const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
-        const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-
-        if (file.type.startsWith('video/') && file.size > MAX_VIDEO_SIZE) {
-          throw new Error(`Video hajmi juda katta (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimal hajm 50MB.`);
-        }
-        if (file.type.startsWith('image/') && file.size > MAX_IMAGE_SIZE) {
-          throw new Error(`Rasm hajmi juda katta (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimal hajm 10MB.`);
-        }
-
-        // Compress media before upload
-        if (file.type.startsWith('image/')) {
-          toast.loading(`Rasm siqilmoqda (${i + 1}/${totalFiles})...`, { id: toastId });
-          try {
-            fileToUpload = await compressImage(file);
-          } catch (compErr) {
-            console.error("Compression failed, using original file:", compErr);
-          }
-        } else if (file.type.startsWith('video/')) {
-          toast.loading(`Video tayyorlanmoqda (${i + 1}/${totalFiles})...`, { id: toastId });
-          try {
-            fileToUpload = await compressVideo(file);
-          } catch (compErr) {
-            console.error("Video compression failed:", compErr);
-          }
-        }
-
-        toast.loading(`Yuklanmoqda (${i + 1}/${totalFiles})...`, { id: toastId });
-        const safeFileName = fileToUpload.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-        const storageRef = ref(storage, `posts/${user.uid}/${Date.now()}_${safeFileName}`);
-        
-        const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
-        
-        // Add a timeout to the upload
-        const uploadPromise = new Promise<void>((resolve, reject) => {
-          uploadTask.on('state_changed', 
-            (snapshot) => {
-              if (snapshot.totalBytes > 0) {
-                const fileProgress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                const overallProgress = ((i * 100) + fileProgress) / totalFiles;
-                setUploadProgress(Math.round(overallProgress));
-              }
-            }, 
-            (error) => {
-              console.error("Firebase upload error:", error);
-              reject(error);
-            }, 
-            () => {
-              resolve();
-            }
-          );
-        });
-
-        await uploadPromise;
-        const url = await getDownloadURL(storageRef);
-        uploadedUrls.push(url);
-      }
-
-      toast.loading("Ma'lumotlar saqlanmoqda...", { id: toastId });
-      
-      // AI Analysis
-      let aiMetadata = null;
-      if (uploadedUrls.length > 0) {
-        toast.loading("AI tahlil qilmoqda...", { id: toastId });
-        aiMetadata = await analyzeProductImage(uploadedUrls[0]);
-      }
-
-      const newPost: any = {
-        sellerId: shopData.id,
-        mediaType: newPostForm.mediaType,
-        mediaUrls: uploadedUrls,
-        outfitName: newPostForm.outfitName,
-        description: newPostForm.description,
-        price: newPostForm.price,
-        items: [],
-        likes: 0,
-        comments: 0,
-        createdAt: serverTimestamp(),
-        ownerUid: user.uid,
-        aiMetadata
-      };
-
-      await addDoc(collection(db, 'posts'), newPost);
-      
-      toast.success("Post muvaffaqiyatli yuklandi", { id: toastId });
-      setUploadProgress(null);
-      setNewPostForm({
-        outfitName: '',
-        description: '',
-        price: '',
-        mediaType: 'carousel',
-        mediaUrls: [],
-        mediaFiles: []
-      });
-    } catch (error: any) {
-      console.error("Full error adding post:", error);
-      const errorMessage = error?.message || "Noma'lum xatolik";
-      toast.error(`Xatolik: ${errorMessage}`, { id: toastId });
-      setUploadProgress(null);
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -659,8 +525,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     if (!importPreview || !user) return;
     try {
       setIsUploading(true);
+      
+      // Handle default price message if price is empty
+      let finalPriceMessage = importPreview.priceMessage;
+      if (!importPreview.price && !finalPriceMessage) {
+        finalPriceMessage = "Narxi qancha?";
+      }
+
       const postData = {
         ...importPreview,
+        priceMessage: finalPriceMessage,
         ownerUid: user.uid,
         seller: {
           id: shopData.id,
@@ -720,26 +594,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       console.error("Error deleting post:", error);
       toast.error("Postni o'chirishda xatolik");
     }
-  };
-
-  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newUrls: string[] = [];
-    const newFiles: File[] = [];
-    (Array.from(files) as File[]).forEach(file => {
-      if (newPostForm.mediaUrls.length + newUrls.length >= 10) return;
-      newUrls.push(URL.createObjectURL(file));
-      newFiles.push(file);
-    });
-
-    setNewPostForm(prev => ({
-      ...prev,
-      mediaUrls: [...prev.mediaUrls, ...newUrls],
-      mediaFiles: [...prev.mediaFiles, ...newFiles],
-      mediaType: files.length > 0 && files[0].type.startsWith('video') ? 'video' : 'carousel'
-    }));
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1359,14 +1213,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             </div>
 
             {/* Create Content Section */}
-            <div className="px-6 py-4 grid grid-cols-3 gap-2">
-              <button 
-                onClick={() => setIsAddingPost(true)}
-                className="flex flex-col items-center justify-center gap-2 py-4 bg-text-primary text-bg-primary rounded-2xl shadow-lg active:scale-95 transition-all"
-              >
-                <PlusCircle size={18} />
-                <span className="text-[8px] font-black uppercase tracking-widest">Post</span>
-              </button>
+            <div className="px-6 py-4 grid grid-cols-2 gap-2">
               <button 
                 onClick={() => setShowCreateObrazModal(true)}
                 className="flex flex-col items-center justify-center gap-2 py-4 bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-2xl shadow-lg shadow-accent-blue/20 active:scale-95 transition-all"
@@ -1569,13 +1416,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                     <PlusCircle size={48} className="text-text-primary/10 mb-4" />
                     <p className="text-xs font-bold text-text-primary/40 uppercase tracking-widest mb-6">Hali postlar yo'q</p>
                     <div className="flex flex-col gap-3 w-full max-w-[280px]">
-                      <button 
-                        onClick={() => setIsAddingPost(true)}
-                        className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-accent-blue/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-                      >
-                        <PlusCircle size={18} />
-                        Post qo'shish
-                      </button>
                       <button 
                         onClick={() => setShowInstagramImportModal(true)}
                         className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -2982,6 +2822,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           className="w-full bg-transparent border-none outline-none text-xs font-bold text-accent-blue mb-2"
                           placeholder="Narxi"
                         />
+                        {!importPreview.price && (
+                          <input 
+                            type="text"
+                            maxLength={50}
+                            value={importPreview.priceMessage || ''}
+                            onChange={(e) => setImportPreview({...importPreview, priceMessage: e.target.value})}
+                            className="w-full bg-accent-blue/10 border border-accent-blue/20 rounded-lg px-3 py-1.5 outline-none text-[10px] font-bold text-accent-blue mb-2 placeholder:text-accent-blue/50"
+                            placeholder="Tugma yozuvi (masalan: Narxi qancha?)"
+                          />
+                        )}
                         <textarea 
                           value={importPreview.description}
                           onChange={(e) => setImportPreview({...importPreview, description: e.target.value})}
@@ -3051,106 +2901,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             stats={stats} 
             onClose={() => setShowStatsModal(false)} 
           />
-        )}
-      </AnimatePresence>
-
-      {/* Add Post Modal */}
-      <AnimatePresence>
-        {isAddingPost && (
-          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-md bg-bg-primary rounded-3xl border border-border-primary overflow-hidden shadow-2xl"
-            >
-              <div className="p-6 border-b border-border-primary flex justify-between items-center bg-white/5 backdrop-blur-md">
-                <div className="flex items-center gap-2">
-                  <PlusCircle size={20} className="text-accent-blue" />
-                  <h3 className="font-black italic uppercase tracking-tighter text-text-primary">Yangi Post Qo'shish</h3>
-                </div>
-                <button onClick={() => setIsAddingPost(false)} className="p-2 hover:bg-white/10 rounded-full transition-all text-text-primary/40">
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="p-6 flex flex-col gap-4 max-h-[70vh] overflow-y-auto scrollbar-hide">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Nomi</label>
-                    <input 
-                      type="text" 
-                      value={newPostForm.outfitName}
-                      onChange={(e) => setNewPostForm(prev => ({ ...prev, outfitName: e.target.value }))}
-                      className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-blue/50 text-text-primary"
-                      placeholder="Masalan: Yozgi ko'ylak"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Narxi</label>
-                    <input 
-                      type="text" 
-                      value={newPostForm.price}
-                      onChange={(e) => setNewPostForm(prev => ({ ...prev, price: e.target.value }))}
-                      className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-blue/50 text-text-primary"
-                      placeholder="150 000 so'm"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Izoh</label>
-                  <textarea 
-                    value={newPostForm.description}
-                    onChange={(e) => setNewPostForm(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm h-24 focus:outline-none focus:border-accent-blue/50 text-text-primary resize-none"
-                    placeholder="Mahsulot haqida batafsil ma'lumot..."
-                  />
-                </div>
-                
-                {/* Media Upload */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Media (Max 10 rasm yoki 1 min video)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {newPostForm.mediaUrls.map((url, i) => (
-                      <div key={i} className="w-20 h-20 rounded-xl overflow-hidden relative border border-white/10 shadow-sm group">
-                        <img src={url || undefined} className="w-full h-full object-cover" alt="preview" />
-                        <button 
-                          onClick={() => setNewPostForm(prev => ({ ...prev, mediaUrls: prev.mediaUrls.filter((_, idx) => idx !== i) }))}
-                          className="absolute top-1 right-1 bg-black/40 backdrop-blur-md text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    {newPostForm.mediaUrls.length < 10 && (
-                      <button 
-                        onClick={() => postMediaRef.current?.click()}
-                        className="w-20 h-20 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-text-primary/20 hover:text-accent-blue hover:border-accent-blue/50 transition-all bg-white/5 backdrop-blur-md"
-                      >
-                        <Camera size={24} />
-                        <span className="text-[8px] font-black uppercase mt-1">Qo'shish</span>
-                      </button>
-                    )}
-                  </div>
-                  <input 
-                    type="file" 
-                    ref={postMediaRef} 
-                    className="hidden" 
-                    multiple 
-                    accept="image/*,video/*" 
-                    onChange={handleMediaUpload} 
-                  />
-                </div>
-              </div>
-              <div className="p-6 border-t border-white/10 bg-white/5 backdrop-blur-md">
-                <button 
-                  onClick={handleAddPost}
-                  className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-accent-blue/20 active:scale-95 transition-all"
-                >
-                  Postni Joylash
-                </button>
-              </div>
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
 

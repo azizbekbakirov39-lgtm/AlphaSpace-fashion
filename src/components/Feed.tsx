@@ -22,6 +22,7 @@ interface FeedProps {
   onOpenPostComments: (post: PostData) => void;
   onSharePost: (post: PostData) => void;
   onToggleSubscribe: (sellerId: string) => void;
+  onOpenChat?: (sellerId: string) => void;
   onRefresh: () => void;
   language: Language;
   searchQuery: string;
@@ -46,6 +47,7 @@ const Feed: React.FC<FeedProps> = ({
   onOpenPostComments,
   onSharePost,
   onToggleSubscribe,
+  onOpenChat,
   onRefresh,
   language,
   searchQuery,
@@ -240,6 +242,7 @@ const Feed: React.FC<FeedProps> = ({
             onOpenShopProfile={() => onOpenShopProfile(post.seller.id)}
             onOpenDetails={() => onOpenPostDetails(post)}
             onOpenComments={() => onOpenPostComments(post)}
+            onOpenChat={() => onOpenChat && onOpenChat(post.seller.id)}
             onSharePost={() => onSharePost(post)}
             onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}
             language={language}

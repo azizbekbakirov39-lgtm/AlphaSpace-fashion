@@ -17,6 +17,7 @@ interface PostProps {
   onOpenShopProfile?: (shopId: string) => void;
   onOpenDetails?: () => void;
   onOpenComments?: () => void;
+  onOpenChat?: () => void;
   onSharePost?: () => void;
   onToggleSubscribe?: () => void;
   language: Language;
@@ -33,6 +34,7 @@ const Post: React.FC<PostProps> = ({
   onOpenShopProfile, 
   onOpenDetails,
   onOpenComments,
+  onOpenChat,
   onSharePost,
   onToggleSubscribe,
   language,
@@ -511,13 +513,25 @@ const Post: React.FC<PostProps> = ({
           )}
         </div>
         
-        {/* Royal Blue Price */}
+        {/* Royal Blue Price or Message Button */}
         <div className="mt-2 flex items-center justify-between">
-          <div>
-            <span className="bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent font-black text-2xl tracking-tight">
-              {post.price}
-            </span>
-          </div>
+          {post.price ? (
+            <div>
+              <span className="bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent font-black text-2xl tracking-tight">
+                {post.price}
+              </span>
+            </div>
+          ) : (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenChat) onOpenChat();
+              }}
+              className="bg-gradient-to-r from-accent-blue to-accent-light text-white px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-md shadow-accent-blue/20 active:scale-95 transition-all"
+            >
+              {post.priceMessage || "Narxi qancha?"}
+            </button>
+          )}
           
           <button 
             onClick={(e) => {

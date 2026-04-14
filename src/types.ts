@@ -103,6 +103,7 @@ export interface PostData {
   outfitName: string;
   description?: string;
   price: string;
+  priceMessage?: string;
   items: OutfitItem[];
   likes: number;
   comments: number;

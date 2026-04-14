@@ -22,7 +22,6 @@ import Logo from './components/Logo';
 import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
 import { Toaster, toast } from 'sonner';
-import { seedDatabase } from './seed';
 import { uploadImageToImgBB } from './services/imgbb';
 import { 
   auth, 
@@ -96,11 +95,6 @@ export default function App() {
   // Firestore Real-time Listeners
   React.useEffect(() => {
     const unsubSellers = onSnapshot(collection(db, 'shops'), (snapshot) => {
-      if (snapshot.empty) {
-        console.log("Shops empty, seeding...");
-        seedDatabase(user?.uid || "system");
-        return;
-      }
       const sellersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
       setSellers(sellersData);
     }, (error) => {
@@ -209,6 +203,21 @@ export default function App() {
       unsubUserShop();
     };
   }, [user]);
+
+  const handleInstagramLogin = () => {
+    const appId = (import.meta as any).env.VITE_INSTAGRAM_APP_ID;
+    if (!appId) {
+      toast.error("Instagram App ID topilmadi. Iltimos, .env faylini tekshiring.");
+      return;
+    }
+    
+    // Instagram OAuth URL
+    const redirectUri = window.location.origin + '/auth/instagram/callback';
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`;
+    
+    // Open in same window to avoid popup blockers, or new window if preferred
+    window.location.href = authUrl;
+  };
 
   // Merge user-specific data into posts/stories
   const postsWithUserStatus = React.useMemo(() => {
@@ -1216,6 +1225,7 @@ export default function App() {
                       onOpenShopProfile={openShopProfile}
                       onOpenPostDetails={openPostDetails}
                       onOpenPostComments={openPostComments}
+                      onOpenChat={handleOpenChat}
                       onSharePost={handleSharePost}
                       onRefresh={handleRefresh}
                       language={language}
@@ -1317,6 +1327,7 @@ export default function App() {
                       setSubView={setProfileSubView}
                       user={user}
                       onLogin={signInWithGoogle}
+                      onInstagramLogin={handleInstagramLogin}
                       onLogout={logout}
                       initialChatSellerId={initialChatSellerId}
                       initialChatProduct={initialChatProduct}
