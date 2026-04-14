@@ -366,6 +366,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       
       await updateDoc(shopRef, updateData);
       
+      if (localShopData.logo !== shopData.logo) {
+        toast.loading("Postlardagi logo yangilanmoqda...", { id: 'save-shop' });
+        const shopPosts = posts.filter(p => p.seller.id === shopData.id);
+        for (const post of shopPosts) {
+          await updateDoc(doc(db, 'posts', post.id), {
+            'seller.logo': localShopData.logo
+          });
+        }
+      }
+      
       onUpdateShop(localShopData);
       toast.success("Ma'lumotlar saqlandi", { id: 'save-shop' });
       handleTabChange('MyShop');
