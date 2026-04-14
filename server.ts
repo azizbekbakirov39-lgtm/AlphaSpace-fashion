@@ -108,8 +108,11 @@ async function startServer() {
 
   // FFmpeg.wasm requires these headers for SharedArrayBuffer support
   app.use((req, res, next) => {
-    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    // Do not set these headers for API routes or Telegram auth to avoid blocking external scripts
+    if (!req.path.startsWith('/api/')) {
+      res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+      res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    }
     next();
   });
 
