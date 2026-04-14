@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageCircle, Share2, Volume2, VolumeX, Check, ChevronLeft, ChevronRight, ShoppingBag, Send } from 'lucide-react';
 import { Story, PostData, User } from '../types';
+import { isVideoUrl } from '../utils/mediaUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
 import { Language } from '../translations';
@@ -91,21 +92,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     }
   }, [currentIndex, currentStory?.id, onMarkViewed]);
 
-  // Handle video progress
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const updateProgress = () => {
-      if (video.duration) {
-        const p = (video.currentTime / video.duration) * 100;
-        setProgress(p);
-      }
-    };
-
-    video.addEventListener('timeupdate', updateProgress);
-    return () => video.removeEventListener('timeupdate', updateProgress);
-  }, [currentIndex]);
+  const [isPaused, setIsPaused] = useState(false);
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   const handleNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
@@ -121,9 +110,43 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     }
   }, [currentIndex]);
 
-  const [isPaused, setIsPaused] = useState(false);
-  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  // Handle video progress and image auto-advance
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video && isVideoUrl(currentStory?.videoUrl || '')) {
+      const updateProgress = () => {
+        if (video.duration) {
+          const p = (video.currentTime / video.duration) * 100;
+          setProgress(p);
+        }
+      };
+      video.addEventListener('timeupdate', updateProgress);
+      return () => video.removeEventListener('timeupdate', updateProgress);
+    } else if (currentStory && !isVideoUrl(currentStory.videoUrl)) {
+      // For images, auto-advance after 5 seconds and animate progress
+      let startTime = Date.now();
+      let animationFrame: number;
+      
+      const updateImageProgress = () => {
+        if (isPaused || showProductDetails || showComments) {
+          startTime += 16; // Roughly maintain time if paused
+        } else {
+          const elapsed = Date.now() - startTime;
+          const p = Math.min((elapsed / 5000) * 100, 100);
+          setProgress(p);
+          
+          if (p >= 100) {
+            handleNext();
+            return;
+          }
+        }
+        animationFrame = requestAnimationFrame(updateImageProgress);
+      };
+      
+      animationFrame = requestAnimationFrame(updateImageProgress);
+      return () => cancelAnimationFrame(animationFrame);
+    }
+  }, [currentIndex, currentStory, isPaused, showProductDetails, showComments, handleNext]);
 
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
     longPressTimeout.current = setTimeout(() => {
@@ -229,21 +252,35 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       exit={{ opacity: 0, scale: 1.1 }}
       className="fixed inset-0 z-[5000] bg-black flex items-center justify-center overflow-hidden"
     >
-      <video
-        ref={videoRef}
-        src={currentStory.videoUrl}
-        className="w-full h-full object-cover"
-        onEnded={handleNext}
-        autoPlay
-        playsInline
-        muted={isMuted}
-        onClick={handleTap}
-        onMouseDown={handlePressStart}
-        onMouseUp={handlePressEnd}
-        onMouseLeave={handlePressEnd}
-        onTouchStart={handlePressStart}
-        onTouchEnd={handlePressEnd}
-      />
+      {isVideoUrl(currentStory.videoUrl) ? (
+        <video
+          ref={videoRef}
+          src={currentStory.videoUrl}
+          className="w-full h-full object-cover"
+          onEnded={handleNext}
+          autoPlay
+          playsInline
+          muted={isMuted}
+          onClick={handleTap}
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
+        />
+      ) : (
+        <img
+          src={currentStory.videoUrl}
+          className="w-full h-full object-cover"
+          onClick={handleTap}
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
+          alt="Story"
+        />
+      )}
 
       {/* Navigation Areas - Visual Feedback */}
       <div className="absolute inset-0 flex pointer-events-none">
