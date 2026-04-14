@@ -9,12 +9,13 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const fullEnv = { ...process.env, ...env };
   return {
     plugins: [react(), tailwindcss()],
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
-      'process.env.GOOGLE_MAPS_PLATFORM_KEY': JSON.stringify(env.GOOGLE_MAPS_PLATFORM_KEY || ''),
-      'process.env.VITE_INSTAGRAM_APP_ID': JSON.stringify(env.VITE_INSTAGRAM_APP_ID || ''),
+      'process.env.GEMINI_API_KEY': JSON.stringify(fullEnv.GEMINI_API_KEY || ''),
+      'process.env.GOOGLE_MAPS_PLATFORM_KEY': JSON.stringify(fullEnv.GOOGLE_MAPS_PLATFORM_KEY || ''),
+      'process.env.VITE_INSTAGRAM_APP_ID': JSON.stringify(fullEnv.VITE_INSTAGRAM_APP_ID || ''),
     },
     resolve: {
       alias: {
