@@ -86,31 +86,23 @@ async function startServer() {
         return res.status(401).json({ error: "Sessiya muddati o'tgan (Auth date too old)" });
       }
 
-      // 3. Create Firebase Custom Token
-      console.log("Attempting to create Firebase Custom Token for UID:", `telegram:${data.id}`);
+      // 3. Instead of Custom Token (which requires complex IAM roles), 
+      // we generate a deterministic password based on Telegram ID and Bot Token.
+      // This is secure because only our server knows the Bot Token.
+      const telegramId = String(data.id);
+      const userEmail = `tg_${telegramId}@alphaspace.uz`;
       
-      if (!admin.apps.length) {
-        console.error("Firebase Admin not initialized!");
-        throw new Error("Firebase Admin initialized emas");
-      }
+      // Create a secure password hash
+      const userPassword = crypto.createHmac('sha256', botToken)
+        .update(telegramId)
+        .digest('hex')
+        .substring(0, 20);
 
-      try {
-        const firebaseUid = `telegram:${data.id}`;
-        const customToken = await admin.auth().createCustomToken(firebaseUid, {
-          telegram_id: String(data.id),
-          username: data.username || "",
-          first_name: data.first_name || "",
-          provider: "telegram"
-        });
-
-        console.log("Custom Token created successfully");
-        res.json({ token: customToken, user: data });
-      } catch (firebaseError: any) {
-        console.error("Firebase createCustomToken Error:", firebaseError);
-        return res.status(500).json({ 
-          error: `Firebase tizimida xatolik: ${firebaseError.message}. Ehtimol, Service Account huquqlari yetishmayapti.` 
-        });
-      }
+      res.json({ 
+        email: userEmail, 
+        password: userPassword,
+        user: data 
+      });
     } catch (error: any) {
       console.error("Global Telegram Auth Route Error:", error);
       res.status(500).json({ error: `Kutilmagan xatolik: ${error.message || "Noma'lum"}` });

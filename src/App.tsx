@@ -282,21 +282,35 @@ export default function App() {
       }
 
       const result = await response.json();
-      if (result.token) {
-        await loginWithCustomToken(result.token);
+      if (result.email && result.password) {
+        try {
+          // Try to login first
+          await loginWithEmail(result.email, result.password);
+        } catch (loginError: any) {
+          // If login fails, try to register
+          if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential') {
+            await registerWithEmail(result.email, result.password);
+            if (auth.currentUser) {
+              await updateUserName(result.user.first_name + (result.user.last_name ? ` ${result.user.last_name}` : ''));
+            }
+          } else {
+            throw loginError;
+          }
+        }
         
-        // Update user profile if needed
-        const userDoc = doc(db, 'users', `telegram:${data.id}`);
+        // Update user profile in Firestore
+        const userDoc = doc(db, 'users', auth.currentUser!.uid);
         const docSnap = await getDoc(userDoc);
         if (!docSnap.exists()) {
           await setDoc(userDoc, {
-            uid: `telegram:${data.id}`,
-            displayName: data.first_name + (data.last_name ? ` ${data.last_name}` : ''),
-            username: data.username,
-            photoURL: data.photo_url || null,
+            uid: auth.currentUser!.uid,
+            displayName: result.user.first_name + (result.user.last_name ? ` ${result.user.last_name}` : ''),
+            username: result.user.username,
+            photoURL: result.user.photo_url || null,
             role: 'buyer',
             hasShop: false,
             provider: 'telegram',
+            telegramId: String(result.user.id),
             createdAt: serverTimestamp()
           });
         }
