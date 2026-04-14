@@ -14,13 +14,20 @@ dotenv.config();
 
 // Initialize Firebase Admin
 const firebaseConfigPath = path.join(process.cwd(), "firebase-applet-config.json");
-if (fs.existsSync(firebaseConfigPath)) {
-  const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-    });
+try {
+  if (fs.existsSync(firebaseConfigPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+      console.log("Firebase Admin initialized with project:", firebaseConfig.projectId);
+    }
+  } else {
+    console.warn("Firebase Admin: firebase-applet-config.json topilmadi");
   }
+} catch (error) {
+  console.error("Firebase Admin Initialization Error:", error);
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc");
@@ -46,50 +53,48 @@ async function startServer() {
 
   // Telegram Auth Verification
   app.post("/api/auth/telegram", async (req, res) => {
-    const { hash, ...data } = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-
-    if (!botToken) {
-      console.error("Telegram Auth Error: TELEGRAM_BOT_TOKEN is missing");
-      return res.status(500).json({ error: "Serverda Telegram bot tokeni sozlanmagan (TELEGRAM_BOT_TOKEN missing)" });
-    }
-
-    if (!hash) {
-      return res.status(400).json({ error: "Telegram hash topilmadi" });
-    }
-
-    // 1. Verify Telegram hash
-    const secretKey = crypto.createHash('sha256').update(botToken).digest();
-    
-    // Create a copy of data without hash for verification
-    const dataCheckArr = [];
-    for (const key in data) {
-      dataCheckArr.push(`${key}=${data[key]}`);
-    }
-    const dataCheckString = dataCheckArr.sort().join('\n');
-    
-    const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-    if (hmac !== hash) {
-      console.error("Telegram Hash Mismatch:", { calculated: hmac, received: hash });
-      return res.status(401).json({ error: "Ma'lumotlar haqiqiyligi tasdiqlanmadi (Hash mismatch)" });
-    }
-
-    // 2. Check auth_date (optional but recommended, e.g., within 24 hours)
-    const authDate = parseInt(data.auth_date);
-    const now = Math.floor(Date.now() / 1000);
-    if (now - authDate > 86400) {
-      return res.status(401).json({ error: "Sessiya muddati o'tgan" });
-    }
-
     try {
-      // 3. Create Firebase Custom Token
-      const firebaseUid = `telegram:${data.id}`;
+      const { hash, ...data } = req.body;
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+      if (!botToken) {
+        console.error("Telegram Auth Error: TELEGRAM_BOT_TOKEN is missing");
+        return res.status(500).json({ error: "Serverda Telegram bot tokeni sozlanmagan (TELEGRAM_BOT_TOKEN missing)" });
+      }
+
+      if (!hash) {
+        return res.status(400).json({ error: "Telegram hash topilmadi" });
+      }
+
+      // 1. Verify Telegram hash
+      const secretKey = crypto.createHash('sha256').update(botToken).digest();
       
+      const dataCheckArr = [];
+      for (const key in data) {
+        dataCheckArr.push(`${key}=${data[key]}`);
+      }
+      const dataCheckString = dataCheckArr.sort().join('\n');
+      
+      const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+      if (hmac !== hash) {
+        console.error("Telegram Hash Mismatch:", { calculated: hmac, received: hash });
+        return res.status(401).json({ error: "Ma'lumotlar haqiqiyligi tasdiqlanmadi (Hash mismatch)" });
+      }
+
+      // 2. Check auth_date
+      const authDate = parseInt(data.auth_date);
+      const now = Math.floor(Date.now() / 1000);
+      if (now - authDate > 86400) {
+        return res.status(401).json({ error: "Sessiya muddati o'tgan" });
+      }
+
+      // 3. Create Firebase Custom Token
       if (!admin.apps.length) {
         throw new Error("Firebase Admin initialized emas");
       }
 
+      const firebaseUid = `telegram:${data.id}`;
       const customToken = await admin.auth().createCustomToken(firebaseUid, {
         telegram_id: String(data.id),
         username: data.username || "",
@@ -99,8 +104,8 @@ async function startServer() {
 
       res.json({ token: customToken, user: data });
     } catch (error: any) {
-      console.error("Telegram Auth Error (Firebase):", error);
-      res.status(500).json({ error: `Firebase xatosi: ${error.message}` });
+      console.error("Telegram Auth Route Error:", error);
+      res.status(500).json({ error: `Server xatosi: ${error.message || "Noma'lum xatolik"}` });
     }
   });
 
