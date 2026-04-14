@@ -269,6 +269,18 @@ export default function App() {
         body: JSON.stringify(data)
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = "Server xatosi";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
       const result = await response.json();
       if (result.token) {
         await loginWithCustomToken(result.token);
