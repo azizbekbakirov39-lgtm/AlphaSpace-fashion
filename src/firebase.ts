@@ -1,5 +1,17 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, User as FirebaseUser } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
+  signInWithCustomToken,
+  User as FirebaseUser 
+} from 'firebase/auth';
 import { initializeFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, orderBy, limit, getDocFromServer, increment } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -34,6 +46,17 @@ export const signInWithGoogle = async () => {
 
 export const logout = () => signOut(auth);
 export const loginWithCustomToken = (token: string) => signInWithCustomToken(auth, token);
+
+// Email/Password Helpers
+export const registerWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
+export const loginWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
+export const resetPassword = (email: string) => sendPasswordResetEmail(auth, email);
+export const updateUserName = (name: string) => {
+  if (auth.currentUser) {
+    return updateProfile(auth.currentUser, { displayName: name });
+  }
+  return Promise.reject("No user logged in");
+};
 
 // Firestore Error Handling Spec
 export enum OperationType {

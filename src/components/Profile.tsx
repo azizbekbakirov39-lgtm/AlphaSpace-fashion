@@ -36,7 +36,11 @@ import {
   Store,
   ShieldCheck,
   Download,
-  Instagram
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -68,8 +72,10 @@ interface ProfileProps {
   setSubView: (view: SubView) => void;
   user: User | null;
   onLogin: () => void;
-  onInstagramLogin?: () => void;
   onLogout: () => void;
+  onEmailLogin?: (email: string, pass: string, name?: string) => Promise<void>;
+  onTelegramLogin?: (data: any) => Promise<void>;
+  onResetPassword?: (email: string) => Promise<void>;
   onBackToHome?: () => void;
   onOpenAdminDashboard?: () => void;
   initialChatSellerId?: string | null;
@@ -115,8 +121,10 @@ const Profile: React.FC<ProfileProps> = ({
   setSubView,
   user,
   onLogin,
-  onInstagramLogin,
   onLogout,
+  onEmailLogin,
+  onTelegramLogin,
+  onResetPassword,
   onBackToHome,
   onOpenAdminDashboard,
   initialChatSellerId,
@@ -127,6 +135,38 @@ const Profile: React.FC<ProfileProps> = ({
   const { installApp, isStandalone, isInAppBrowser } = usePWA();
   const [showInAppGuideModal, setShowInAppGuideModal] = useState(false);
   const [activeChatSeller, setActiveChatSeller] = useState<Seller | null>(null);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const telegramWrapperRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!user && !showEmailForm && telegramWrapperRef.current) {
+      // Clear previous widget
+      telegramWrapperRef.current.innerHTML = '';
+      
+      const script = document.createElement('script');
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', 'AlphaSpaceSmartBot'); // Placeholder, user should change this
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '16');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      script.setAttribute('data-request-access', 'write');
+      script.async = true;
+      
+      // Define the callback globally
+      (window as any).onTelegramAuth = (data: any) => {
+        onTelegramLogin?.(data);
+      };
+      
+      telegramWrapperRef.current.appendChild(script);
+    }
+  }, [user, showEmailForm, onTelegramLogin]);
+
   const [activeProduct, setActiveProduct] = useState<PostData | null>(initialChatProduct || null);
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
   
@@ -592,32 +632,158 @@ const Profile: React.FC<ProfileProps> = ({
         <div className="flex flex-col h-full p-4">
           {downloadBanner}
           <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
-            <div className="w-24 h-24 bg-accent-blue/10 rounded-full flex items-center justify-center text-accent-blue mb-6">
-              <UserIcon size={48} />
-            </div>
-            <h2 className="text-2xl font-black text-text-primary mb-2">Xush kelibsiz!</h2>
-            <p className="text-sm text-text-primary/60 mb-8">
-              Barcha imkoniyatlardan foydalanish uchun tizimga kiring.
-            </p>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={onLogin}
-              className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3 mb-4"
-            >
-              <Globe size={20} />
-              Google orqali kirish
-            </motion.button>
-            
-            {onInstagramLogin && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={onInstagramLogin}
-                className="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-pink-500/20 flex items-center justify-center gap-3"
-              >
-                <Instagram size={20} />
-                Instagram orqali kirish
-              </motion.button>
-            )}
+            <AnimatePresence mode="wait">
+              {!showEmailForm ? (
+                <motion.div
+                  key="login-options"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="w-full max-w-sm"
+                >
+                  <div className="w-24 h-24 bg-accent-blue/10 rounded-full flex items-center justify-center text-accent-blue mx-auto mb-6">
+                    <UserIcon size={48} />
+                  </div>
+                  <h2 className="text-2xl font-black text-text-primary mb-2">Xush kelibsiz!</h2>
+                  <p className="text-sm text-text-primary/60 mb-8">
+                    Barcha imkoniyatlardan foydalanish uchun tizimga kiring.
+                  </p>
+                  
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onLogin}
+                    className="w-full py-4 bg-white text-text-primary border border-gray-200 rounded-2xl font-black uppercase tracking-widest text-sm shadow-sm flex items-center justify-center gap-3 mb-4"
+                  >
+                    <Globe size={20} className="text-accent-blue" />
+                    Google orqali kirish
+                  </motion.button>
+
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowEmailForm(true)}
+                    className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3 mb-4"
+                  >
+                    <Mail size={20} />
+                    Email orqali kirish
+                  </motion.button>
+
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-[10px] text-text-primary/40 uppercase font-bold tracking-widest">Yoki Telegram orqali</p>
+                    <div ref={telegramWrapperRef} className="min-h-[40px] flex items-center justify-center" />
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="email-form"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="w-full max-w-sm bg-white p-8 rounded-[2.5rem] shadow-2xl border border-gray-100"
+                >
+                  <button 
+                    onClick={() => setShowEmailForm(false)}
+                    className="absolute top-6 left-6 p-2 text-gray-400 hover:text-accent-blue transition-colors"
+                  >
+                    <ArrowLeft size={24} />
+                  </button>
+
+                  <h2 className="text-2xl font-black text-text-primary mb-2 mt-4">
+                    {isRegistering ? "Ro'yxatdan o'tish" : "Kirish"}
+                  </h2>
+                  <p className="text-sm text-text-primary/60 mb-8">
+                    {isRegistering ? "Ma'lumotlaringizni kiriting" : "Email va parolingizni kiriting"}
+                  </p>
+
+                  <div className="space-y-4">
+                    {isRegistering && (
+                      <div className="relative">
+                        <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                          type="text"
+                          placeholder="Ismingiz"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-accent-blue/20 transition-all"
+                        />
+                      </div>
+                    )}
+
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="email"
+                        placeholder="Email manzilingiz"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-accent-blue/20 transition-all"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Parol"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-12 pr-12 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-accent-blue/20 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+
+                    {!isRegistering && (
+                      <button
+                        onClick={() => onResetPassword?.(email)}
+                        className="text-xs text-accent-blue font-bold hover:underline block ml-auto"
+                      >
+                        Parolni unutdingizmi?
+                      </button>
+                    )}
+
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      disabled={authLoading}
+                      onClick={async () => {
+                        if (!email || !password) {
+                          toast.error("Barcha maydonlarni to'ldiring");
+                          return;
+                        }
+                        setAuthLoading(true);
+                        try {
+                          await onEmailLogin?.(email, password, isRegistering ? name : undefined);
+                        } finally {
+                          setAuthLoading(false);
+                        }
+                      }}
+                      className="w-full py-4 bg-accent-blue text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-accent-blue/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
+                      {authLoading ? (
+                        <RefreshCw className="animate-spin" size={20} />
+                      ) : (
+                        isRegistering ? "Ro'yxatdan o'tish" : "Kirish"
+                      )}
+                    </motion.button>
+
+                    <button
+                      onClick={() => setIsRegistering(!isRegistering)}
+                      className="w-full text-sm text-text-primary/60 font-medium py-2"
+                    >
+                      {isRegistering ? (
+                        <>Akkauntingiz bormi? <span className="text-accent-blue font-bold">Kiring</span></>
+                      ) : (
+                        <>Akkauntingiz yo'qmi? <span className="text-accent-blue font-bold">Ochish</span></>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       );

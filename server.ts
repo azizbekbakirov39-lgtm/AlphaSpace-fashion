@@ -6,18 +6,21 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { startBot } from "./bot";
-import axios from "axios";
 import admin from "firebase-admin";
 import fs from "fs";
+import crypto from "crypto";
 
 dotenv.config();
 
 // Initialize Firebase Admin
-const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8"));
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
+const firebaseConfigPath = path.join(process.cwd(), "firebase-applet-config.json");
+if (fs.existsSync(firebaseConfigPath)) {
+  const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      projectId: firebaseConfig.projectId,
+    });
+  }
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc");
@@ -41,54 +44,53 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Instagram OAuth Callback
-  app.get("/auth/instagram/callback", async (req, res) => {
-    const { code } = req.query;
+  // Telegram Auth Verification
+  app.post("/api/auth/telegram", async (req, res) => {
+    const { hash, ...data } = req.body;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
-    if (!code) {
-      return res.status(400).send("Authorization code missing");
+    if (!botToken) {
+      return res.status(500).json({ error: "Telegram bot tokeni sozlanmagan" });
+    }
+
+    if (!hash) {
+      return res.status(400).json({ error: "Hash topilmadi" });
+    }
+
+    // 1. Verify Telegram hash
+    const secretKey = crypto.createHash('sha256').update(botToken).digest();
+    const dataCheckString = Object.keys(data)
+      .sort()
+      .map(key => `${key}=${data[key]}`)
+      .join('\n');
+    
+    const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    if (hmac !== hash) {
+      return res.status(401).json({ error: "Ma'lumotlar haqiqiyligi tasdiqlanmadi" });
+    }
+
+    // 2. Check auth_date (optional but recommended, e.g., within 24 hours)
+    const authDate = parseInt(data.auth_date);
+    const now = Math.floor(Date.now() / 1000);
+    if (now - authDate > 86400) {
+      return res.status(401).json({ error: "Sessiya muddati o'tgan" });
     }
 
     try {
-      const appId = process.env.VITE_INSTAGRAM_APP_ID;
-      const appSecret = process.env.INSTAGRAM_APP_SECRET;
-      const redirectUri = `${req.protocol}://${req.get("host")}/auth/instagram/callback`;
-
-      // 1. Exchange code for short-lived access token
-      const tokenResponse = await axios.post(
-        "https://api.instagram.com/oauth/access_token",
-        new URLSearchParams({
-          client_id: appId!,
-          client_secret: appSecret!,
-          grant_type: "authorization_code",
-          redirect_uri: redirectUri,
-          code: code as string,
-        })
-      );
-
-      const { access_token, user_id } = tokenResponse.data;
-
-      // 2. Get user profile info
-      const profileResponse = await axios.get(
-        `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${access_token}`
-      );
-
-      const { username } = profileResponse.data;
-
       // 3. Create Firebase Custom Token
-      // We use the Instagram user ID as the Firebase UID
-      const firebaseUid = `instagram:${user_id}`;
+      const firebaseUid = `telegram:${data.id}`;
       const customToken = await admin.auth().createCustomToken(firebaseUid, {
-        instagram_username: username,
-        provider: "instagram"
+        telegram_id: data.id,
+        username: data.username,
+        first_name: data.first_name,
+        provider: "telegram"
       });
 
-      // 4. Redirect back to frontend with the token
-      // We'll use a query parameter that the frontend will pick up
-      res.redirect(`/?instagram_token=${customToken}&instagram_username=${username}`);
+      res.json({ token: customToken, user: data });
     } catch (error: any) {
-      console.error("Instagram Auth Error:", error.response?.data || error.message);
-      res.status(500).send("Authentication failed: " + (error.response?.data?.error_message || error.message));
+      console.error("Telegram Auth Error:", error);
+      res.status(500).json({ error: "Firebase token yaratishda xatolik" });
     }
   });
 

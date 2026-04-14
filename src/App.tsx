@@ -31,6 +31,10 @@ import {
   signInWithGoogle, 
   loginWithCustomToken,
   logout, 
+  registerWithEmail,
+  loginWithEmail,
+  resetPassword,
+  updateUserName,
   setDoc, 
   updateDoc, 
   getDoc, 
@@ -47,47 +51,6 @@ import {
 } from './firebase';
 
 export default function App() {
-  // Check for Instagram token in URL
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('instagram_token');
-    const instagramUsername = urlParams.get('instagram_username');
-    
-    if (token) {
-      const handleLogin = async () => {
-        try {
-          const result = await loginWithCustomToken(token);
-          
-          // If it's a new user or lacks display name, update it with Instagram username
-          if (instagramUsername) {
-            const userDoc = doc(db, 'users', result.user.uid);
-            const docSnap = await getDoc(userDoc);
-            if (!docSnap.exists()) {
-              await setDoc(userDoc, {
-                uid: result.user.uid,
-                displayName: instagramUsername,
-                photoURL: null,
-                role: 'buyer',
-                hasShop: false,
-                instagramUsername: instagramUsername
-              });
-            } else if (!docSnap.data().displayName) {
-              await updateDoc(userDoc, { displayName: instagramUsername, instagramUsername: instagramUsername });
-            }
-          }
-
-          toast.success("Instagram orqali muvaffaqiyatli kirdingiz!");
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (error: any) {
-          console.error("Instagram Login Error:", error);
-          toast.error("Instagram orqali kirishda xatolik yuz berdi.");
-        }
-      };
-      handleLogin();
-    }
-  }, []);
-
   // Check for ImgBB API Key on startup
   React.useEffect(() => {
     const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
@@ -246,28 +209,93 @@ export default function App() {
     };
   }, [user]);
 
-  const handleInstagramLogin = () => {
-    // Try to get from env, fallback to hardcoded ID if env is not picked up
-    const appId = (process.env as any).VITE_INSTAGRAM_APP_ID || "968864218927050";
-    
-    if (!appId) {
-      toast.error("Instagram App ID topilmadi. Iltimos, .env faylini tekshiring.");
+  const handleEmailLogin = async (email: string, pass: string, name?: string) => {
+    try {
+      let result;
+      if (name) {
+        // Register
+        result = await registerWithEmail(email, pass);
+        await updateUserName(name);
+        
+        // Create user doc
+        const userDoc = doc(db, 'users', result.user.uid);
+        await setDoc(userDoc, {
+          uid: result.user.uid,
+          displayName: name,
+          email: email,
+          photoURL: null,
+          role: 'buyer',
+          hasShop: false,
+          createdAt: serverTimestamp()
+        });
+        toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
+      } else {
+        // Login
+        result = await loginWithEmail(email, pass);
+        toast.success("Xush kelibsiz!");
+      }
+    } catch (error: any) {
+      console.error("Auth Error:", error);
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error("Bu email allaqachon ro'yxatdan o'tgan");
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error("Noto'g'ri parol");
+      } else if (error.code === 'auth/user-not-found') {
+        toast.error("Foydalanuvchi topilmadi");
+      } else {
+        toast.error("Xatolik yuz berdi: " + error.message);
+      }
+    }
+  };
+
+  const handleResetPassword = async (email: string) => {
+    if (!email) {
+      toast.error("Iltimos, email manzilingizni kiriting");
       return;
     }
-    
-    // Instagram OAuth URL
-    // Use current origin to ensure it matches the domain the user is on
-    const redirectUri = window.location.origin + '/auth/instagram/callback';
-    
-    console.log("Instagram Login initiated with:", {
-      appId,
-      redirectUri,
-      origin: window.location.origin
-    });
+    try {
+      await resetPassword(email);
+      toast.success("Parolni tiklash havolasi pochtangizga yuborildi");
+    } catch (error: any) {
+      toast.error("Xatolik: " + error.message);
+    }
+  };
 
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`;
-    
-    window.location.href = authUrl;
+  const handleTelegramLogin = async (data: any) => {
+    try {
+      const response = await fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      if (result.token) {
+        await loginWithCustomToken(result.token);
+        
+        // Update user profile if needed
+        const userDoc = doc(db, 'users', `telegram:${data.id}`);
+        const docSnap = await getDoc(userDoc);
+        if (!docSnap.exists()) {
+          await setDoc(userDoc, {
+            uid: `telegram:${data.id}`,
+            displayName: data.first_name + (data.last_name ? ` ${data.last_name}` : ''),
+            username: data.username,
+            photoURL: data.photo_url || null,
+            role: 'buyer',
+            hasShop: false,
+            provider: 'telegram',
+            createdAt: serverTimestamp()
+          });
+        }
+        toast.success("Telegram orqali muvaffaqiyatli kirdingiz!");
+      } else {
+        toast.error(result.error || "Telegram orqali kirishda xatolik");
+      }
+    } catch (error: any) {
+      console.error("Telegram Login Error:", error);
+      toast.error("Xatolik yuz berdi");
+    }
   };
 
   // Merge user-specific data into posts/stories
@@ -1378,7 +1406,9 @@ export default function App() {
                       setSubView={setProfileSubView}
                       user={user}
                       onLogin={signInWithGoogle}
-                      onInstagramLogin={handleInstagramLogin}
+                      onEmailLogin={handleEmailLogin}
+                      onTelegramLogin={handleTelegramLogin}
+                      onResetPassword={handleResetPassword}
                       onLogout={logout}
                       initialChatSellerId={initialChatSellerId}
                       initialChatProduct={initialChatProduct}
