@@ -294,7 +294,7 @@ export default function App() {
       }
     } catch (error: any) {
       console.error("Telegram Login Error:", error);
-      toast.error("Xatolik yuz berdi");
+      toast.error("Xatolik yuz berdi: " + (error.message || "Noma'lum xatolik"));
     }
   };
 
