@@ -256,10 +256,17 @@ export default function App() {
     }
     
     // Instagram OAuth URL
+    // Use current origin to ensure it matches the domain the user is on
     const redirectUri = window.location.origin + '/auth/instagram/callback';
+    
+    console.log("Instagram Login initiated with:", {
+      appId,
+      redirectUri,
+      origin: window.location.origin
+    });
+
     const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`;
     
-    // Open in same window to avoid popup blockers, or new window if preferred
     window.location.href = authUrl;
   };
 
