@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link2, Plus, Search, Trash2, ExternalLink, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { db, collection, onSnapshot, query, orderBy, deleteDoc, doc, serverTimestamp, setDoc } from '../firebase';
 import { toast } from 'sonner';
+import { GoogleGenAI } from "@google/genai";
+
+const genAI = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY || (process as any).env.GEMINI_API_KEY });
 
 interface TelegramLink {
   id: string;
@@ -43,18 +46,40 @@ export default function TelegramLinkManager() {
 
     setIsProcessing(true);
     try {
-      // 1. Parse link via server API
-      const response = await fetch('/api/parse-telegram', {
+      // 1. Fetch HTML via proxy
+      const htmlResponse = await fetch('/api/fetch-telegram-html', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: newUrl })
       });
       
-      if (!response.ok) throw new Error("Server xatoligi");
+      if (!htmlResponse.ok) throw new Error("HTML yuklashda xatolik");
+      const { html } = await htmlResponse.json();
+
+      // 2. Parse with Gemini on frontend
+      const prompt = `Extract product information from this Telegram post HTML:
+      ${html.substring(0, 15000)}
       
-      const metadata = await response.json();
+      Return ONLY a JSON object with these fields:
+      {
+        "productName": "string",
+        "price": "string",
+        "description": "string",
+        "imageUrl": "string (find the media URL in the HTML, usually in og:image or similar)",
+        "channelName": "string",
+        "tags": ["string"]
+      }
+      If no product is found, return an empty object or best guess.`;
+
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      });
+
+      const text = result.text?.replace(/```json|```/g, "").trim() || "{}";
+      const metadata = JSON.parse(text);
       
-      // 2. Save to Firestore
+      // 3. Save to Firestore
       const linkId = `manual_${Date.now()}`;
       await setDoc(doc(db, 'telegram_links', linkId), {
         id: linkId,

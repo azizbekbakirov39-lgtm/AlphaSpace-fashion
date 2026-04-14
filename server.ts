@@ -31,21 +31,23 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  // FFmpeg.wasm requires these headers for SharedArrayBuffer support
+  // Request Logger
   app.use((req, res, next) => {
-    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
   });
 
-  // API Routes
+  // API Routes - MOVED TO TOP FOR PRIORITY
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
 
-  // Telegram Auth Verification
+  app.get("/api/auth/telegram", (req, res) => {
+    res.send("Telegram Auth API is alive and ready.");
+  });
+
   app.post("/api/auth/telegram", async (req, res) => {
-    console.log("Telegram Auth Request Received:", JSON.stringify(req.body).slice(0, 100) + "...");
+    console.log("Telegram Auth POST request received");
     try {
       const { hash, ...data } = req.body;
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -56,8 +58,6 @@ async function startServer() {
           error: "TELEGRAM_BOT_TOKEN topilmadi. Iltimos, Settings -> Secrets bo'limidan ushbu kalitni qo'shing." 
         });
       }
-
-      console.log("Bot Token found (starts with):", botToken.substring(0, 5) + "...");
 
       if (!hash) {
         return res.status(400).json({ error: "Telegram hash topilmadi" });
@@ -86,13 +86,10 @@ async function startServer() {
         return res.status(401).json({ error: "Sessiya muddati o'tgan (Auth date too old)" });
       }
 
-      // 3. Instead of Custom Token (which requires complex IAM roles), 
-      // we generate a deterministic password based on Telegram ID and Bot Token.
-      // This is secure because only our server knows the Bot Token.
+      // 3. Email-proxy method
       const telegramId = String(data.id);
       const userEmail = `tg_${telegramId}@alphaspace.uz`;
       
-      // Create a secure password hash
       const userPassword = crypto.createHmac('sha256', botToken)
         .update(telegramId)
         .digest('hex')
@@ -106,6 +103,29 @@ async function startServer() {
     } catch (error: any) {
       console.error("Global Telegram Auth Route Error:", error);
       res.status(500).json({ error: `Kutilmagan xatolik: ${error.message || "Noma'lum"}` });
+    }
+  });
+
+  // FFmpeg.wasm requires these headers for SharedArrayBuffer support
+  app.use((req, res, next) => {
+    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    next();
+  });
+
+  // Fetch HTML for Telegram Link Parsing (Proxy to avoid CORS)
+  app.post("/api/fetch-telegram-html", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || !url.includes("t.me/")) {
+        return res.status(400).json({ error: "Noto'g'ri Telegram havolasi" });
+      }
+      const embedUrl = url.includes("?embed=1") ? url : `${url}?embed=1`;
+      const fetchResponse = await fetch(embedUrl);
+      const html = await fetchResponse.text();
+      res.json({ html });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -141,53 +161,6 @@ async function startServer() {
       res.json({ url: session.url });
     } catch (error: any) {
       console.error("Stripe Error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Parse Telegram Link using Gemini
-  app.post("/api/parse-telegram", async (req, res) => {
-    try {
-      const { url } = req.body;
-      if (!url || !url.includes("t.me/")) {
-        return res.status(400).json({ error: "Noto'g'ri Telegram havolasi" });
-      }
-
-      // Fetch embed content to get text/media
-      const embedUrl = url.includes("?embed=1") ? url : `${url}?embed=1`;
-      const fetchResponse = await fetch(embedUrl);
-      const html = await fetchResponse.text();
-
-      const apiKey = process.env.GEMINI_KEY_API || process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "Gemini API key topilmadi" });
-      }
-
-      const genAI = new GoogleGenAI({ apiKey: apiKey });
-      
-      const prompt = `Extract product information from this Telegram post HTML:
-      ${html.substring(0, 15000)}
-      
-      Return ONLY a JSON object with these fields:
-      {
-        "productName": "string",
-        "price": "string",
-        "description": "string",
-        "imageUrl": "string (find the media URL in the HTML, usually in og:image or similar)",
-        "channelName": "string",
-        "tags": ["string"]
-      }
-      If no product is found, return an empty object or best guess.`;
-
-      const result = await genAI.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-      }) as any;
-
-      const text = result.text.replace(/```json|```/g, "").trim();
-      res.json(JSON.parse(text));
-    } catch (error: any) {
-      console.error("Parse Error:", error);
       res.status(500).json({ error: error.message });
     }
   });
