@@ -29,6 +29,7 @@ import {
   doc, 
   db, 
   signInWithGoogle, 
+  loginWithCustomToken,
   logout, 
   setDoc, 
   updateDoc, 
@@ -46,6 +47,47 @@ import {
 } from './firebase';
 
 export default function App() {
+  // Check for Instagram token in URL
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('instagram_token');
+    const instagramUsername = urlParams.get('instagram_username');
+    
+    if (token) {
+      const handleLogin = async () => {
+        try {
+          const result = await loginWithCustomToken(token);
+          
+          // If it's a new user or lacks display name, update it with Instagram username
+          if (instagramUsername) {
+            const userDoc = doc(db, 'users', result.user.uid);
+            const docSnap = await getDoc(userDoc);
+            if (!docSnap.exists()) {
+              await setDoc(userDoc, {
+                uid: result.user.uid,
+                displayName: instagramUsername,
+                photoURL: null,
+                role: 'buyer',
+                hasShop: false,
+                instagramUsername: instagramUsername
+              });
+            } else if (!docSnap.data().displayName) {
+              await updateDoc(userDoc, { displayName: instagramUsername, instagramUsername: instagramUsername });
+            }
+          }
+
+          toast.success("Instagram orqali muvaffaqiyatli kirdingiz!");
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (error: any) {
+          console.error("Instagram Login Error:", error);
+          toast.error("Instagram orqali kirishda xatolik yuz berdi.");
+        }
+      };
+      handleLogin();
+    }
+  }, []);
+
   // Check for ImgBB API Key on startup
   React.useEffect(() => {
     const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
