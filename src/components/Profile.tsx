@@ -744,14 +744,39 @@ const Profile: React.FC<ProfileProps> = ({
                         try {
                           await onEmailLogin?.(email, password, isRegistering ? name : undefined);
                         } catch (error: any) {
-                          if (error.code === 'auth/email-already-in-use') {
-                            toast.error("Bu email allaqachon ro'yxatdan o'tgan");
-                          } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                            toast.error("Email yoki parol noto'g'ri");
-                          } else if (error.code === 'auth/user-not-found') {
-                            toast.error("Foydalanuvchi topilmadi");
-                          } else {
-                            toast.error("Xatolik yuz berdi: " + (error.message || "Noma'lum xatolik"));
+                          console.error("Login Error Details:", error.code, error.message);
+                          
+                          switch (error.code) {
+                            case 'auth/email-already-in-use':
+                              toast.error("Bu email bilan allaqachon ro'yxatdan o'tilgan. Iltimos, kiring.");
+                              break;
+                            case 'auth/invalid-email':
+                              toast.error("Email manzili noto'g'ri formatda.");
+                              break;
+                            case 'auth/user-disabled':
+                              toast.error("Ushbu foydalanuvchi akkaunti bloklangan.");
+                              break;
+                            case 'auth/user-not-found':
+                              toast.error("Bunday email bilan foydalanuvchi topilmadi. Ro'yxatdan o'ting.");
+                              break;
+                            case 'auth/wrong-password':
+                            case 'auth/invalid-credential':
+                              toast.error("Email yoki parol noto'g'ri. Iltimos, qaytadan tekshiring.");
+                              break;
+                            case 'auth/weak-password':
+                              toast.error("Parol juda zaif. Kamida 6 ta belgi bo'lishi kerak.");
+                              break;
+                            case 'auth/too-many-requests':
+                              toast.error("Juda ko'p urinish bo'ldi. Xavfsizlik yuzasidan birozdan keyin qayta urinib ko'ring.");
+                              break;
+                            case 'auth/network-request-failed':
+                              toast.error("Internet aloqasi yo'q yoki juda zaif. Tarmoqni tekshiring.");
+                              break;
+                            case 'auth/popup-closed-by-user':
+                              toast.error("Kirish oynasi yopildi. Qayta urinib ko'ring.");
+                              break;
+                            default:
+                              toast.error("Xatolik: " + (error.message || "Noma'lum muammo yuz berdi"));
                           }
                         } finally {
                           setAuthLoading(false);
