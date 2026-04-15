@@ -125,16 +125,33 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* Hero Section */}
         <div className="relative h-[300px] w-full overflow-hidden bg-text-primary/5">
-          <img 
-            src={
-              posts.find(p => p.mediaUrls?.some(url => !isVideoUrl(url)))?.mediaUrls?.find(url => !isVideoUrl(url)) || 
-              seller.coverImage || 
-              `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`
+          {(() => {
+            const latestPost = posts.find(p => p.mediaUrls && p.mediaUrls.length > 0);
+            const mediaUrl = latestPost?.mediaUrls?.[0] || seller.coverImage;
+            const isVideo = mediaUrl ? isVideoUrl(mediaUrl) : false;
+
+            if (isVideo) {
+              return (
+                <video 
+                  src={mediaUrl + '#t=0.1'}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                  autoPlay
+                  loop
+                />
+              );
             }
-            alt="Cover"
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
+
+            return (
+              <img 
+                src={mediaUrl || `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`}
+                alt="Cover"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            );
+          })()}
           <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/20 to-transparent" />
           
           {/* Shop Identity Overlay */}

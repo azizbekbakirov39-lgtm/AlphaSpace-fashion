@@ -363,26 +363,44 @@ const Brands: React.FC<BrandsProps> = ({
               >
                 {/* Cover Image with Overlay */}
                 <div className="absolute inset-0 bg-text-primary/10">
-                  <img 
-                    src={
-                      posts.find(p => {
-                        const postSellerId = p.seller?.id || (p as any).sellerId || (p as any).uid;
-                        const sellerId = seller.id;
-                        const matchesId = postSellerId && String(postSellerId) === String(sellerId);
-                        
-                        const postSellerName = (p.seller?.name || (p as any).sellerName || '').toLowerCase();
-                        const sellerName = (seller.name || '').toLowerCase();
-                        const matchesName = sellerName && postSellerName === sellerName;
+                  {(() => {
+                    const latestPost = posts.find(p => {
+                      const postSellerId = p.seller?.id || (p as any).sellerId || (p as any).uid;
+                      const sellerId = seller.id;
+                      const matchesId = postSellerId && String(postSellerId) === String(sellerId);
+                      
+                      const postSellerName = (p.seller?.name || (p as any).sellerName || '').toLowerCase().trim();
+                      const sellerName = (seller.name || '').toLowerCase().trim();
+                      const matchesName = sellerName && postSellerName === sellerName;
 
-                        return (matchesId || matchesName) && p.mediaUrls?.some(url => !isVideoUrl(url));
-                      })?.mediaUrls?.find(url => !isVideoUrl(url)) || 
-                      seller.coverImage || 
-                      `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`
+                      return (matchesId || matchesName) && p.mediaUrls && p.mediaUrls.length > 0;
+                    });
+
+                    const mediaUrl = latestPost?.mediaUrls?.[0] || seller.coverImage;
+                    const isVideo = mediaUrl ? isVideoUrl(mediaUrl) : false;
+
+                    if (isVideo) {
+                      return (
+                        <video 
+                          src={mediaUrl + '#t=0.1'}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          muted
+                          playsInline
+                          autoPlay
+                          loop
+                        />
+                      );
                     }
-                    alt=""
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
+
+                    return (
+                      <img 
+                        src={mediaUrl || `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`}
+                        alt=""
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        referrerPolicy="no-referrer"
+                      />
+                    );
+                  })()}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 </div>
 
