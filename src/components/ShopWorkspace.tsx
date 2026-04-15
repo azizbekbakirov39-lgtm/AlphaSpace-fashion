@@ -1386,13 +1386,24 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                         key={post.id} 
                         className="aspect-square bg-text-primary/5 rounded-lg overflow-hidden border border-border-primary relative group"
                       >
-                        <img 
-                          src={post.mediaUrls?.[0] || undefined} 
-                          className="w-full h-full object-cover" 
-                          alt={post.outfitName} 
-                          referrerPolicy="no-referrer" 
-                          onClick={() => setEditingPost(post)}
-                        />
+                        {post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                          <video 
+                            src={`${post.mediaUrls?.[0]}#t=0.1`}
+                            className="w-full h-full object-cover cursor-pointer"
+                            preload="metadata"
+                            muted
+                            playsInline
+                            onClick={() => setEditingPost(post)}
+                          />
+                        ) : (
+                          <img 
+                            src={post.mediaUrls?.[0] || undefined} 
+                            className="w-full h-full object-cover cursor-pointer" 
+                            alt={post.outfitName} 
+                            referrerPolicy="no-referrer" 
+                            onClick={() => setEditingPost(post)}
+                          />
+                        )}
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();

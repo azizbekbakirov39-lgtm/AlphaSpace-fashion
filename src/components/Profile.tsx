@@ -1896,12 +1896,22 @@ const Profile: React.FC<ProfileProps> = ({
                   onClick={() => onOpenPostDetails(post)}
                   className="aspect-square relative group overflow-hidden cursor-pointer rounded-xl"
                 >
-                  <img 
-                    src={post.mediaUrls[0] || undefined} 
-                    alt={post.outfitName} 
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+                  {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                    <video 
+                      src={`${post.mediaUrls[0]}#t=0.1`}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img 
+                      src={post.mediaUrls[0] || undefined} 
+                      alt={post.outfitName} 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Bookmark size={16} fill="white" className="text-white" />
                   </div>
