@@ -255,9 +255,16 @@ export default function App() {
     }
     try {
       await resetPassword(email);
-      toast.success("Parolni tiklash havolasi pochtangizga yuborildi");
+      toast.success("Parolni tiklash havolasi pochtangizga yuborildi. Iltimos, Spam (Keraksiz xatlar) papkasini ham tekshiring.");
     } catch (error: any) {
-      toast.error("Xatolik: " + error.message);
+      console.error("Reset Password Error:", error.code, error.message);
+      if (error.code === 'auth/user-not-found') {
+        toast.error("Bunday email bilan foydalanuvchi topilmadi.");
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error("Email manzili noto'g'ri.");
+      } else {
+        toast.error("Xatolik: " + (error.message || "Havola yuborishda muammo yuz berdi"));
+      }
     }
   };
 
