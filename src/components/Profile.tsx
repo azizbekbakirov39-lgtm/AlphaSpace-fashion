@@ -140,77 +140,6 @@ const Profile: React.FC<ProfileProps> = ({
   const [isRegistering, setIsRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-  const [showOtpForm, setShowOtpForm] = useState(false);
-  const [emailOtp, setEmailOtp] = useState('');
-  const [otpEmail, setOtpEmail] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isOtpLoading, setIsOtpLoading] = useState(false);
-
-  const handleSendOtp = async (email: string) => {
-    if (!email || !email.includes('@')) {
-      toast.error("Iltimos, to'g'ri email manzil kiriting");
-      return;
-    }
-    setIsOtpLoading(true);
-    try {
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const result = await response.json();
-      if (response.ok) {
-        setIsOtpSent(true);
-        setOtpEmail(email);
-        toast.success(result.message || "Kod yuborildi");
-        if (result.devOtp) {
-          console.log("DEV OTP:", result.devOtp);
-          setEmailOtp(result.devOtp);
-        }
-      } else {
-        toast.error(result.error || "Xatolik yuz berdi");
-      }
-    } catch (error) {
-      toast.error("Kod yuborishda xatolik");
-    } finally {
-      setIsOtpLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!emailOtp || emailOtp.length < 6) {
-      toast.error("Iltimos, 6 xonali kodni kiriting");
-      return;
-    }
-    setIsOtpLoading(true);
-    try {
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: otpEmail, otp: emailOtp })
-      });
-      const result = await response.json();
-      if (response.ok && result.success) {
-        try {
-          await onEmailLogin?.(result.email, result.password);
-        } catch (loginError: any) {
-          // If login fails, it might be a new user, but onEmailLogin handles registration too if name is passed.
-          // In OTP case, we just login/register with the generated password.
-          await onEmailLogin?.(result.email, result.password, result.email.split('@')[0]);
-        }
-        toast.success("Muvaffaqiyatli kirdingiz!");
-        setIsOtpSent(false);
-        setShowOtpForm(false);
-        setEmailOtp('');
-      } else {
-        toast.error(result.error || "Kod noto'g'ri");
-      }
-    } catch (error) {
-      toast.error("Kodni tekshirishda xatolik");
-    } finally {
-      setIsOtpLoading(false);
-    }
-  };
 
   const [activeProduct, setActiveProduct] = useState<PostData | null>(initialChatProduct || null);
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
@@ -722,95 +651,12 @@ const Profile: React.FC<ProfileProps> = ({
 
                   <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowOtpForm(true)}
-                    className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3 mb-4"
-                  >
-                    <Zap size={20} />
-                    Email orqali kod bilan
-                  </motion.button>
-
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
                     onClick={() => setShowEmailForm(true)}
-                    className="w-full py-4 bg-white text-accent-blue border-2 border-accent-blue/20 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 mb-4"
+                    className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3 mb-4"
                   >
                     <Mail size={20} />
                     Email va Parol
                   </motion.button>
-                </motion.div>
-              ) : showOtpForm ? (
-                <motion.div
-                  key="otp-form"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="w-full max-w-sm bg-white p-8 rounded-[2.5rem] shadow-2xl border border-gray-100"
-                >
-                  <button 
-                    onClick={() => {
-                      setShowOtpForm(false);
-                      setIsOtpSent(false);
-                    }}
-                    className="absolute top-6 left-6 p-2 text-gray-400 hover:text-accent-blue transition-colors"
-                  >
-                    <ArrowLeft size={24} />
-                  </button>
-
-                  <h2 className="text-2xl font-black text-text-primary mb-2 mt-4">
-                    Kod bilan kirish
-                  </h2>
-                  <p className="text-sm text-text-primary/60 mb-8">
-                    {isOtpSent ? `${otpEmail} ga yuborilgan kodni kiriting` : "Emailingizni kiriting, biz sizga kod yuboramiz"}
-                  </p>
-
-                  <div className="space-y-4">
-                    {!isOtpSent ? (
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="email"
-                          placeholder="Email manzilingiz"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-accent-blue/20 transition-all"
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="text"
-                          maxLength={6}
-                          placeholder="6 xonali kod"
-                          value={emailOtp}
-                          onChange={(e) => setEmailOtp(e.target.value)}
-                          className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-accent-blue/20 transition-all text-center tracking-[0.5em] font-bold"
-                        />
-                      </div>
-                    )}
-
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      disabled={isOtpLoading}
-                      onClick={() => isOtpSent ? handleVerifyOtp() : handleSendOtp(email)}
-                      className="w-full py-4 bg-accent-blue text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-accent-blue/20 flex items-center justify-center gap-3 disabled:opacity-50"
-                    >
-                      {isOtpLoading ? (
-                        <RefreshCw className="animate-spin" size={20} />
-                      ) : (
-                        isOtpSent ? "Tasdiqlash" : "Kod olish"
-                      )}
-                    </motion.button>
-
-                    {isOtpSent && (
-                      <button
-                        onClick={() => setIsOtpSent(false)}
-                        className="w-full text-xs text-accent-blue font-bold hover:underline"
-                      >
-                        Emailni o'zgartirish
-                      </button>
-                    )}
-                  </div>
                 </motion.div>
               ) : (
                 <motion.div

@@ -5,7 +5,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -48,83 +47,6 @@ app.use((req, res, next) => {
 // API Routes
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
-});
-
-// Check Email Credentials
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn("⚠️ EMAIL_USER yoki EMAIL_PASS o'rnatilmagan. Email OTP 'Dev mode'da ishlaydi (kod konsolda ko'rinadi).");
-} else {
-  console.log("✅ Email xizmati tayyor.");
-}
-
-const tempOtpStore = new Map<string, { otp: string, expiresAt: number }>();
-
-app.post("/api/auth/send-otp", async (req, res) => {
-  const { email } = req.body;
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: "Noto'g'ri email manzil" });
-  }
-
-  try {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-
-    tempOtpStore.set(email, { otp, expiresAt });
-    console.log(`[OTP] ${email} uchun kod: ${otp}`);
-
-    try {
-      await admin.firestore().collection('otps').doc(email).set({
-        otp,
-        expiresAt,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    } catch (e) {}
-
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-      });
-
-      await transporter.sendMail({
-        from: `"AlphaSpace" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "AlphaSpace - Kirish kodi",
-        text: `Sizning kirish kodingiz: ${otp}`,
-        html: `<b>Sizning kirish kodingiz: ${otp}</b>`
-      });
-      res.json({ success: true, message: "Kod emailingizga yuborildi" });
-    } else {
-      res.json({ success: true, message: "Kod yuborildi (Dev mode)", devOtp: otp });
-    }
-  } catch (error: any) {
-    res.status(500).json({ error: "Xatolik yuz berdi" });
-  }
-});
-
-app.post("/api/auth/verify-otp", async (req, res) => {
-  const { email, otp } = req.body;
-  try {
-    let data = tempOtpStore.get(email);
-    if (!data) {
-      try {
-        const doc = await admin.firestore().collection('otps').doc(email).get();
-        if (doc.exists) data = doc.data() as any;
-      } catch (e) {}
-    }
-
-    if (!data || data.otp !== otp || Date.now() > data.expiresAt) {
-      return res.status(400).json({ error: "Noto'g'ri yoki muddati o'tgan kod" });
-    }
-
-    tempOtpStore.delete(email);
-    const botToken = process.env.TELEGRAM_BOT_TOKEN || "default_secret";
-    const userPassword = crypto.createHmac('sha256', botToken).update(email).digest('hex').substring(0, 20);
-
-    res.json({ email, password: userPassword, success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Xatolik" });
-  }
 });
 
 app.post("/api/fetch-telegram-html", async (req, res) => {
