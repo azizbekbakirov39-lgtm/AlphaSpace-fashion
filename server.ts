@@ -50,6 +50,13 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
+// Check Email Credentials
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.warn("⚠️ EMAIL_USER yoki EMAIL_PASS o'rnatilmagan. Email OTP 'Dev mode'da ishlaydi (kod konsolda ko'rinadi).");
+} else {
+  console.log("✅ Email xizmati tayyor.");
+}
+
 const tempOtpStore = new Map<string, { otp: string, expiresAt: number }>();
 
 app.post("/api/auth/send-otp", async (req, res) => {
@@ -63,6 +70,7 @@ app.post("/api/auth/send-otp", async (req, res) => {
     const expiresAt = Date.now() + 10 * 60 * 1000;
 
     tempOtpStore.set(email, { otp, expiresAt });
+    console.log(`[OTP] ${email} uchun kod: ${otp}`);
 
     try {
       await admin.firestore().collection('otps').doc(email).set({

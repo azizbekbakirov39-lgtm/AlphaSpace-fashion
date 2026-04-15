@@ -231,20 +231,20 @@ export default function App() {
         toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
       } else {
         // Login
-        result = await loginWithEmail(email, pass);
-        toast.success("Xush kelibsiz!");
+        try {
+          result = await loginWithEmail(email, pass);
+          toast.success("Xush kelibsiz!");
+        } catch (loginError: any) {
+          // If login fails with user-not-found, and we are in OTP flow (implied by name being split of email later)
+          // we might want to re-throw to let Profile.tsx handle registration
+          throw loginError;
+        }
       }
+      return result;
     } catch (error: any) {
       console.error("Auth Error:", error);
-      if (error.code === 'auth/email-already-in-use') {
-        toast.error("Bu email allaqachon ro'yxatdan o'tgan");
-      } else if (error.code === 'auth/wrong-password') {
-        toast.error("Noto'g'ri parol");
-      } else if (error.code === 'auth/user-not-found') {
-        toast.error("Foydalanuvchi topilmadi");
-      } else {
-        toast.error("Xatolik yuz berdi: " + error.message);
-      }
+      // Re-throw for Profile.tsx to handle if it's an OTP flow
+      throw error;
     }
   };
 

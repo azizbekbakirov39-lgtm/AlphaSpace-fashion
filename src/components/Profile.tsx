@@ -722,20 +722,20 @@ const Profile: React.FC<ProfileProps> = ({
 
                   <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowEmailForm(true)}
+                    onClick={() => setShowOtpForm(true)}
                     className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-accent-blue/20 flex items-center justify-center gap-3 mb-4"
                   >
-                    <Mail size={20} />
-                    Email va Parol
+                    <Zap size={20} />
+                    Email orqali kod bilan
                   </motion.button>
 
                   <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowOtpForm(true)}
+                    onClick={() => setShowEmailForm(true)}
                     className="w-full py-4 bg-white text-accent-blue border-2 border-accent-blue/20 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 mb-4"
                   >
-                    <Zap size={20} />
-                    Email orqali kod bilan
+                    <Mail size={20} />
+                    Email va Parol
                   </motion.button>
                 </motion.div>
               ) : showOtpForm ? (
@@ -897,6 +897,16 @@ const Profile: React.FC<ProfileProps> = ({
                         setAuthLoading(true);
                         try {
                           await onEmailLogin?.(email, password, isRegistering ? name : undefined);
+                        } catch (error: any) {
+                          if (error.code === 'auth/email-already-in-use') {
+                            toast.error("Bu email allaqachon ro'yxatdan o'tgan");
+                          } else if (error.code === 'auth/wrong-password') {
+                            toast.error("Noto'g'ri parol");
+                          } else if (error.code === 'auth/user-not-found') {
+                            toast.error("Foydalanuvchi topilmadi");
+                          } else {
+                            toast.error("Xatolik yuz berdi: " + (error.message || "Noma'lum xatolik"));
+                          }
                         } finally {
                           setAuthLoading(false);
                         }
