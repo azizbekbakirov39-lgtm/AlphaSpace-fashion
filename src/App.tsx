@@ -45,6 +45,7 @@ import {
   orderBy, 
   limit, 
   serverTimestamp,
+  Timestamp,
   increment,
   handleFirestoreError,
   OperationType
@@ -114,7 +115,12 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, 'posts');
     });
 
-    const unsubStories = onSnapshot(collection(db, 'stories'), (snapshot) => {
+    const storiesQuery = query(
+      collection(db, 'stories'),
+      where('expiresAt', '>', Timestamp.now())
+    );
+
+    const unsubStories = onSnapshot(storiesQuery, (snapshot) => {
       const storiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Story));
       setStories(storiesData);
     }, (error) => {

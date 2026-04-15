@@ -7,6 +7,8 @@ import { isVideoUrl } from '../utils/mediaUtils';
 
 import { Language, translations } from '../translations';
 
+import Logo from './Logo';
+
 interface BrandsProps {
   language: Language;
   stories: Story[];
@@ -266,35 +268,83 @@ const Brands: React.FC<BrandsProps> = ({
           initialQuery={searchQuery}
         />
 
-        {/* Category Chips */}
+        {/* Category Visual Cards */}
         <div className="relative -mx-4">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-2">
-            <button
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-4">
+            {/* All Category */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedCategory(null)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                !selectedCategory 
-                  ? 'bg-gradient-to-r from-accent-blue to-accent-light text-white shadow-lg shadow-accent-blue/20' 
-                  : 'bg-text-primary/5 text-text-secondary border border-border-primary'
-              }`}
+              className="flex-shrink-0 flex flex-col items-center gap-2 group"
             >
-              {language === 'uz' ? "Barchasi" : language === 'ru' ? "Все" : "All"}
-            </button>
-            {SELLER_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                  selectedCategory === cat 
-                    ? 'bg-gradient-to-r from-accent-blue to-accent-light text-white shadow-lg shadow-accent-blue/20' 
-                    : 'bg-text-primary/10 text-text-primary border border-border-primary'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+              <div className={`w-16 h-16 rounded-2xl overflow-hidden relative transition-all duration-300 flex items-center justify-center ${
+                !selectedCategory 
+                  ? 'ring-2 ring-accent-blue ring-offset-2 ring-offset-bg-primary shadow-lg scale-105' 
+                  : 'bg-accent-blue/5 group-hover:bg-accent-blue/10'
+              }`}>
+                {!selectedCategory ? (
+                  <Logo width={40} height={40} showText={false} animated={true} />
+                ) : (
+                  <Logo width={40} height={40} showText={false} className="opacity-60 grayscale-[0.5]" />
+                )}
+                <div className="absolute inset-0 bg-black/5" />
+              </div>
+              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg backdrop-blur-md border transition-all ${
+                !selectedCategory
+                  ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
+                  : 'bg-text-primary/5 text-text-secondary border-transparent'
+              }`}>
+                {language === 'uz' ? "Barchasi" : language === 'ru' ? "Все" : "All"}
+              </span>
+            </motion.button>
+
+            {SELLER_CATEGORIES.map((cat) => {
+              const categoryImages: Record<string, string> = {
+                'Erkaklar kiyinishi': 'https://images.unsplash.com/photo-1593032465175-481ac7f401a0?auto=format&fit=crop&q=80&w=200',
+                'Ayollar kiyinishi': 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=200',
+                'Aksessuarlar': 'https://images.unsplash.com/photo-1509319117193-57bab727e09d?auto=format&fit=crop&q=80&w=200',
+                'Texnika': 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?auto=format&fit=crop&q=80&w=200',
+                'Go‘zallik': 'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?auto=format&fit=crop&q=80&w=200',
+                'Xonadon': 'https://images.unsplash.com/photo-1581539250439-c96689b516dd?auto=format&fit=crop&q=80&w=200',
+                'Xizmatlar': 'https://images.unsplash.com/photo-1454165833767-0274b27f28a0?auto=format&fit=crop&q=80&w=200',
+                'Boshqa': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=200'
+              };
+
+              return (
+                <motion.button
+                  key={cat}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="flex-shrink-0 flex flex-col items-center gap-2 group"
+                >
+                  <div className={`w-16 h-16 rounded-2xl overflow-hidden relative transition-all duration-300 ${
+                    selectedCategory === cat 
+                      ? 'ring-2 ring-accent-blue ring-offset-2 ring-offset-bg-primary shadow-lg scale-105' 
+                      : 'group-hover:scale-105'
+                  }`}>
+                    <img 
+                      src={categoryImages[cat]}
+                      className="w-full h-full object-cover"
+                      alt={cat}
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className={`absolute inset-0 transition-opacity duration-300 ${
+                      selectedCategory === cat ? 'bg-black/0' : 'bg-black/10'
+                    }`} />
+                  </div>
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap ${
+                    selectedCategory === cat
+                      ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
+                      : 'bg-text-primary/5 text-text-secondary border-transparent'
+                  }`}>
+                    {cat}
+                  </span>
+                </motion.button>
+              );
+            })}
           </div>
           {/* Fade effect */}
-          <div className="absolute top-0 right-0 bottom-2 w-12 bg-gradient-to-l from-bg-primary to-transparent pointer-events-none" />
+          <div className="absolute top-0 right-0 bottom-4 w-12 bg-gradient-to-l from-bg-primary to-transparent pointer-events-none" />
         </div>
       </div>
 

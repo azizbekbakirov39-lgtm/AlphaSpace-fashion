@@ -24,6 +24,8 @@ export interface Story {
     votes: number[];
     userVote?: number;
   };
+  createdAt?: any;
+  expiresAt?: any;
 }
 
 export type SellerCategory = 
@@ -34,7 +36,6 @@ export type SellerCategory =
   | 'Go‘zallik'
   | 'Xonadon'
   | 'Xizmatlar'
-  | 'Kiyim'
   | 'Boshqa';
 
 export const SELLER_CATEGORIES: SellerCategory[] = [
@@ -45,7 +46,6 @@ export const SELLER_CATEGORIES: SellerCategory[] = [
   'Go‘zallik',
   'Xonadon',
   'Xizmatlar',
-  'Kiyim',
   'Boshqa'
 ];
 

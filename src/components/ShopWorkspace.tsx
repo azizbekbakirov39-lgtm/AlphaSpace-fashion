@@ -82,7 +82,7 @@ import { toast } from 'sonner';
 import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, User } from '../types';
 import { uploadImageToImgBB } from '../services/imgbb';
 import { analyzeProductImage } from '../services/aiService';
-import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
+import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, Timestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
 
@@ -3548,7 +3548,8 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
         comments: 0,
         isLive: false,
         isViewed: false,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
       };
       
       await addDoc(collection(db, 'stories'), newStoryData);

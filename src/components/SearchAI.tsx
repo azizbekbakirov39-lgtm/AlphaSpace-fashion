@@ -3,6 +3,7 @@ import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt } fro
 import { GoogleGenAI, Type } from '@google/genai';
 import { AIMessage, PostData, Obraz } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import SmartSellerLogo from './SmartSellerLogo';
 
 interface SearchAIProps {
   language?: string;
@@ -318,25 +319,9 @@ Foydalanuvchi xabari: ${messageText}`;
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-neutral-950 relative">
-      {/* Floating Header - Top Left (No background, icon above text) */}
-      <div className="absolute top-0 left-0 p-6 flex flex-col items-start pointer-events-none z-30">
-        <div className="flex flex-col items-center gap-1">
-          <motion.div 
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-accent-blue flex items-center justify-center shadow-xl shadow-accent-blue/20 pointer-events-auto"
-          >
-            <Sparkles size={20} className="text-white" />
-          </motion.div>
-          <motion.h2 
-            initial={{ x: -10, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-[10px] font-black text-text-primary uppercase tracking-tighter pointer-events-auto"
-          >
-            SmartSeller
-          </motion.h2>
-        </div>
+      {/* Floating Header - Top Left */}
+      <div className="absolute top-0 left-0 p-4 z-30 pointer-events-none">
+        <SmartSellerLogo width={45} showText={true} className="pointer-events-auto" />
       </div>
 
       {/* "Topildi" Badge - Floating Right */}
@@ -470,8 +455,8 @@ Foydalanuvchi xabari: ${messageText}`;
       >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="w-16 h-16 rounded-[2rem] bg-accent-blue/5 flex items-center justify-center text-accent-blue mb-6">
-              <Sparkles size={32} />
+            <div className="mb-6">
+              <SmartSellerLogo width={100} showText={true} animated={true} />
             </div>
             <h3 className="text-xl font-black text-text-primary mb-2">
               {language === 'uz' ? 'SmartSellerga xush kelibsiz' : 'Добро пожаловать в SmartSeller'}
@@ -533,40 +518,9 @@ Foydalanuvchi xabari: ${messageText}`;
                   initial={{ opacity: 0, scale: 0.8, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                  className="relative w-24 h-24 flex items-center justify-center ml-4"
+                  className="ml-4 mb-4"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent-blue to-purple-600 rounded-full blur-2xl opacity-20 animate-pulse" />
-                  <div className="relative w-16 h-16 rounded-full border-4 border-accent-blue flex items-center justify-center overflow-hidden">
-                    <motion.div 
-                      animate={{
-                        x: [-10, 10, -10],
-                        y: [-10, 10, -10],
-                      }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute inset-0 bg-gradient-to-tr from-accent-blue/20 to-purple-500/20"
-                    />
-                    <motion.div 
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="text-accent-blue"
-                    >
-                      <Sparkles size={24} />
-                    </motion.div>
-                  </div>
-                  <motion.div 
-                    animate={{
-                      x: [0, 5, 0],
-                      y: [0, 5, 0],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute -bottom-2 -right-2 w-8 h-8 bg-white dark:bg-neutral-900 rounded-full shadow-lg flex items-center justify-center border-2 border-accent-blue"
-                  >
-                    <div className="w-4 h-4 text-accent-blue">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-                      </svg>
-                    </div>
-                  </motion.div>
+                  <SmartSellerLogo width={60} showText={false} animated={true} />
                 </motion.div>
               )}
             </AnimatePresence>
