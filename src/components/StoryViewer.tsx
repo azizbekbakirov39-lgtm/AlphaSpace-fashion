@@ -12,7 +12,7 @@ interface StoryViewerProps {
   initialIndex: number;
   onClose: () => void;
   onMarkViewed: (storyId: string) => void;
-  onToggleLike: (storyId: string) => void;
+  onToggleLike: (storyId: string, type: 'post' | 'story') => void;
   onOpenShopProfile?: (shopId: string) => void;
   onOpenChat?: (sellerId: string, product?: PostData) => void;
   language: Language;
@@ -184,7 +184,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         tapTimeout.current = null;
       }
       if (!currentStory.isLiked) {
-        onToggleLike(currentStory.id);
+        onToggleLike(currentStory.id, 'story');
         setShowHeartAnimation(true);
         setTimeout(() => setShowHeartAnimation(false), 800);
       }
@@ -428,7 +428,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleLike(currentStory.id);
+                onToggleLike(currentStory.id, 'story');
               }}
               className={`w-12 h-12 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex items-center justify-center transition-all active:scale-90 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
             >

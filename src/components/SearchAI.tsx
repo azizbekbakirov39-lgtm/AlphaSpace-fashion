@@ -243,7 +243,7 @@ Foydalanuvchi xabari: ${messageText}`;
               results = allPosts.filter(p => 
                 p.outfitName.toLowerCase().includes(q) || 
                 p.description?.toLowerCase().includes(q) ||
-                p.items.some(item => item.name.toLowerCase().includes(q)) ||
+                p.items?.some(item => item.name.toLowerCase().includes(q)) ||
                 p.seller.name.toLowerCase().includes(q) ||
                 p.aiMetadata?.tags?.some(tag => tag.toLowerCase().includes(q)) ||
                 p.aiMetadata?.color?.toLowerCase().includes(q) ||
@@ -296,7 +296,7 @@ Foydalanuvchi xabari: ${messageText}`;
         const results = allPosts.filter(p => 
           p.outfitName.toLowerCase().includes(q) || 
           p.description?.toLowerCase().includes(q) ||
-          p.items.some(item => item.name.toLowerCase().includes(q))
+          p.items?.some(item => item.name.toLowerCase().includes(q))
         );
         if (results.length > 0) {
           setFoundPosts?.(results);

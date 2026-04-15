@@ -49,7 +49,6 @@ import {
   AlertCircle,
   Info,
   Sparkles,
-  Shirt,
   Mail,
   Plus,
   Play,
@@ -80,7 +79,7 @@ import {
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { toast } from 'sonner';
-import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, Obraz, User } from '../types';
+import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, User } from '../types';
 import { uploadImageToImgBB } from '../services/imgbb';
 import { analyzeProductImage } from '../services/aiService';
 import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
@@ -123,7 +122,6 @@ interface ShopWorkspaceProps {
   shopData: Seller;
   user: User | null;
   posts: PostData[];
-  obrazlar: Obraz[];
   onBackToMarketplace: () => void;
   onUpdateShop: (shop: Seller) => void;
   activeTab: string;
@@ -137,7 +135,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   shopData, 
   user,
   posts,
-  obrazlar,
   onBackToMarketplace, 
   onUpdateShop,
   activeTab,
@@ -155,7 +152,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [isFreezing, setIsFreezing] = useState(false);
 
   const [showStatsModal, setShowStatsModal] = useState(false);
-  const [showLiveStreamModal, setShowLiveStreamModal] = useState(false);
   const [stats, setStats] = useState({
     telegram: 124,
     messages: 85,
@@ -281,8 +277,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
   const [selectedPostForInsights, setSelectedPostForInsights] = useState<PostData | null>(null);
-  const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Obrazlar' | 'Ma\'lumot'>('Postlar');
-  const [showCreateObrazModal, setShowCreateObrazModal] = useState(false);
+  const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
   const [instagramLink, setInstagramLink] = useState('');
@@ -1212,24 +1207,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               </button>
             </div>
 
-            {/* Create Content Section */}
-            <div className="px-6 py-4 grid grid-cols-2 gap-2">
-              <button 
-                onClick={() => setShowCreateObrazModal(true)}
-                className="flex flex-col items-center justify-center gap-2 py-4 bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-2xl shadow-lg shadow-accent-blue/20 active:scale-95 transition-all"
-              >
-                <Sparkles size={18} />
-                <span className="text-[8px] font-black uppercase tracking-widest">Obraz</span>
-              </button>
-              <button 
-                onClick={() => setShowLiveStreamModal(true)}
-                className="flex flex-col items-center justify-center gap-2 py-4 bg-red-500 text-white rounded-2xl shadow-lg shadow-red-500/20 active:scale-95 transition-all"
-              >
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                <span className="text-[8px] font-black uppercase tracking-widest">Efir</span>
-              </button>
-            </div>
-
             {/* Shop Info Cards (Rich Styling like Buyer View) */}
             <div className="px-6 mb-8 space-y-4">
               {/* Map Card */}
@@ -1340,7 +1317,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               <div className="bg-text-primary/5 p-1 rounded-2xl flex items-center gap-1 border border-border-primary">
                 {[
                   { id: 'Postlar', label: 'Postlar', icon: <Grid size={14} /> },
-                  { id: 'Obrazlar', label: 'Obrazlar', icon: <Sparkles size={14} /> },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -1360,134 +1336,97 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
             <div className="px-6 pb-20">
               {activeProfileTab === 'Postlar' && (
-                (posts.length > 0 || uploadProgress !== null) ? (
-                  <div className="grid grid-cols-3 gap-1">
-                    {uploadProgress !== null && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="aspect-square rounded-lg overflow-hidden relative flex items-center justify-center border border-border-primary"
-                      >
-                        {/* Animated mixing gradient background with 15% opacity/blur effect */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#007AFF] to-[#5AC8FA] bg-[length:200%_200%] animate-[gradient_3s_ease_infinite] opacity-85"></div>
-                        <div className="absolute inset-0 backdrop-blur-[2px] bg-white/10"></div>
-                        
-                        {/* Glassmorphism percentage pill */}
-                        <div className="relative z-10 bg-white/40 backdrop-blur-xl border border-white/50 px-5 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,122,255,0.3)] flex flex-col items-center justify-center">
-                          <span className="bg-gradient-to-r from-[#007AFF] to-[#0056b3] bg-clip-text text-transparent font-black text-3xl drop-shadow-sm">{uploadProgress}%</span>
-                          <span className="text-[#007AFF] font-bold text-[9px] uppercase tracking-widest mt-1">Yuklanmoqda</span>
-                        </div>
-                      </motion.div>
-                    )}
-                    {posts.map((post) => (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        key={post.id} 
-                        className="aspect-square bg-text-primary/5 rounded-lg overflow-hidden border border-border-primary relative group"
-                      >
-                        {post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
-                          <video 
-                            src={`${post.mediaUrls?.[0]}#t=0.1`}
-                            className="w-full h-full object-cover cursor-pointer"
-                            preload="metadata"
-                            muted
-                            playsInline
-                            onClick={() => setEditingPost(post)}
-                          />
-                        ) : (
-                          <img 
-                            src={post.mediaUrls?.[0] || undefined} 
-                            className="w-full h-full object-cover cursor-pointer" 
-                            alt={post.outfitName} 
-                            referrerPolicy="no-referrer" 
-                            onClick={() => setEditingPost(post)}
-                          />
-                        )}
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPostForInsights(post);
-                          }}
-                          className="absolute bottom-1 left-1 right-1 py-1 bg-black/60 backdrop-blur-md text-white text-[7px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
-                        >
-                          <TrendingUp size={8} />
-                          Insights
-                        </button>
-                        {post.mediaType === 'video' && (
-                          <div className="absolute top-1 right-1 bg-black/50 p-0.5 rounded">
-                            <Video size={10} className="text-white" />
-                          </div>
-                        )}
-                      </motion.div>
-                    ))}
+                <div className="flex flex-col gap-6">
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-3 w-full">
+                    <button 
+                      onClick={() => setShowInstagramImportModal(true)}
+                      className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <Instagram size={18} />
+                      Instagramdan import
+                    </button>
+                    <button 
+                      onClick={() => setShowCreateStoryModal(true)}
+                      className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <Play size={18} />
+                      Story qo'shish
+                    </button>
                   </div>
-                ) : (
-                  <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-3xl border-2 border-dashed border-border-primary">
-                    <PlusCircle size={48} className="text-text-primary/10 mb-4" />
-                    <p className="text-xs font-bold text-text-primary/40 uppercase tracking-widest mb-6">Hali postlar yo'q</p>
-                    <div className="flex flex-col gap-3 w-full max-w-[280px]">
-                      <button 
-                        onClick={() => setShowInstagramImportModal(true)}
-                        className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-                      >
-                        <Instagram size={18} />
-                        Instagramdan import
-                      </button>
-                      <button 
-                        onClick={() => setShowCreateStoryModal(true)}
-                        className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-                      >
-                        <Play size={18} />
-                        Story qo'shish
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
 
-              {activeProfileTab === 'Obrazlar' && (
-                obrazlar.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {obrazlar.map((obraz) => (
-                      <div key={obraz.id} className="group bg-white/5 rounded-3xl border border-border-primary overflow-hidden relative">
-                        <div className="aspect-[4/5] relative">
-                          <img src={obraz.posts?.[0]?.mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt={obraz.title} referrerPolicy="no-referrer" />
-                          <div className="absolute top-2 right-2 p-1.5 bg-accent-blue rounded-full">
-                            <Sparkles size={12} className="text-white" />
-                          </div>
+                  {/* Post Grid */}
+                  {(posts.length > 0 || uploadProgress !== null) ? (
+                    <div className="grid grid-cols-3 gap-1">
+                      {uploadProgress !== null && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="aspect-square rounded-lg overflow-hidden relative flex items-center justify-center border border-border-primary"
+                        >
+                          {/* Animated mixing gradient background with 15% opacity/blur effect */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-[#007AFF] to-[#5AC8FA] bg-[length:200%_200%] animate-[gradient_3s_ease_infinite] opacity-85"></div>
+                          <div className="absolute inset-0 backdrop-blur-[2px] bg-white/10"></div>
                           
-                          {/* Delete Button */}
+                          {/* Glassmorphism percentage pill */}
+                          <div className="relative z-10 bg-white/40 backdrop-blur-xl border border-white/50 px-5 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,122,255,0.3)] flex flex-col items-center justify-center">
+                            <span className="bg-gradient-to-r from-[#007AFF] to-[#0056b3] bg-clip-text text-transparent font-black text-3xl drop-shadow-sm">{uploadProgress}%</span>
+                            <span className="text-[#007AFF] font-bold text-[9px] uppercase tracking-widest mt-1">Yuklanmoqda</span>
+                          </div>
+                        </motion.div>
+                      )}
+                      {posts.map((post) => (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          key={post.id} 
+                          className="aspect-square bg-text-primary/5 rounded-lg overflow-hidden border border-border-primary relative group"
+                        >
+                          {post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                            <video 
+                              src={`${post.mediaUrls?.[0]}#t=0.1`}
+                              className="w-full h-full object-cover cursor-pointer"
+                              preload="metadata"
+                              muted
+                              playsInline
+                              onClick={() => setEditingPost(post)}
+                            />
+                          ) : (
+                            <img 
+                              src={post.mediaUrls?.[0] || undefined} 
+                              className="w-full h-full object-cover cursor-pointer" 
+                              alt={post.outfitName} 
+                              referrerPolicy="no-referrer" 
+                              onClick={() => setEditingPost(post)}
+                            />
+                          )}
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteObraz(obraz.id);
+                              setSelectedPostForInsights(post);
                             }}
-                            className="absolute top-2 left-2 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/60 hover:text-red-500 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-1 left-1 right-1 py-1 bg-black/60 backdrop-blur-md text-white text-[7px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
                           >
-                            <Trash2 size={14} />
+                            <TrendingUp size={8} />
+                            Insights
                           </button>
-                        </div>
-                        <div className="p-3">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest mb-1 truncate">{obraz.title}</h4>
-                          <p className="text-[11px] font-black text-accent-blue">{obraz.totalPrice}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-3xl border-2 border-dashed border-border-primary">
-                    <Shirt size={48} className="text-text-primary/10 mb-4" />
-                    <p className="text-xs font-bold text-text-primary/40 uppercase tracking-widest mb-6">Hali obrazlar yo'q</p>
-                    <button 
-                      onClick={() => setShowCreateObrazModal(true)}
-                      className="px-8 py-3 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-accent-blue/20 active:scale-95 transition-transform"
-                    >
-                      Obraz yaratish
-                    </button>
-                  </div>
-                )
+                          {post.mediaType === 'video' && (
+                            <div className="absolute top-1 right-1 bg-black/50 p-0.5 rounded">
+                              <Video size={10} className="text-white" />
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 flex flex-col items-center justify-center bg-white/5 rounded-3xl border-2 border-dashed border-border-primary">
+                      <PlusCircle size={48} className="text-text-primary/10 mb-4" />
+                      <p className="text-xs font-bold text-text-primary/40 uppercase tracking-widest">Hali postlar yo'q</p>
+                    </div>
+                  )}
+                </div>
               )}
+
             </div>
           </div>
         );
@@ -2888,15 +2827,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       {/* Statistics Modal */}
       <AnimatePresence>
-        {showCreateObrazModal && (
-          <CreateObrazModal 
-            posts={posts}
-            sellerId={shopData.id}
-            ownerUid={user?.uid || ''}
-            onClose={() => setShowCreateObrazModal(false)}
-          />
-        )}
-
         {showCreateStoryModal && (
           <CreateStoryModal 
             posts={posts}
@@ -2912,76 +2842,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             stats={stats} 
             onClose={() => setShowStatsModal(false)} 
           />
-        )}
-      </AnimatePresence>
-
-      {/* Live Stream Modal */}
-      <AnimatePresence>
-        {showLiveStreamModal && (
-          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-md bg-bg-primary rounded-3xl border border-border-primary overflow-hidden shadow-2xl"
-            >
-              <div className="p-6 border-b border-border-primary flex justify-between items-center bg-bg-primary/80 backdrop-blur-md">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <h3 className="font-black italic uppercase tracking-tighter">Jonli Efir Boshlash</h3>
-                </div>
-                <button onClick={() => setShowLiveStreamModal(false)} className="p-2 hover:bg-text-primary/10 rounded-full transition-colors">
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="p-6 flex flex-col gap-6">
-                <div className="aspect-video bg-black rounded-2xl overflow-hidden relative border border-border-primary">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Camera size={48} className="text-white/20" />
-                  </div>
-                  <div className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
-                    Preview
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Efir mavzusi</label>
-                    <input 
-                      type="text" 
-                      placeholder="Masalan: Yangi kolleksiya taqdimoti"
-                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-blue/50"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 bg-text-primary/5 rounded-2xl border border-border-primary flex flex-col items-center gap-2">
-                      <Users size={20} className="text-accent-blue" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/60">Kutilayotgan: 120+</span>
-                    </div>
-                    <div className="p-4 bg-text-primary/5 rounded-2xl border border-border-primary flex flex-col items-center gap-2">
-                      <Zap size={20} className="text-amber-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/60">Sifat: 1080p</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => {
-                    setShowLiveStreamModal(false);
-                    toast.success("Jonli efir boshlandi!", {
-                      description: "Mijozlar endi sizni ko'rishlari mumkin.",
-                      duration: 3000,
-                    });
-                  }}
-                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
-                >
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  Efirni Boshlash
-                </button>
-              </div>
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
 
@@ -3733,150 +3593,6 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
             className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50"
           >
             {isCreating ? "Yaratilmoqda..." : "Storyni Saqlash"}
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-const CreateObrazModal = ({ posts, sellerId, ownerUid, onClose }: { posts: PostData[], sellerId: string, ownerUid: string, onClose: () => void }) => {
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    totalPrice: '',
-    type: '',
-    selectedPostIds: [] as string[],
-    mediaUrls: [] as string[]
-  });
-
-  const togglePostSelection = (id: string) => {
-    setForm(prev => {
-      const isSelected = prev.selectedPostIds.includes(id);
-      if (!isSelected && prev.selectedPostIds.length >= 7) {
-        toast.error("Maksimal 7 ta mahsulot tanlash mumkin");
-        return prev;
-      }
-      return {
-        ...prev,
-        selectedPostIds: isSelected
-          ? prev.selectedPostIds.filter(pid => pid !== id)
-          : [...prev.selectedPostIds, id]
-      };
-    });
-  };
-
-  const handleCreate = async () => {
-    try {
-      const selectedPosts = posts.filter(p => form.selectedPostIds.includes(p.id));
-      const newObrazData = {
-        sellerId,
-        ownerUid,
-        title: form.title,
-        description: form.description,
-        totalPrice: form.totalPrice,
-        type: form.type,
-        posts: selectedPosts,
-        createdAt: serverTimestamp()
-      };
-      
-      await addDoc(collection(db, 'obrazlar'), newObrazData);
-      toast.success("Obraz muvaffaqiyatli yaratildi");
-      onClose();
-    } catch (error) {
-      console.error("Error creating obraz:", error);
-      toast.error("Obraz yaratishda xatolik");
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-lg bg-bg-primary rounded-[2.5rem] overflow-hidden shadow-2xl border border-border-primary flex flex-col max-h-[90vh]"
-      >
-        <div className="p-6 border-b border-border-primary flex items-center justify-between bg-bg-primary/80 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-blue/10 rounded-xl">
-              <Sparkles size={20} className="text-accent-blue" />
-            </div>
-            <h3 className="text-lg font-black uppercase tracking-tighter text-text-primary">Obraz Yaratish</h3>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-text-primary/10 rounded-full transition-colors">
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-6">
-          {/* Post Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-3 px-2">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Mahsulotlarni tanlang</h4>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${form.selectedPostIds.length >= 7 ? 'text-red-500' : 'text-accent-blue'}`}>
-                {form.selectedPostIds.length} / 7
-              </span>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {posts.map(post => (
-                <div 
-                  key={post.id} 
-                  onClick={() => togglePostSelection(post.id)}
-                  className={`aspect-square rounded-xl overflow-hidden border-2 transition-all relative ${form.selectedPostIds.includes(post.id) ? 'border-accent-blue scale-95' : 'border-transparent opacity-60'}`}
-                >
-                  <img src={post.mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                  {form.selectedPostIds.includes(post.id) && (
-                    <div className="absolute inset-0 bg-accent-blue/20 flex items-center justify-center">
-                      <CheckCircle2 size={20} className="text-white" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Fields */}
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-2">Obraz nomi</label>
-              <input 
-                type="text" 
-                value={form.title}
-                onChange={e => setForm({...form, title: e.target.value})}
-                placeholder="Masalan: Kechki ziyofat uchun"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-accent-blue/50 transition-colors"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-2">Umumiy narxi</label>
-              <input 
-                type="text" 
-                value={form.totalPrice}
-                onChange={e => setForm({...form, totalPrice: e.target.value})}
-                placeholder="Masalan: 1,200,000 so'm"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-accent-blue/50 transition-colors"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-2">Izoh va ma'lumot</label>
-              <textarea 
-                rows={3}
-                value={form.description}
-                onChange={e => setForm({...form, description: e.target.value})}
-                placeholder="Obraz haqida to'liq ma'lumot..."
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-accent-blue/50 transition-colors resize-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-bg-primary border-t border-border-primary">
-          <button 
-            onClick={handleCreate}
-            disabled={!form.title || !form.totalPrice || form.selectedPostIds.length === 0}
-            className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-accent-blue/20 active:scale-95 transition-all disabled:opacity-50"
-          >
-            Obrazni Saqlash
           </button>
         </div>
       </motion.div>

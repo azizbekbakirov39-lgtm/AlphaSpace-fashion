@@ -1830,7 +1830,7 @@ const Profile: React.FC<ProfileProps> = ({
     const clothingCategories = ['Erkaklar kiyinishi', 'Ayollar kiyinishi', 'Kiyim'];
     
     const filteredPosts = savedPosts.filter(post => {
-      const isClothing = post.seller.categories.some(cat => clothingCategories.includes(cat));
+      const isClothing = post.seller?.categories?.some(cat => clothingCategories.includes(cat)) || false;
       if (activeClosetCategory === 'clothing') return isClothing;
       if (activeClosetCategory === 'other') return !isClothing;
       return true;

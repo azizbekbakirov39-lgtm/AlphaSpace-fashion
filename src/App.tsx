@@ -281,13 +281,17 @@ export default function App() {
           isSaved: userSaves.has(post.id)
         };
       })
-      .filter(post => post.seller && post.seller.status !== 'frozen')
+      .filter(post => {
+        // If we are in Shop workspace, we might want to see our own posts even if seller status is not yet loaded
+        if (!post.seller) return true; 
+        return post.seller.status !== 'frozen';
+      })
       .map(post => ({
         ...post,
-        seller: {
+        seller: post.seller ? {
           ...post.seller,
-          isSubscribed: userSubscriptions.has(post.seller!.id)
-        }
+          isSubscribed: userSubscriptions.has(post.seller.id)
+        } : undefined
       }));
   }, [posts, sellers, userLikes, userSaves, userSubscriptions]);
 
@@ -556,17 +560,16 @@ export default function App() {
   const filteredPosts = postsWithUserStatus.filter(post => 
     post.seller.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.outfitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    post.items?.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const toggleLike = React.useCallback(async (id: string) => {
+  const toggleLike = React.useCallback(async (id: string, type: 'post' | 'story' = 'post') => {
     if (!user) {
       setActiveTab('Profile');
       return;
     }
 
-    const isStory = id.startsWith('st');
-    const collectionName = isStory ? 'stories' : 'posts';
+    const collectionName = type === 'story' ? 'stories' : 'posts';
     const docRef = doc(db, collectionName, id);
 
     // Optimistic UI update
@@ -580,7 +583,7 @@ export default function App() {
       return newLikes;
     });
     
-    if (isStory) {
+    if (type === 'story') {
       setStories(prev => prev.map(s => s.id === id ? { ...s, likes: userLikes.has(id) ? s.likes - 1 : s.likes + 1 } : s));
     } else {
       setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: userLikes.has(id) ? p.likes - 1 : p.likes + 1 } : p));
@@ -1240,8 +1243,7 @@ export default function App() {
                       language={language} 
                       shopData={userShop} 
                       user={user}
-                      posts={posts.filter(p => p.sellerId === userShop.id)}
-                      obrazlar={obrazlar.filter(o => o.sellerId === userShop.id)}
+                      posts={postsWithUserStatus.filter(p => p.seller?.id === userShop.id || (p as any).sellerId === userShop.id)}
                       onBackToMarketplace={() => handleWorkspaceChange('Marketplace')} 
                       onUpdateShop={(updatedShop) => {
                         setUserShop(updatedShop);

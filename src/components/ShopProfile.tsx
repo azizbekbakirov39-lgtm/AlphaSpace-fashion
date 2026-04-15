@@ -450,12 +450,22 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                   onClick={() => onOpenPostDetails(post)}
                   className="aspect-square relative group overflow-hidden bg-neutral-900 rounded-2xl border border-border-primary shadow-sm"
                 >
-                  <img 
-                    src={post.mediaUrls[0]} 
-                    alt={post.outfitName}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
+                  {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                    <video 
+                      src={`${post.mediaUrls[0]}#t=0.1`}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img 
+                      src={post.mediaUrls[0]} 
+                      alt={post.outfitName}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
                   {post.mediaType === 'video' && (
                     <div className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-lg text-white">
                       <Play size={10} fill="currentColor" />
