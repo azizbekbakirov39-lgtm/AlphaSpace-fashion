@@ -1928,46 +1928,11 @@ const Profile: React.FC<ProfileProps> = ({
 
   const renderComments = () => (
     <div className="p-4 space-y-4">
-      {[
-        { id: 1, shop: 'Terra Pro', text: 'Juda zo\'r kiyim ekan, sifati a\'lo!', date: '25 Mart, 2026', rating: 5 },
-        { id: 2, shop: 'Selfie', text: 'Razmeri biroz kichikroq keldi, lekin rangi chiroyli.', date: '20 Mart, 2026', rating: 4 },
-        { id: 3, shop: 'Vicco', text: 'Bolalar uchun juda qulay poyabzal.', date: '15 Mart, 2026', rating: 5 }
-      ].slice(0, 100).map((comment) => (
-        <div key={comment.id} className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-border-primary shadow-sm space-y-3">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-accent-blue/10 rounded-lg flex items-center justify-center text-accent-blue">
-                <Store size={16} />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-text-primary uppercase tracking-tight">{comment.shop}</h4>
-                <p className="text-[9px] text-text-primary/40 font-bold uppercase tracking-widest">{comment.date}</p>
-              </div>
-            </div>
-            <div className="flex gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i} 
-                  size={10} 
-                  className={i < comment.rating ? "text-yellow-500 fill-yellow-500" : "text-text-primary/10"} 
-                />
-              ))}
-            </div>
-          </div>
-          <p className="text-[11px] text-text-primary/70 leading-relaxed font-medium">
-            "{comment.text}"
-          </p>
-          <div className="flex gap-4 pt-2 border-t border-border-primary">
-            <button className="text-[9px] font-black text-text-primary/40 uppercase tracking-widest hover:text-accent-blue transition-colors">Tahrirlash</button>
-            <button className="text-[9px] font-black text-rose-500/60 uppercase tracking-widest hover:text-rose-500 transition-colors">O'chirish</button>
-          </div>
-        </div>
-      ))}
       {/* Empty state if no comments */}
-      {/* <div className="flex flex-col items-center justify-center py-20 text-text-primary/20">
+      <div className="flex flex-col items-center justify-center py-20 text-text-primary/20">
         <MessageSquare size={48} className="mb-4 opacity-20" />
-        <p className="text-sm font-medium">{t.no_comments}</p>
-      </div> */}
+        <p className="text-sm font-medium">{t.no_comments || "Sharhlar yo'q"}</p>
+      </div>
     </div>
   );
 

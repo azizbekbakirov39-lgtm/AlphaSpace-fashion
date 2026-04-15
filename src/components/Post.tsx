@@ -256,17 +256,23 @@ const Post: React.FC<PostProps> = ({
         
         <div className="flex items-center gap-3">
           <button 
-            className={`px-4 py-1.5 text-[9px] font-black rounded-full uppercase tracking-widest transition-all active:scale-95 ${
+            className={`px-5 py-1.5 text-[10px] font-black rounded-full uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center border ${
               post.seller.isSubscribed 
-                ? 'bg-text-primary/5 text-text-primary/60 border border-border-primary' 
-                : 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20'
+                ? 'bg-text-primary/5 text-text-primary/60 border-border-primary' 
+                : 'bg-gradient-to-r from-emerald-500/15 to-teal-500/15 backdrop-blur-xl border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]'
             }`}
             onClick={(e) => {
               e.stopPropagation();
               if (onToggleSubscribe) onToggleSubscribe();
             }}
           >
-            {post.seller.isSubscribed ? (language === 'uz' ? "Kuzatilyapti" : "Following") : (language === 'uz' ? "Kuzatish" : "Follow")}
+            {post.seller.isSubscribed ? (
+              language === 'uz' ? "Kuzatilyapti" : "Following"
+            ) : (
+              <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                {language === 'uz' ? "Kuzatish" : "Follow"}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -399,6 +405,16 @@ const Post: React.FC<PostProps> = ({
                     <ChevronRight size={18} />
                   </button>
                 )}
+                
+                {/* Carousel Dots Overlay */}
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+                  {post.mediaUrls.map((_, idx) => (
+                    <div 
+                      key={idx}
+                      className={`rounded-full transition-all duration-300 shadow-sm ${idx === currentImageIndex ? 'w-3 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/60'}`}
+                    />
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -411,7 +427,7 @@ const Post: React.FC<PostProps> = ({
 
       {/* Interaction Buttons - Below Media */}
       <div className="px-3 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <motion.button 
             whileTap={{ scale: 0.8 }}
             onClick={(e) => {
@@ -420,7 +436,7 @@ const Post: React.FC<PostProps> = ({
             }}
             className={`transition-colors duration-300 ${post.isLiked ? 'text-[#ef4444]' : 'text-text-primary'}`}
           >
-            <Heart size={30} fill={post.isLiked ? '#ef4444' : 'none'} strokeWidth={1.5} />
+            <Heart size={28} fill={post.isLiked ? '#ef4444' : 'none'} strokeWidth={1.5} />
           </motion.button>
           <motion.button 
             whileTap={{ scale: 0.8 }}
@@ -430,35 +446,46 @@ const Post: React.FC<PostProps> = ({
               if (onOpenComments) onOpenComments();
             }}
           >
-            <MessageCircle size={30} strokeWidth={1.5} />
+            <MessageCircle size={28} strokeWidth={1.5} />
           </motion.button>
           <motion.button 
             whileTap={{ scale: 0.8 }}
             className="text-text-primary"
             onClick={handleInternalShare}
           >
-            <Send size={30} strokeWidth={1.5} />
+            <Send size={28} strokeWidth={1.5} />
           </motion.button>
           <motion.button 
             whileTap={{ scale: 0.8 }}
             className="text-text-primary"
             onClick={handleExternalShare}
           >
-            <Share2 size={30} strokeWidth={1.5} />
+            <Share2 size={28} strokeWidth={1.5} />
           </motion.button>
         </div>
         
-        {/* Carousel Dots */}
-        {post.mediaType === 'carousel' && post.mediaUrls.length > 1 && (
-          <div className="flex gap-1.5">
-            {post.mediaUrls.map((_, idx) => (
-              <div 
-                key={idx}
-                className={`rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'w-3 h-1.5 bg-accent-blue' : 'w-1.5 h-1.5 bg-text-primary/20'}`}
-              />
-            ))}
-          </div>
-        )}
+        {/* Glassmorphic Price Tag */}
+        <div className="flex-1 flex items-center justify-center mx-2">
+          {post.price ? (
+            <div className="px-5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/5 to-purple-500/5 backdrop-blur-xl border border-indigo-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-center">
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black text-[15px] tracking-tight">
+                {post.price}
+              </span>
+            </div>
+          ) : (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenChat) onOpenChat();
+              }}
+              className="px-5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/5 to-purple-500/5 backdrop-blur-xl border border-indigo-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all flex items-center justify-center"
+            >
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black text-[11px] uppercase tracking-widest">
+                {post.priceMessage || "Narxi?"}
+              </span>
+            </button>
+          )}
+        </div>
 
         <motion.button 
           whileTap={{ scale: 0.8 }}
@@ -468,7 +495,7 @@ const Post: React.FC<PostProps> = ({
           }}
           className={`transition-colors duration-300 ${post.isSaved ? 'text-accent-blue' : 'text-text-primary'}`}
         >
-          <Bookmark size={30} fill={post.isSaved ? 'currentColor' : 'none'} strokeWidth={1.5} />
+          <Bookmark size={28} fill={post.isSaved ? 'currentColor' : 'none'} strokeWidth={1.5} />
         </motion.button>
       </div>
 
@@ -513,34 +540,30 @@ const Post: React.FC<PostProps> = ({
           )}
         </div>
         
-        {/* Royal Blue Price or Message Button */}
-        <div className="mt-2 flex items-center justify-between">
-          {post.price ? (
-            <div>
-              <span className="bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent font-black text-2xl tracking-tight">
-                {post.price}
-              </span>
-            </div>
-          ) : (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onOpenChat) onOpenChat();
-              }}
-              className="bg-gradient-to-r from-accent-blue to-accent-light text-white px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-md shadow-accent-blue/20 active:scale-95 transition-all"
-            >
-              {post.priceMessage || "Narxi qancha?"}
-            </button>
-          )}
+        {/* Action Buttons */}
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onOpenChat) onOpenChat();
+            }}
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 backdrop-blur-xl border border-indigo-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all flex items-center justify-center"
+          >
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black text-[11px] uppercase tracking-widest">
+              {language === 'uz' ? "Xabar yuborish" : "Message"}
+            </span>
+          </button>
           
           <button 
             onClick={(e) => {
               e.stopPropagation();
               if (onOpenDetails) onOpenDetails();
             }}
-            className="px-5 py-2.5 bg-gradient-to-r from-accent-blue to-accent-light hover:shadow-lg hover:shadow-accent-blue/20 text-white rounded-xl font-black tracking-wide text-[10px] uppercase transition-all active:scale-95 shadow-md shadow-accent-blue/10"
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/5 to-blue-500/5 backdrop-blur-xl border border-cyan-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all flex items-center justify-center"
           >
-            {t.shop_now}
+            <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent font-black text-[11px] uppercase tracking-widest">
+              {language === 'uz' ? "Batafsil" : "Details"}
+            </span>
           </button>
         </div>
       </div>
