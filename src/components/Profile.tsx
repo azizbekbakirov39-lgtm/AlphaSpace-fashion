@@ -222,7 +222,8 @@ const Profile: React.FC<ProfileProps> = ({
       
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
-      script.setAttribute('data-telegram-login', 'alphaspace_uz_bot');
+      const botName = import.meta.env.VITE_TELEGRAM_BOT_NAME || 'alphaspace_uz_bot';
+      script.setAttribute('data-telegram-login', botName);
       script.setAttribute('data-size', 'large');
       script.setAttribute('data-radius', '16');
       script.setAttribute('data-onauth', 'onTelegramAuth(user)');

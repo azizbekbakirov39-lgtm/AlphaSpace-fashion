@@ -89,6 +89,9 @@ async function startServer() {
 
   // --- Email OTP Authentication ---
   
+  // Temporary in-memory storage for OTPs if Firestore fails
+  const tempOtpStore = new Map<string, { otp: string, expiresAt: number }>();
+
   // Configure Nodemailer
   const transporter = nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || 'gmail',
@@ -109,12 +112,19 @@ async function startServer() {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-      // Store in Firestore
-      await admin.firestore().collection('otps').doc(email).set({
-        otp,
-        expiresAt,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+      // Store in memory as fallback
+      tempOtpStore.set(email, { otp, expiresAt });
+
+      // Try to store in Firestore if admin is ready
+      try {
+        await admin.firestore().collection('otps').doc(email).set({
+          otp,
+          expiresAt,
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (fsError) {
+        console.warn("Firestore OTP storage failed, using memory fallback:", fsError);
+      }
 
       // Send Email (only if credentials are set)
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
@@ -154,18 +164,36 @@ async function startServer() {
     }
 
     try {
-      const otpDoc = await admin.firestore().collection('otps').doc(email).get();
-      if (!otpDoc.exists) {
+      let data: any = null;
+      
+      // Try Firestore first
+      try {
+        const otpDoc = await admin.firestore().collection('otps').doc(email).get();
+        if (otpDoc.exists) {
+          data = otpDoc.data();
+        }
+      } catch (fsError) {
+        console.warn("Firestore OTP retrieval failed, checking memory:", fsError);
+      }
+
+      // Check memory fallback if not found in Firestore
+      if (!data) {
+        data = tempOtpStore.get(email);
+      }
+
+      if (!data) {
         return res.status(400).json({ error: "Kod topilmadi yoki muddati o'tgan" });
       }
 
-      const data = otpDoc.data();
-      if (data?.otp !== otp || Date.now() > data?.expiresAt) {
+      if (data.otp !== otp || Date.now() > data.expiresAt) {
         return res.status(400).json({ error: "Noto'g'ri yoki muddati o'tgan kod" });
       }
 
       // OTP is valid, delete it
-      await admin.firestore().collection('otps').doc(email).delete();
+      try {
+        await admin.firestore().collection('otps').doc(email).delete();
+      } catch (e) {}
+      tempOtpStore.delete(email);
 
       // Generate credentials for the user
       const botToken = process.env.TELEGRAM_BOT_TOKEN || "default_secret";
