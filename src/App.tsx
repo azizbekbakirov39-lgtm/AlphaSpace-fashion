@@ -1063,8 +1063,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [workspace, activeStoryIndex, activeReelIndex, selectedShopId, activeTab, profileSubView]);
 
-  const selectedSeller = sellers.find(s => s.id === selectedShopId) || postsWithUserStatus.find(p => p.seller.id === selectedShopId)?.seller;
-  const sellerPosts = postsWithUserStatus.filter(p => p.seller.id === selectedShopId);
+  const selectedSeller = sellers.find(s => s.id === selectedShopId) || postsWithUserStatus.find(p => p.seller?.id === selectedShopId)?.seller;
+  const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
 
   return (
     <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-0 sm:p-4 md:p-8">

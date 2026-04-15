@@ -1053,14 +1053,20 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           <div className="h-full overflow-y-auto scrollbar-hide pb-24">
             {/* Hero Section */}
             <div className="relative h-[300px] w-full overflow-hidden bg-text-primary/5">
-              {shopData.coverImage && (
-                <img 
-                  src={shopData.coverImage}
-                  alt="Cover"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              )}
+              <img 
+                src={
+                  posts.find(p => {
+                    const postSellerId = p.seller?.id || (p as any).sellerId || (p as any).uid;
+                    const matchesSeller = String(postSellerId) === String(shopData.id);
+                    return matchesSeller && p.mediaUrls?.some(url => !isVideoUrl(url));
+                  })?.mediaUrls?.find(url => !isVideoUrl(url)) || 
+                  shopData.coverImage || 
+                  `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`
+                }
+                alt="Cover"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/20 to-transparent" />
               
               {/* Shop Identity Overlay */}

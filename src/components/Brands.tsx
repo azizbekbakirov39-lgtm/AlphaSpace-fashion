@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Users, Play, Check, Search, X, Store, BadgeCheck } from 'lucide-react';
 import { Story, Seller, SELLER_CATEGORIES, PostData } from '../types';
 import SearchOverlay from './SearchOverlay';
+import { isVideoUrl } from '../utils/mediaUtils';
 
 import { Language, translations } from '../translations';
 
@@ -361,18 +362,28 @@ const Brands: React.FC<BrandsProps> = ({
                 }`}
               >
                 {/* Cover Image with Overlay */}
-                <div className="absolute inset-0 bg-text-primary/5">
+                <div className="absolute inset-0 bg-text-primary/10">
                   <img 
-                    src={posts.filter(p => p.seller.id === seller.id).slice(-1)[0]?.mediaUrls[0] || seller.coverImage || undefined}
+                    src={
+                      posts.find(p => {
+                        const postSellerId = p.seller?.id || (p as any).sellerId || (p as any).uid;
+                        const sellerId = seller.id;
+                        const matchesId = postSellerId && String(postSellerId) === String(sellerId);
+                        
+                        const postSellerName = (p.seller?.name || (p as any).sellerName || '').toLowerCase();
+                        const sellerName = (seller.name || '').toLowerCase();
+                        const matchesName = sellerName && postSellerName === sellerName;
+
+                        return (matchesId || matchesName) && p.mediaUrls?.some(url => !isVideoUrl(url));
+                      })?.mediaUrls?.find(url => !isVideoUrl(url)) || 
+                      seller.coverImage || 
+                      `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`
+                    }
                     alt=""
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     referrerPolicy="no-referrer"
-                    onLoad={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = '1';
-                    }}
-                    style={{ opacity: 0, transition: 'opacity 0.5s' }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 </div>
 
                 {/* Content */}

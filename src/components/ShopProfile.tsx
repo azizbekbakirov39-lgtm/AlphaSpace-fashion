@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Seller, PostData } from '../types';
 import { Language, translations } from '../translations';
+import { isVideoUrl } from '../utils/mediaUtils';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 
 interface ShopProfileProps {
@@ -124,14 +125,16 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* Hero Section */}
         <div className="relative h-[300px] w-full overflow-hidden bg-text-primary/5">
-          {seller.coverImage && (
-            <img 
-              src={seller.coverImage}
-              alt="Cover"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          )}
+          <img 
+            src={
+              posts.find(p => p.mediaUrls?.some(url => !isVideoUrl(url)))?.mediaUrls?.find(url => !isVideoUrl(url)) || 
+              seller.coverImage || 
+              `https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800`
+            }
+            alt="Cover"
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/20 to-transparent" />
           
           {/* Shop Identity Overlay */}
