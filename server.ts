@@ -9,6 +9,7 @@ import { startBot } from "./bot";
 import admin from "firebase-admin";
 import fs from "fs";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -47,49 +48,30 @@ async function startServer() {
   });
 
   app.post("/api/auth/telegram", async (req, res) => {
-    console.log("Telegram Auth POST request received");
     try {
       const { hash, ...data } = req.body;
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
       if (!botToken) {
-        console.error("CRITICAL: TELEGRAM_BOT_TOKEN is missing in environment");
-        return res.status(500).json({ 
-          error: "TELEGRAM_BOT_TOKEN topilmadi. Iltimos, Settings -> Secrets bo'limidan ushbu kalitni qo'shing." 
-        });
+        return res.status(500).json({ error: "TELEGRAM_BOT_TOKEN topilmadi" });
       }
 
-      if (!hash) {
-        return res.status(400).json({ error: "Telegram hash topilmadi" });
-      }
-
-      // 1. Verify Telegram hash
+      // Verify Telegram hash
       const secretKey = crypto.createHash('sha256').update(botToken).digest();
-      
       const dataCheckArr = [];
       for (const key in data) {
         dataCheckArr.push(`${key}=${data[key]}`);
       }
       const dataCheckString = dataCheckArr.sort().join('\n');
-      
       const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
       if (hmac !== hash) {
-        console.error("Telegram Hash Mismatch!");
-        return res.status(401).json({ error: "Xavfsizlik tekshiruvi muvaffaqiyatsiz (Hash mismatch). Bot tokeni to'g'riligini tekshiring." });
+        return res.status(401).json({ error: "Xavfsizlik tekshiruvi muvaffaqiyatsiz" });
       }
 
-      // 2. Check auth_date
-      const authDate = parseInt(data.auth_date);
-      const now = Math.floor(Date.now() / 1000);
-      if (now - authDate > 86400) {
-        return res.status(401).json({ error: "Sessiya muddati o'tgan (Auth date too old)" });
-      }
-
-      // 3. Email-proxy method
+      // Email-proxy method
       const telegramId = String(data.id);
       const userEmail = `tg_${telegramId}@alphaspace.uz`;
-      
       const userPassword = crypto.createHmac('sha256', botToken)
         .update(telegramId)
         .digest('hex')
@@ -101,10 +83,109 @@ async function startServer() {
         user: data 
       });
     } catch (error: any) {
-      console.error("Global Telegram Auth Route Error:", error);
-      res.status(500).json({ error: `Kutilmagan xatolik: ${error.message || "Noma'lum"}` });
+      res.status(500).json({ error: error.message });
     }
   });
+
+  // --- Email OTP Authentication ---
+  
+  // Configure Nodemailer
+  const transporter = nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  // Send OTP
+  app.post("/api/auth/send-otp", async (req, res) => {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: "Noto'g'ri email manzil" });
+    }
+
+    try {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+      // Store in Firestore
+      await admin.firestore().collection('otps').doc(email).set({
+        otp,
+        expiresAt,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Send Email (only if credentials are set)
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        await transporter.sendMail({
+          from: `"AlphaSpace" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "AlphaSpace - Kirish kodi",
+          text: `Sizning kirish kodingiz: ${otp}. Ushbu kod 10 daqiqa davomida amal qiladi.`,
+          html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #2563eb;">AlphaSpace</h2>
+            <p>Sizning kirish kodingiz:</p>
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; padding: 10px 0;">${otp}</div>
+            <p style="color: #64748b; font-size: 14px;">Ushbu kod 10 daqiqa davomida amal qiladi. Agar buni siz so'ramagan bo'lsangiz, ushbu xatga e'tibor bermang.</p>
+          </div>`
+        });
+        res.json({ success: true, message: "Kod emailingizga yuborildi" });
+      } else {
+        // For development/demo purposes if no email service is configured
+        console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
+        res.json({ 
+          success: true, 
+          message: "Kod yuborildi (Dev mode: konsolda ko'ring)",
+          devOtp: otp // Only for demo when no email is set
+        });
+      }
+    } catch (error: any) {
+      console.error("Send OTP Error:", error);
+      res.status(500).json({ error: "Kod yuborishda xatolik yuz berdi" });
+    }
+  });
+
+  // Verify OTP
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ error: "Email va kod talab qilinadi" });
+    }
+
+    try {
+      const otpDoc = await admin.firestore().collection('otps').doc(email).get();
+      if (!otpDoc.exists) {
+        return res.status(400).json({ error: "Kod topilmadi yoki muddati o'tgan" });
+      }
+
+      const data = otpDoc.data();
+      if (data?.otp !== otp || Date.now() > data?.expiresAt) {
+        return res.status(400).json({ error: "Noto'g'ri yoki muddati o'tgan kod" });
+      }
+
+      // OTP is valid, delete it
+      await admin.firestore().collection('otps').doc(email).delete();
+
+      // Generate credentials for the user
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || "default_secret";
+      const userPassword = crypto.createHmac('sha256', botToken)
+        .update(email)
+        .digest('hex')
+        .substring(0, 20);
+
+      res.json({ 
+        email: email, 
+        password: userPassword,
+        success: true
+      });
+    } catch (error: any) {
+      console.error("Verify OTP Error:", error);
+      res.status(500).json({ error: "Kodni tekshirishda xatolik" });
+    }
+  });
+
+  // --- End Email OTP ---
 
   // FFmpeg.wasm requires these headers for SharedArrayBuffer support
   app.use((req, res, next) => {
