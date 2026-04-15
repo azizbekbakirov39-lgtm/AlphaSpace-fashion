@@ -74,7 +74,6 @@ interface ProfileProps {
   onLogin: () => void;
   onLogout: () => void;
   onEmailLogin?: (email: string, pass: string, name?: string) => Promise<void>;
-  onTelegramLogin?: (data: any) => Promise<void>;
   onResetPassword?: (email: string) => Promise<void>;
   onBackToHome?: () => void;
   onOpenAdminDashboard?: () => void;
@@ -123,7 +122,6 @@ const Profile: React.FC<ProfileProps> = ({
   onLogin,
   onLogout,
   onEmailLogin,
-  onTelegramLogin,
   onResetPassword,
   onBackToHome,
   onOpenAdminDashboard,
@@ -147,7 +145,6 @@ const Profile: React.FC<ProfileProps> = ({
   const [otpEmail, setOtpEmail] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpLoading, setIsOtpLoading] = useState(false);
-  const telegramWrapperRef = React.useRef<HTMLDivElement>(null);
 
   const handleSendOtp = async (email: string) => {
     if (!email || !email.includes('@')) {
@@ -214,30 +211,6 @@ const Profile: React.FC<ProfileProps> = ({
       setIsOtpLoading(false);
     }
   };
-
-  React.useEffect(() => {
-    if (!user && !showEmailForm && telegramWrapperRef.current) {
-      // Clear previous widget
-      telegramWrapperRef.current.innerHTML = '';
-      
-      const script = document.createElement('script');
-      script.src = 'https://telegram.org/js/telegram-widget.js?22';
-      const botName = import.meta.env.VITE_TELEGRAM_BOT_NAME || 'alphaspace_uz_bot';
-      script.setAttribute('data-telegram-login', botName);
-      script.setAttribute('data-size', 'large');
-      script.setAttribute('data-radius', '16');
-      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-      script.setAttribute('data-request-access', 'write');
-      script.async = true;
-      
-      // Define the callback globally
-      (window as any).onTelegramAuth = (data: any) => {
-        onTelegramLogin?.(data);
-      };
-      
-      telegramWrapperRef.current.appendChild(script);
-    }
-  }, [user, showEmailForm, onTelegramLogin]);
 
   const [activeProduct, setActiveProduct] = useState<PostData | null>(initialChatProduct || null);
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
@@ -764,16 +737,6 @@ const Profile: React.FC<ProfileProps> = ({
                     <Zap size={20} />
                     Email orqali kod bilan
                   </motion.button>
-
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.25.38-.51 1.07-.78 4.2-1.82 7-3.03 8.4-3.61 4-.1.1.1.1.1.1.1.1.1.1.1z"/>
-                      </svg>
-                      <p className="text-[10px] text-text-primary/40 uppercase font-bold tracking-widest">Yoki Telegram orqali</p>
-                    </div>
-                    <div ref={telegramWrapperRef} className="min-h-[40px] flex items-center justify-center" />
-                  </div>
                 </motion.div>
               ) : showOtpForm ? (
                 <motion.div

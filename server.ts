@@ -50,48 +50,6 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-app.get("/api/auth/telegram", (req, res) => {
-  res.send("Telegram Auth API is alive and ready.");
-});
-
-app.post("/api/auth/telegram", async (req, res) => {
-  try {
-    const { hash, ...data } = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-
-    if (!botToken) {
-      return res.status(500).json({ error: "TELEGRAM_BOT_TOKEN topilmadi" });
-    }
-
-    const secretKey = crypto.createHash('sha256').update(botToken).digest();
-    const dataCheckArr = [];
-    for (const key in data) {
-      dataCheckArr.push(`${key}=${data[key]}`);
-    }
-    const dataCheckString = dataCheckArr.sort().join('\n');
-    const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-    if (hmac !== hash) {
-      return res.status(401).json({ error: "Xavfsizlik tekshiruvi muvaffaqiyatsiz" });
-    }
-
-    const telegramId = String(data.id);
-    const userEmail = `tg_${telegramId}@alphaspace.uz`;
-    const userPassword = crypto.createHmac('sha256', botToken)
-      .update(telegramId)
-      .digest('hex')
-      .substring(0, 20);
-
-    res.json({ 
-      email: userEmail, 
-      password: userPassword,
-      user: data 
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 const tempOtpStore = new Map<string, { otp: string, expiresAt: number }>();
 
 app.post("/api/auth/send-otp", async (req, res) => {

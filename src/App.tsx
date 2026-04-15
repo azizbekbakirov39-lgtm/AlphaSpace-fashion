@@ -261,69 +261,6 @@ export default function App() {
     }
   };
 
-  const handleTelegramLogin = async (data: any) => {
-    try {
-      const response = await fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = "Noma'lum xatolik";
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorMessage;
-        } catch (e) {
-          errorMessage = errorText.substring(0, 50) || errorMessage;
-        }
-        throw new Error(`Status: ${response.status}, Xabar: ${errorMessage}`);
-      }
-
-      const result = await response.json();
-      if (result.email && result.password) {
-        try {
-          // Try to login first
-          await loginWithEmail(result.email, result.password);
-        } catch (loginError: any) {
-          // If login fails, try to register
-          if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential') {
-            await registerWithEmail(result.email, result.password);
-            if (auth.currentUser) {
-              await updateUserName(result.user.first_name + (result.user.last_name ? ` ${result.user.last_name}` : ''));
-            }
-          } else {
-            throw loginError;
-          }
-        }
-        
-        // Update user profile in Firestore
-        const userDoc = doc(db, 'users', auth.currentUser!.uid);
-        const docSnap = await getDoc(userDoc);
-        if (!docSnap.exists()) {
-          await setDoc(userDoc, {
-            uid: auth.currentUser!.uid,
-            displayName: result.user.first_name + (result.user.last_name ? ` ${result.user.last_name}` : ''),
-            username: result.user.username,
-            photoURL: result.user.photo_url || null,
-            role: 'buyer',
-            hasShop: false,
-            provider: 'telegram',
-            telegramId: String(result.user.id),
-            createdAt: serverTimestamp()
-          });
-        }
-        toast.success("Telegram orqali muvaffaqiyatli kirdingiz!");
-      } else {
-        toast.error(result.error || "Telegram orqali kirishda xatolik");
-      }
-    } catch (error: any) {
-      console.error("Telegram Login Error:", error);
-      toast.error("Xatolik yuz berdi: " + (error.message || "Noma'lum xatolik"));
-    }
-  };
-
   // Merge user-specific data into posts/stories
   const postsWithUserStatus = React.useMemo(() => {
     return posts
@@ -1433,7 +1370,6 @@ export default function App() {
                       user={user}
                       onLogin={signInWithGoogle}
                       onEmailLogin={handleEmailLogin}
-                      onTelegramLogin={handleTelegramLogin}
                       onResetPassword={handleResetPassword}
                       onLogout={logout}
                       initialChatSellerId={initialChatSellerId}
