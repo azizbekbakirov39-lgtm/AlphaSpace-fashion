@@ -347,8 +347,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         location: localShopData.location || { lat: 41.311081, lng: 69.240562 },
         updatedAt: serverTimestamp()
       };
-
-      console.log("Updating shop with data:", updateData);
       
       await updateDoc(shopRef, updateData);
       
@@ -439,7 +437,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }
 
       const result = await response.json();
-      console.log("API Response Data:", result); // For debugging
 
       // Parse the response based on common structures for this API
       let mediaUrls: string[] = [];

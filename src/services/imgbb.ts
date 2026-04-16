@@ -6,8 +6,6 @@ export const uploadImageToImgBB = async (file: File): Promise<string> => {
     throw new Error("ImgBB API kaliti topilmadi. Iltimos, VITE_IMGBB_API_KEY ni sozlamalarga qo'shing.");
   }
 
-  console.log("Starting ImgBB upload for file:", file.name, "Size:", file.size);
-
   const formData = new FormData();
   formData.append('image', file);
 
@@ -24,7 +22,6 @@ export const uploadImageToImgBB = async (file: File): Promise<string> => {
     }
 
     const data = await response.json();
-    console.log("ImgBB API Response:", data);
     
     if (data.success) {
       return data.data.url;

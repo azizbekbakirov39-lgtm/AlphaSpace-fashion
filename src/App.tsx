@@ -424,10 +424,6 @@ export default function App() {
 
   const t = translations[language];
 
-  // Check for download route
-  if (window.location.pathname === '/download') {
-    return <DownloadPage />;
-  }
 
   const handleWorkspaceChange = (newWorkspace: 'Marketplace' | 'Shop') => {
     if (newWorkspace === workspace) return;
@@ -498,13 +494,11 @@ export default function App() {
       const finishConstruction = async () => {
         constructionFinishedRef.current = true;
         try {
-          console.log("Finishing shop construction...");
           let logoUrl = '';
           if (newShopData.logoFile) {
             const uploadToastId = toast.loading("Logo ImgBB ga yuklanmoqda...");
             try {
               logoUrl = await uploadImageToImgBB(newShopData.logoFile);
-              console.log("Logo uploaded successfully:", logoUrl);
               toast.success("Logo yuklandi!", { id: uploadToastId });
             } catch (uploadError: any) {
               console.error("ImgBB upload error:", uploadError);
@@ -1071,6 +1065,11 @@ export default function App() {
 
   const selectedSeller = sellers.find(s => s.id === selectedShopId) || postsWithUserStatus.find(p => p.seller?.id === selectedShopId)?.seller;
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
+
+  // Check for download route
+  if (window.location.pathname === '/download') {
+    return <DownloadPage />;
+  }
 
   return (
     <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-0 sm:p-4 md:p-8">

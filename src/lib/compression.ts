@@ -12,9 +12,7 @@ const imageOptions = {
 
 export async function compressImage(file: File): Promise<File> {
   try {
-    console.log(`Original image size: ${file.size / 1024 / 1024} MB`);
     const compressedFile = await imageCompression(file, imageOptions);
-    console.log(`Compressed image size: ${compressedFile.size / 1024 / 1024} MB`);
     return compressedFile;
   } catch (error) {
     console.error('Image compression error:', error);
@@ -44,6 +42,5 @@ export async function compressVideo(
 ): Promise<File> {
   // Bypass video compression in this environment as ffmpeg.wasm often hangs
   // without SharedArrayBuffer support (which is restricted in iframes).
-  console.log(`Bypassing video compression for: ${file.name}`);
   return file;
 }
