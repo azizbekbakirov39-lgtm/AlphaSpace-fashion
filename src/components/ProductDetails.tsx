@@ -563,7 +563,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
             </div>
           </div>
         </div>
-      </div>
 
       {/* Custom Toast Notification */}
       <AnimatePresence>
