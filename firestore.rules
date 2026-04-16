@@ -122,10 +122,10 @@ service cloud.firestore {
     }
 
     function isValidMessage(data, chatId) {
-      return hasRequiredFields(['chatId', 'senderUid', 'text']) &&
+      return hasRequiredFields(['chatId', 'senderUid']) &&
              data.chatId == chatId &&
              data.senderUid == request.auth.uid &&
-             data.text is string && data.text.size() > 0 && data.text.size() < 5000;
+             (data.text is string || data.audio is string || data.image is string || data.video is string || data.videoMessage is string || data.location is map || data.post is map);
     }
 
     function isValidObraz(data) {

@@ -184,6 +184,37 @@ const Profile: React.FC<ProfileProps> = ({
     };
   }, [user?.uid]);
 
+  const chatSellers = React.useMemo(() => {
+    const sellersMap = new Map<string, Seller>();
+    
+    // Add subscribed sellers
+    subscribedSellers.forEach(s => sellersMap.set(s.id, s));
+    
+    // Add sellers from chatMessages if not already there
+    Object.keys(chatMessages).forEach(sellerId => {
+      if (!sellersMap.has(sellerId)) {
+        sellersMap.set(sellerId, {
+          id: sellerId,
+          name: `Sotuvchi ${sellerId.substring(0, 4)}`,
+          logo: '',
+          followers: 0,
+          isVerified: false,
+          hasStory: false,
+          categories: []
+        });
+      }
+    });
+    
+    // Sort by latest message time (if available) - returning array
+    return Array.from(sellersMap.values()).sort((a, b) => {
+      const msgsA = chatMessages[a.id] || [];
+      const msgsB = chatMessages[b.id] || [];
+      const timeA = msgsA.length > 0 ? (msgsA[msgsA.length - 1].timestamp?.seconds || 0) : 0;
+      const timeB = msgsB.length > 0 ? (msgsB[msgsB.length - 1].timestamp?.seconds || 0) : 0;
+      return (timeB as number) - (timeA as number);
+    });
+  }, [subscribedSellers, chatMessages]);
+
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -1701,36 +1732,6 @@ const Profile: React.FC<ProfileProps> = ({
       );
     }
 
-    const chatSellers = React.useMemo(() => {
-      const sellersMap = new Map<string, Seller>();
-      
-      // Add subscribed sellers
-      subscribedSellers.forEach(s => sellersMap.set(s.id, s));
-      
-      // Add sellers from chatMessages if not already there
-      Object.keys(chatMessages).forEach(sellerId => {
-        if (!sellersMap.has(sellerId)) {
-          sellersMap.set(sellerId, {
-            id: sellerId,
-            name: `Sotuvchi ${sellerId.substring(0, 4)}`,
-            logo: '',
-            followers: 0,
-            isVerified: false,
-            hasStory: false,
-            categories: []
-          });
-        }
-      });
-      
-      // Sort by latest message time (if available) - returning array
-      return Array.from(sellersMap.values()).sort((a, b) => {
-        const msgsA = chatMessages[a.id] || [];
-        const msgsB = chatMessages[b.id] || [];
-        const timeA = msgsA.length > 0 ? (msgsA[msgsA.length - 1].timestamp || 0) : 0;
-        const timeB = msgsB.length > 0 ? (msgsB[msgsB.length - 1].timestamp || 0) : 0;
-        return (timeB as number) - (timeA as number);
-      });
-    }, [subscribedSellers, chatMessages]);
 
     return (
       <div className="flex flex-col gap-1 p-2">

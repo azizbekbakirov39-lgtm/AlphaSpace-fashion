@@ -52,6 +52,10 @@ import {
 } from './firebase';
 
 export default function App() {
+  if (window.location.pathname === '/download') {
+    return <DownloadPage />;
+  }
+
   // Check for ImgBB API Key on startup
   React.useEffect(() => {
     const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
@@ -1065,11 +1069,6 @@ export default function App() {
 
   const selectedSeller = sellers.find(s => s.id === selectedShopId) || postsWithUserStatus.find(p => p.seller?.id === selectedShopId)?.seller;
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
-
-  // Check for download route
-  if (window.location.pathname === '/download') {
-    return <DownloadPage />;
-  }
 
   return (
     <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-0 sm:p-4 md:p-8">
