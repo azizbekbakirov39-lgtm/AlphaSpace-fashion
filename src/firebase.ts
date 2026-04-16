@@ -17,7 +17,6 @@ import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } fr
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
-console.log("Current Firebase Project ID:", firebaseConfig.projectId);
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
@@ -36,7 +35,6 @@ export const signInWithGoogle = async () => {
     return result.user;
   } catch (error: any) {
     if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-      console.log("Sign in popup closed by user.");
       return null;
     }
     console.error("Error signing in with Google", error);

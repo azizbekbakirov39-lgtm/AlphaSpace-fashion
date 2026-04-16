@@ -68,8 +68,8 @@ function processDir(dir) {
 }
 
 try {
-  processDir('./src/components');
-  checkFile('./src/App.tsx');
+  processDir(path.join(process.cwd(), 'src/components'));
+  checkFile(path.join(process.cwd(), 'src/App.tsx'));
 } catch(e) {
   console.error(e);
 }

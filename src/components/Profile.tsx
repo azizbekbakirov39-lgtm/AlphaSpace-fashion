@@ -145,10 +145,10 @@ const Profile: React.FC<ProfileProps> = ({
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
   
   // Firestore Chat Listeners
+  const messageUnsubs = React.useRef<{ [chatId: string]: () => void }>({});
+
   React.useEffect(() => {
     if (!user) return;
-
-    const messageUnsubs: { [chatId: string]: () => void } = {};
 
     // Listen for all chats where user is a participant
     const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
@@ -158,9 +158,9 @@ const Profile: React.FC<ProfileProps> = ({
         const sellerId = chatId.replace(user.uid, '').replace('_', '');
         
         // Only add listener if we don't already have one for this chat
-        if (!messageUnsubs[chatId]) {
+        if (!messageUnsubs.current[chatId]) {
           const msgQ = query(collection(db, `chats/${chatId}/messages`), orderBy('timestamp', 'asc'));
-          messageUnsubs[chatId] = onSnapshot(msgQ, (msgSnapshot) => {
+          messageUnsubs.current[chatId] = onSnapshot(msgQ, (msgSnapshot) => {
             const msgs = msgSnapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data(),
@@ -179,7 +179,8 @@ const Profile: React.FC<ProfileProps> = ({
 
     return () => {
       unsubChats();
-      Object.values(messageUnsubs).forEach(unsub => unsub());
+      Object.values(messageUnsubs.current).forEach((unsub: () => void) => unsub());
+      messageUnsubs.current = {};
     };
   }, [user?.uid]);
 
