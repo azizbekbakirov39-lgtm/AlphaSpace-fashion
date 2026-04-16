@@ -412,73 +412,75 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
           </div>
 
           {/* Interactive Map Section */}
-          {seller.location && (
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4 px-2">
-                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary/40 flex items-center gap-2">
-                  <MapPin size={14} /> Do'kon manzili
-                </h4>
-              </div>
-              <div className="w-full h-56 rounded-[2.5rem] overflow-hidden border border-border-primary relative group shadow-xl">
-                <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
-                  <Map 
-                    state={{ center: [seller.location.lat, seller.location.lng], zoom: 15 }}
-                    width="100%"
-                    height="100%"
-                    options={{ suppressMapOpenBlock: true }}
-                  >
-                    <Placemark geometry={[seller.location.lat, seller.location.lng]} />
-                  </Map>
-                </YMaps>
-                <div className="absolute inset-0 bg-black/5 pointer-events-none" />
-                <button 
-                  onClick={() => setShowMap(true)}
-                  className="absolute top-4 right-4 z-10 p-3 bg-white/90 backdrop-blur-md rounded-2xl text-accent-blue shadow-xl active:scale-90 transition-all border border-white/50"
-                >
-                  <Navigation size={20} strokeWidth={2.5} />
-                </button>
-              </div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4 px-2">
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary/40 flex items-center gap-2">
+                <MapPin size={14} /> {seller.location ? "Do'kon manzili" : "Do'kon manzili (manzil kiritilmagan)"}
+              </h4>
             </div>
-          )}
+            <div className="w-full h-56 rounded-[2.5rem] overflow-hidden border border-border-primary relative group shadow-xl bg-gray-100 flex items-center justify-center">
+              {seller.location ? (
+                <>
+                  <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
+                    <Map 
+                      state={{ center: [seller.location.lat, seller.location.lng], zoom: 15 }}
+                      width="100%"
+                      height="100%"
+                      options={{ suppressMapOpenBlock: true }}
+                    >
+                      <Placemark geometry={[seller.location.lat, seller.location.lng]} />
+                    </Map>
+                  </YMaps>
+                  <div className="absolute inset-0 bg-black/5 pointer-events-none" />
+                  <button 
+                    onClick={() => setShowMap(true)}
+                    className="absolute top-4 right-4 z-10 p-3 bg-white/90 backdrop-blur-md rounded-2xl text-accent-blue shadow-xl active:scale-90 transition-all border border-white/50"
+                  >
+                    <Navigation size={20} strokeWidth={2.5} />
+                  </button>
+                </>
+              ) : (
+                <p className="text-text-primary/50 text-sm font-bold">Manzil kiritilmagan</p>
+              )}
+            </div>
+          </div>
 
-          {/* Contact Section */}
-          <div className="mb-10 space-y-4">
-            <div className="p-6 bg-text-primary/5 rounded-[2.5rem] border border-border-primary">
-              <div className="flex flex-col items-center text-center gap-4 mb-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Bog'lanish uchun</p>
-                <h3 className="text-2xl font-black text-text-primary tracking-tight">{seller.phone || '+998 90 123 45 67'}</h3>
-              </div>
-              
-              <div className="flex justify-center gap-4">
-                {seller.phone && (
-                  <motion.button 
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleSocialClick('phone')}
-                    className="w-14 h-14 rounded-2xl bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center text-accent-blue border border-border-primary"
-                  >
-                    <Phone size={24} />
-                  </motion.button>
-                )}
-                {seller.telegram && (
-                  <motion.button 
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleSocialClick('telegram')}
-                    className="w-14 h-14 rounded-2xl bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center text-[#0088cc] border border-border-primary"
-                  >
-                    <Send size={24} />
-                  </motion.button>
-                )}
-                {seller.instagram && (
-                  <motion.button 
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleSocialClick('instagram')}
-                    className="w-14 h-14 rounded-2xl bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center text-[#e4405f] border border-border-primary"
-                  >
-                    <Instagram size={24} />
-                  </motion.button>
-                )}
-              </div>
-            </div>
+          {/* Social Links Section */}
+          <div className="mb-10 grid grid-cols-3 gap-3">
+            {seller.phone && (
+              <button 
+                onClick={() => window.open(`tel:${seller.phone}`, '_blank')}
+                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-green-500/5 hover:border-green-500/20 group"
+              >
+                <div className="p-2.5 bg-green-500/10 text-green-500 rounded-2xl group-hover:bg-green-500 group-hover:text-white transition-colors">
+                  <Phone size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telefon</span>
+              </button>
+            )}
+            {seller.telegram && (
+              <button 
+                onClick={() => window.open(`https://t.me/${seller.telegram?.replace('@', '')}`, '_blank')}
+                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-accent-blue/5 hover:border-accent-blue/20 group"
+              >
+                <div className="p-2.5 bg-accent-blue/10 text-accent-blue rounded-2xl group-hover:bg-accent-blue group-hover:text-white transition-colors">
+                  <Send size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telegram</span>
+              </button>
+            )}
+            {seller.instagram && (
+              <button 
+                onClick={() => window.open(`https://instagram.com/${seller.instagram?.replace('@', '')}`, '_blank')}
+                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#E4405F]/5 hover:border-[#E4405F]/20 group"
+              >
+                <div className="p-2.5 bg-[#E4405F]/10 text-[#E4405F] rounded-2xl group-hover:bg-[#E4405F] group-hover:text-white transition-colors">
+                  <Instagram size={18} />
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Instagram</span>
+              </button>
+            )}
+          </div>
 
             <motion.button 
               whileTap={{ scale: 0.98 }}

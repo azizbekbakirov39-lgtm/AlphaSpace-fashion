@@ -60,13 +60,24 @@ const ReelItem: React.FC<{
   };
 
   useEffect(() => {
-    if (videoRef.current) {
-      if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
-        videoRef.current.play().catch(() => {});
-      } else {
-        videoRef.current.pause();
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
+    } else {
+      video.pause();
+      if (!isActive) {
+        video.currentTime = 0;
       }
     }
+
+    return () => {
+      video.pause();
+    };
   }, [isActive, showComments, showDetails, realPost.mediaType]);
 
   useEffect(() => {
@@ -247,9 +258,9 @@ const ReelItem: React.FC<{
             e.stopPropagation();
             onToggleMute();
           }}
-          className="absolute top-6 right-4 z-[10000] p-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white active:scale-90 transition-all shadow-2xl"
+          className="absolute top-6 right-4 z-[10000] p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white active:scale-90 transition-all shadow-2xl"
         >
-          {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
       )}
 
@@ -335,15 +346,15 @@ const ReelItem: React.FC<{
         </motion.button>
       </div>
 
-      {/* Bottom Info - Shoppable Card */}
-      <div className="absolute bottom-6 left-4 right-16 z-20">
+      {/* Bottom Info - Redesigned */}
+      <div className="absolute bottom-6 left-4 right-4 z-20 flex items-end justify-between gap-4">
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="flex flex-col gap-2"
+          className="flex-1 flex flex-col gap-2"
         >
           {/* Shop Identity at the bottom left - 2x Larger */}
-          <div className="flex items-center gap-4 mb-3">
+          <div className="flex items-center gap-4 mb-2">
             <div 
               className="relative cursor-pointer active:scale-95 transition-transform"
               onClick={handleShopClick}
@@ -365,24 +376,61 @@ const ReelItem: React.FC<{
               </motion.button>
             </div>
             <div className="flex flex-col">
-              <span 
-                className="text-white font-black text-xl drop-shadow-2xl cursor-pointer hover:underline tracking-tight"
-                onClick={handleShopClick}
-              >
-                {realPost.seller.name}
-              </span>
+              {/* Price above shop name - Purple gradient, smaller */}
+              <div className="flex items-center gap-3 mb-1">
+                <div className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md inline-block">
+                  <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent font-black text-sm drop-shadow-lg">
+                    {post.price && post.price.trim() !== "" 
+                      ? post.price 
+                      : (post.priceMessage || (language === 'uz' ? 'Narx qancha?' : language === 'ru' ? 'Какая цена?' : 'What is the price?'))}
+                  </span>
+                </div>
+                {/* Send Message - Purple gradient, glassmorphism */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenChat) onOpenChat(post.seller.id, post);
+                  }}
+                  className="bg-gradient-to-r from-purple-500/30 to-purple-600/30 backdrop-blur-md px-3 py-1 rounded-lg text-purple-100 text-[10px] font-black uppercase tracking-wider hover:from-purple-500/40 hover:to-purple-600/40 transition-colors drop-shadow-lg"
+                >
+                  {language === 'uz' ? 'Xabar yuborish' : language === 'ru' ? 'Отправить сообщение' : 'Send Message'}
+                </motion.button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span 
+                  className="text-white font-black text-xl drop-shadow-2xl cursor-pointer hover:underline tracking-tight"
+                  onClick={handleShopClick}
+                >
+                  {realPost.seller.name}
+                </span>
+                {/* Details Button - Blue, glassmorphism, next to shop name */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDetails(true);
+                  }}
+                  className="bg-accent-blue/20 backdrop-blur-md px-3 py-1 rounded-lg text-accent-light text-[10px] font-black uppercase tracking-widest hover:bg-accent-blue/30 transition-colors drop-shadow-lg"
+                >
+                  {language === 'uz' ? 'Batafsil' : language === 'ru' ? 'Подробнее' : 'Details'}
+                </motion.button>
+              </div>
               {realPost.seller.isSubscribed && (
                 <span className="text-[10px] font-black text-accent-blue uppercase tracking-widest drop-shadow-lg">Obuna bo'lingan</span>
               )}
             </div>
           </div>
 
-          <h2 className="text-white text-sm font-black leading-tight drop-shadow-2xl tracking-tight line-clamp-1">
-            {realPost.outfitName}
-          </h2>
+          {!realPost.outfitName.toLowerCase().includes("instagram") && (
+            <h2 className="text-white text-sm font-black leading-tight drop-shadow-2xl tracking-tight line-clamp-1">
+              {realPost.outfitName}
+            </h2>
+          )}
 
           {realPost.description && (
-            <div className="relative mb-2">
+            <div className="relative">
               <p className={`text-white/90 text-xs font-medium leading-snug drop-shadow-md transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
                 {realPost.description}
               </p>
@@ -410,29 +458,6 @@ const ReelItem: React.FC<{
               )}
             </div>
           )}
-
-          <motion.button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDetails(true);
-            }}
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="group relative flex items-center justify-between bg-white/10 backdrop-blur-2xl border border-white/20 p-2 rounded-xl shadow-2xl cursor-pointer hover:bg-white/20 transition-all active:scale-[0.98] overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-blue to-accent-light flex items-center justify-center text-white shadow-lg">
-                <ShoppingBag size={16} strokeWidth={2} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-black text-sm">{realPost.price}</span>
-              </div>
-            </div>
-            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white group-hover:bg-accent-blue transition-colors">
-              <ChevronRight size={14} strokeWidth={3} />
-            </div>
-          </motion.button>
         </motion.div>
       </div>
 
@@ -567,9 +592,9 @@ const ReelsViewer: React.FC<ReelsViewerProps> = ({
           e.stopPropagation();
           onClose();
         }} 
-        className="absolute top-6 left-4 z-[10000] text-white p-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl active:scale-90 transition-all shadow-2xl hover:bg-white/20"
+        className="absolute top-6 left-4 z-[10000] text-white p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full active:scale-90 transition-all shadow-2xl hover:bg-white/20"
       >
-        <X size={24} strokeWidth={2.5} />
+        <X size={16} strokeWidth={2.5} />
       </motion.button>
 
       <div 

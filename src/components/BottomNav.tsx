@@ -1,8 +1,9 @@
 import React from 'react';
-import { Home, Sparkles, MapPin, User, Tag } from 'lucide-react';
+import { Home, MapPin, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
+import { BrandsIcon, SmartSellerTabIcon } from './CustomIcons';
 
 interface BottomNavProps {
   activeTab: string;
@@ -16,8 +17,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
   
   const tabs = [
     { name: 'Home', icon: Home, label: t.home },
-    { name: 'Brands', icon: Tag, label: t.brands },
-    { name: 'Search', icon: Sparkles, label: t.ai },
+    { name: 'Brands', icon: BrandsIcon, label: t.brands },
+    { name: 'Search', icon: SmartSellerTabIcon, label: t.ai },
     { name: 'Live', icon: MapPin, label: t.live },
     { name: 'Profile', icon: User, label: t.profile },
   ];

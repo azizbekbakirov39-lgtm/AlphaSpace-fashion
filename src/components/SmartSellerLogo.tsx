@@ -144,6 +144,13 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
             AI
           </text>
         </svg>
+
+        {/* Static AI Stars - Blue/Purple */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[5%] right-[5%] text-[10px] opacity-80" style={{ color: blue }}>✨</div>
+          <div className="absolute top-[20%] right-[-5%] text-[8px] opacity-60" style={{ color: purple }}>✨</div>
+          <div className="absolute bottom-[15%] right-[0%] text-[12px] opacity-70" style={{ color: blue }}>✨</div>
+        </div>
       </div>
 
       {/* SmartSeller Text - Repositioned closer to the tag */}

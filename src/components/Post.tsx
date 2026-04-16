@@ -507,7 +507,9 @@ const Post: React.FC<PostProps> = ({
         <div className="flex flex-col gap-0.5 mb-0.5">
           <div className="flex flex-wrap items-baseline gap-1.5">
             <span className="text-black text-[14px] font-black tracking-tight">{post.seller.name}</span>
-            <span className="text-black/80 text-[13px] font-bold">{post.outfitName}</span>
+            <span className="text-black/80 text-[13px] font-bold">
+              {!post.outfitName.toLowerCase().includes("instagram") ? post.outfitName : ""}
+            </span>
           </div>
           {post.description && (
             <div className="relative">
