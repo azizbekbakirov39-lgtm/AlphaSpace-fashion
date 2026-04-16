@@ -398,7 +398,22 @@ const Profile: React.FC<ProfileProps> = ({
   // Handle initial chat seller
   React.useEffect(() => {
     if (initialChatSellerId && subView === 'chats') {
-      const seller = subscribedSellers.find(s => s.id === initialChatSellerId);
+      // Find seller in subscribed sellers or create a temporary one
+      let seller = subscribedSellers.find(s => s.id === initialChatSellerId);
+      
+      if (!seller) {
+        // Create a temporary seller object
+        seller = {
+          id: initialChatSellerId,
+          name: initialChatProduct ? initialChatProduct.seller.name : `Sotuvchi ${initialChatSellerId.substring(0, 4)}`,
+          logo: initialChatProduct ? initialChatProduct.seller.logo : '',
+          followers: 0,
+          isVerified: false,
+          hasStory: false,
+          categories: []
+        };
+      }
+
       if (seller) {
         setActiveChatSeller(seller);
         setActiveProduct(initialChatProduct || null);
@@ -1685,7 +1700,36 @@ const Profile: React.FC<ProfileProps> = ({
       );
     }
 
-    const chatSellers = subscribedSellers;
+    const chatSellers = React.useMemo(() => {
+      const sellersMap = new Map<string, Seller>();
+      
+      // Add subscribed sellers
+      subscribedSellers.forEach(s => sellersMap.set(s.id, s));
+      
+      // Add sellers from chatMessages if not already there
+      Object.keys(chatMessages).forEach(sellerId => {
+        if (!sellersMap.has(sellerId)) {
+          sellersMap.set(sellerId, {
+            id: sellerId,
+            name: `Sotuvchi ${sellerId.substring(0, 4)}`,
+            logo: '',
+            followers: 0,
+            isVerified: false,
+            hasStory: false,
+            categories: []
+          });
+        }
+      });
+      
+      // Sort by latest message time (if available) - returning array
+      return Array.from(sellersMap.values()).sort((a, b) => {
+        const msgsA = chatMessages[a.id] || [];
+        const msgsB = chatMessages[b.id] || [];
+        const timeA = msgsA.length > 0 ? (msgsA[msgsA.length - 1].timestamp || 0) : 0;
+        const timeB = msgsB.length > 0 ? (msgsB[msgsB.length - 1].timestamp || 0) : 0;
+        return (timeB as number) - (timeA as number);
+      });
+    }, [subscribedSellers, chatMessages]);
 
     return (
       <div className="flex flex-col gap-1 p-2">

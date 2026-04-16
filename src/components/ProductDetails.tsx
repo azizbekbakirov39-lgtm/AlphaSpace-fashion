@@ -490,7 +490,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
               <MessageCircle size={22} strokeWidth={2.5} />
               Xabar yozish
             </motion.button>
-          </div>
 
           {/* Reviews Section */}
           {post.reviews && post.reviews.length > 0 && (
@@ -563,6 +562,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
             </div>
           </div>
         </div>
+      </div>
 
       {/* Custom Toast Notification */}
       <AnimatePresence>
