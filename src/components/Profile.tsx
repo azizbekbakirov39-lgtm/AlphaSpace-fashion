@@ -525,6 +525,7 @@ const Profile: React.FC<ProfileProps> = ({
       }, { merge: true });
 
       const msgData: any = {
+        chatId: chatId,
         senderUid: user.uid,
         text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || undefined) : messageText,
         audio: audioData || undefined,
