@@ -8,7 +8,7 @@ import { PostData, User } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 import { Language } from '../translations';
-import { useShare } from '../utils/mediaUtils';
+import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo } from '../utils/mediaUtils';
 
 interface ReelsViewerProps {
   posts: PostData[];
@@ -62,20 +62,19 @@ const ReelItem: React.FC<{
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const [isMediaLoading, setIsMediaLoading] = useState(true);
+  const [mediaError, setMediaError] = useState(false);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {});
-      }
+      setMediaError(false);
+      safePlayVideo(video);
     } else {
       video.pause();
-      if (!isActive) {
-        video.currentTime = 0;
-      }
+      // Removed automatic currentTime = 0 to prevent flickering
     }
 
     return () => {
@@ -182,14 +181,59 @@ const ReelItem: React.FC<{
             className="min-w-full w-full h-full snap-center snap-always flex-shrink-0 relative"
           >
             {realPost.mediaType === 'video' && idx === 0 ? (
-              <video
-                ref={videoRef}
-                src={url}
-                className="h-full w-full object-cover pointer-events-none"
-                loop
-                playsInline
-                muted={isMuted}
-              />
+              <div className="h-full w-full relative bg-black/10">
+                {isMediaLoading && !mediaError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+                    <div className="w-8 h-8 border-3 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin"></div>
+                  </div>
+                )}
+
+                {mediaError && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 z-10 p-4 text-center">
+                    <VolumeX size={32} className="text-white/20 mb-2" />
+                    <p className="text-white/40 text-[10px] uppercase font-black tracking-widest">Video yuklanmadi</p>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMediaError(false);
+                        setIsMediaLoading(true);
+                        if (videoRef.current) videoRef.current.load();
+                      }}
+                      className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10"
+                    >
+                      Qayta yuklash
+                    </button>
+                  </div>
+                )}
+
+                <video
+                  ref={videoRef}
+                  src={url}
+                  poster={realPost.thumbnailUrl || undefined}
+                  className={`h-full w-full object-cover pointer-events-none transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                  loop
+                  playsInline
+                  muted={isMuted}
+                  preload="auto"
+                  onLoadedData={() => setIsMediaLoading(false)}
+                  onWaiting={() => setIsMediaLoading(true)}
+                  onPlaying={() => setIsMediaLoading(false)}
+                  onError={(e) => {
+                    const video = e.currentTarget;
+                    if (!video.dataset.triedProxy) {
+                      video.dataset.triedProxy = 'true';
+                      video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                      video.load();
+                      if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
+                        safePlayVideo(video);
+                      }
+                    } else {
+                      setIsMediaLoading(false);
+                      setMediaError(true);
+                    }
+                  }}
+                />
+              </div>
             ) : (
               <img
                 src={url}

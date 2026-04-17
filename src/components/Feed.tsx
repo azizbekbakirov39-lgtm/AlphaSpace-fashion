@@ -149,7 +149,7 @@ const Feed: React.FC<FeedProps> = ({
           }
         });
       },
-      { threshold: 0.6 }
+      { threshold: 0.5 }
     );
 
     const postElements = document.querySelectorAll('.post-item');

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageSquare, Send, Users, MoreVertical, Volume2, VolumeX, Share2, ShoppingBag } from 'lucide-react';
 import { Story, PostData } from '../types';
 import { toast } from 'sonner';
+import { safePlayVideo } from '../utils/mediaUtils';
 
 interface LiveStreamViewerProps {
   story: Story;
@@ -68,7 +69,18 @@ const LiveStreamViewer: React.FC<LiveStreamViewerProps> = ({ story, onClose, onO
           autoPlay 
           loop 
           muted={isMuted}
+          playsInline
+          preload="auto"
           className="w-full h-full object-cover opacity-80"
+          onError={(e) => {
+            const video = e.currentTarget;
+            if (!video.dataset.triedProxy) {
+              video.dataset.triedProxy = 'true';
+              video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(story.videoUrl)}`;
+              video.load();
+              safePlayVideo(video);
+            }
+          }}
         />
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />

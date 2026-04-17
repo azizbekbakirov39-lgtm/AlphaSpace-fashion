@@ -5,7 +5,7 @@ import { db, collection, onSnapshot, query, orderBy, deleteDoc, doc, serverTimes
 import { toast } from 'sonner';
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY || (process as any).env.GEMINI_API_KEY });
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 interface TelegramLink {
   id: string;
@@ -72,7 +72,7 @@ export default function TelegramLinkManager() {
       If no product is found, return an empty object or best guess.`;
 
       const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-flash-latest",
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
       });
 

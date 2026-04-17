@@ -42,7 +42,7 @@ import {
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
-import { PostData, Seller, Obraz, User } from '../types';
+import { PostData, Seller, User } from '../types';
 import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { uploadImageToImgBB } from '../services/imgbb';
 
@@ -76,7 +76,6 @@ interface ProfileProps {
   onOpenAdminDashboard?: () => void;
   initialChatSellerId?: string | null;
   initialChatProduct?: PostData | null;
-  savedObrazlar?: Obraz[];
 }
 
 export type SubView = 'main' | 'language' | 'subscriptions' | 'chats' | 'saved' | 'style-dna' | 'closet' | 'try-ons' | 'fit-profile' | 'comments' | 'liked-posts' | 'recently-viewed';
@@ -125,8 +124,7 @@ const Profile: React.FC<ProfileProps> = ({
   initialChatSellerId,
   initialChatProduct,
   sentPosts,
-  setSentPosts,
-  savedObrazlar = []
+  setSentPosts
 }) => {
   const { isKeyboardOpen } = useKeyboard();
   const { installApp, isStandalone, isInAppBrowser } = usePWA();
@@ -963,7 +961,7 @@ const Profile: React.FC<ProfileProps> = ({
                 className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10 text-center cursor-pointer"
               >
                 <p className="text-[10px] font-black text-white/60 uppercase tracking-tighter mb-1">{t.saved}</p>
-                <p className="text-sm font-black text-white">{savedPosts.length + (savedObrazlar?.length || 0)}</p>
+                <p className="text-sm font-black text-white">{savedPosts.length}</p>
               </motion.div>
               <motion.div 
                 whileTap={{ scale: 0.95 }}
@@ -1861,7 +1859,6 @@ const Profile: React.FC<ProfileProps> = ({
           {[
             { id: 'all', label: language === 'uz' ? 'Hammasi' : 'Все' },
             { id: 'clothing', label: language === 'uz' ? 'Kiyimlar' : 'Одежда' },
-            { id: 'outfits', label: language === 'uz' ? 'Obrazlar' : 'Образы' },
             { id: 'other', label: language === 'uz' ? 'Boshqalar' : 'Другие' }
           ].map((tab) => (
             <button
@@ -1878,78 +1875,49 @@ const Profile: React.FC<ProfileProps> = ({
           ))}
         </div>
 
-        {activeClosetCategory === 'outfits' ? (
-          <div className="grid grid-cols-2 gap-3">
-            {savedObrazlar && savedObrazlar.length > 0 ? (
-              savedObrazlar.map((obraz) => (
-                <div key={obraz.id} className="bg-white dark:bg-neutral-800 rounded-2xl overflow-hidden border border-border-primary shadow-sm group">
-                  <div className="aspect-[3/4] relative">
-                    <img src={obraz.posts[0].mediaUrls[0] || undefined} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-[10px] font-black text-white uppercase tracking-tight truncate">{obraz.title}</p>
-                      <p className="text-[9px] font-bold text-white/70 uppercase tracking-widest">{obraz.totalPrice}</p>
-                    </div>
-                  </div>
+        <div className="grid grid-cols-3 gap-1">
+          {filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => (
+              <div 
+                key={post.id} 
+                onClick={() => onOpenPostDetails(post)}
+                className="aspect-square relative group overflow-hidden cursor-pointer rounded-xl"
+              >
+                {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                  <video 
+                    src={`${post.mediaUrls[0]}#t=0.1`}
+                    className="w-full h-full object-cover"
+                    preload="metadata"
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img 
+                    src={post.mediaUrls[0] || undefined} 
+                    alt={post.outfitName} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Bookmark size={16} fill="white" className="text-white" />
                 </div>
-              ))
-            ) : (
-              <div className="col-span-2 flex flex-col items-center justify-center py-24 text-text-primary/40">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500/10 to-accent-blue/10 flex items-center justify-center mb-4">
-                  <Sparkles size={32} className="text-purple-500 opacity-50" />
-                </div>
-                <h3 className="text-base font-bold text-text-primary mb-1">Obrazlar yo'q</h3>
-                <p className="text-xs font-medium text-center px-8">
-                  Siz hali hech qanday obraz saqlamadingiz.
-                </p>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1">
-            {filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => (
-                <div 
-                  key={post.id} 
-                  onClick={() => onOpenPostDetails(post)}
-                  className="aspect-square relative group overflow-hidden cursor-pointer rounded-xl"
-                >
-                  {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
-                    <video 
-                      src={`${post.mediaUrls[0]}#t=0.1`}
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    <img 
-                      src={post.mediaUrls[0] || undefined} 
-                      alt={post.outfitName} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Bookmark size={16} fill="white" className="text-white" />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-3 flex flex-col items-center justify-center py-24 text-text-primary/40">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-blue/10 to-blue-500/10 flex items-center justify-center mb-4">
-                  <Bookmark size={32} className="text-accent-blue opacity-50" />
-                </div>
-                <h3 className="text-base font-bold text-text-primary mb-1">Saqlanganlar yo'q</h3>
-                <p className="text-xs font-medium text-center px-8">
-                  {activeClosetCategory === 'clothing' 
-                    ? (language === 'uz' ? "Siz hali hech qanday kiyim saqlamadingiz." : "Вы еще не сохранили одежду.")
-                    : (language === 'uz' ? "Garderobingiz bo'sh." : "Ваш гардероб пуст.")}
-                </p>
+            ))
+          ) : (
+            <div className="col-span-3 flex flex-col items-center justify-center py-24 text-text-primary/40">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-blue/10 to-blue-500/10 flex items-center justify-center mb-4">
+                <Bookmark size={32} className="text-accent-blue opacity-50" />
               </div>
-            )}
-          </div>
-        )}
+              <h3 className="text-base font-bold text-text-primary mb-1">Saqlanganlar yo'q</h3>
+              <p className="text-xs font-medium text-center px-8">
+                {activeClosetCategory === 'clothing' 
+                  ? (language === 'uz' ? "Siz hali hech qanday kiyim saqlamadingiz." : "Вы еще не сохранили одежду.")
+                  : (language === 'uz' ? "Garderobingiz bo'sh." : "Ваш гардероб пуст.")}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     );
   };

@@ -115,18 +115,6 @@ export interface PostData {
   };
 }
 
-export interface Obraz {
-  id: string;
-  sellerId: string;
-  ownerUid: string;
-  title: string;
-  description: string;
-  posts: PostData[];
-  totalPrice: string;
-  type: string; // e.g., 'To\'y uchun', 'Office uchun'
-  createdAt?: any;
-}
-
 export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';

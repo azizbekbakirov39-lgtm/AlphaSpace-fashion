@@ -17,7 +17,7 @@ async function test() {
     try {
       const ai = new GoogleGenAI({ apiKey: keys[i] });
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-flash-latest",
         contents: [{ role: 'user', parts: [{ text: "hi" }] }]
       });
       console.log(`Key ${i+1} SUCCESS:`, response.text.substring(0, 20));

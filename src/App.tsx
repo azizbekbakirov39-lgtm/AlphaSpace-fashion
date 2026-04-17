@@ -72,7 +72,6 @@ export default function App() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [obrazlar, setObrazlar] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Home');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -93,7 +92,6 @@ export default function App() {
   const [selectedPostForComments, setSelectedPostForComments] = useState<any | null>(null);
   const [aiMessages, setAiMessages] = useState<AIMessage[]>([]);
   const [aiFoundPosts, setAiFoundPosts] = useState<any[]>([]);
-  const [aiFoundObrazlar, setAiFoundObrazlar] = useState<any[]>([]);
   const [aiFoundSellers, setAiFoundSellers] = useState<any[]>([]);
   const [aiInitialQuery, setAiInitialQuery] = useState<string | undefined>(undefined);
   const [pendingTryOn, setPendingTryOn] = useState<PostData | null>(null);
@@ -132,18 +130,10 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, 'stories');
     });
 
-    const unsubObrazlar = onSnapshot(collection(db, 'obrazlar'), (snapshot) => {
-      const obrazlarData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setObrazlar(obrazlarData);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'obrazlar');
-    });
-
     return () => {
       unsubSellers();
       unsubPosts();
       unsubStories();
-      unsubObrazlar();
     };
   }, [user?.uid]); // Only depend on user.uid, not sellers.length
 
@@ -559,7 +549,6 @@ export default function App() {
 
   const subscribedSellers = sellers.filter(s => s.isSubscribed);
   const savedPosts = posts.filter(p => p.isSaved);
-  const savedObrazlar = obrazlar.filter(o => o.isSaved);
   const [recentlyViewedPosts, setRecentlyViewedPosts] = React.useState<PostData[]>([]);
 
   const filteredPosts = postsWithUserStatus.filter(post => 
@@ -1332,11 +1321,8 @@ export default function App() {
                       setMessages={setAiMessages}
                       foundPosts={aiFoundPosts}
                       setFoundPosts={setAiFoundPosts}
-                      foundObrazlar={aiFoundObrazlar}
-                      setFoundObrazlar={setAiFoundObrazlar}
                       onOpenPostDetails={openPostDetails}
                       allPosts={postsWithUserStatus}
-                      allObrazlar={obrazlar}
                       initialQuery={aiInitialQuery}
                       onClearInitialQuery={() => setAiInitialQuery(undefined)}
                     />
@@ -1390,7 +1376,6 @@ export default function App() {
                       initialChatProduct={initialChatProduct}
                       sentPosts={sentPosts}
                       setSentPosts={setSentPosts}
-                      savedObrazlar={obrazlar}
                       onOpenShopSelector={() => setShowShopSelector(true)}
                       userShops={userShops}
                       workspace={workspace}

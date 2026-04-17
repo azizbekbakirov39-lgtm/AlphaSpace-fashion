@@ -5,72 +5,50 @@ import {
   MessageSquare, 
   Zap, 
   Settings, 
-  TrendingUp, 
   Users, 
   Phone, 
   Send,
   PlusCircle,
-  BarChart3,
   Instagram,
-  Smartphone,
   MapPin,
-  Clock,
   Trash2,
   Image as ImageIcon,
   Video,
-  Mic,
   ChevronLeft,
-  Paperclip,
   X,
   Camera,
   Navigation,
-  ExternalLink,
-  ChevronRight,
-  Award,
   Grid,
   Search,
   RefreshCw,
   CheckCircle2,
-  Filter,
-  MoreVertical,
   Edit,
   LogOut,
-  Calendar,
-  DollarSign,
-  Package,
-  Layout,
-  Eye,
-  Heart,
-  MessageCircle,
-  Bookmark,
-  Share2,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  Info,
   Sparkles,
-  Mail,
   Plus,
   Play,
   Pause,
   Trash,
-  MapPin as MapPinIcon,
-  FlipHorizontal,
   Download,
   Maximize2,
   Reply,
   Smile,
   Star,
-  Link2
+  Link2,
+  Clock,
+  FlipHorizontal,
+  Mic,
+  ExternalLink,
+  Info,
+  FileUp
 } from 'lucide-react';
-import { isVideoUrl, getProxiedUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, safePlayVideo } from '../utils/mediaUtils';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { toast } from 'sonner';
 import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, User } from '../types';
 import { uploadImageToImgBB } from '../services/imgbb';
-import { analyzeProductImage } from '../services/aiService';
 import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, Timestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
@@ -82,7 +60,6 @@ interface Message {
   mediaUrl?: string;
   sender: 'shop' | 'customer';
   timestamp: string;
-  transcription?: string;
   location?: { lat: number; lng: number };
   post?: PostData;
   replyTo?: string;
@@ -253,21 +230,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
-  const [selectedPostForInsights, setSelectedPostForInsights] = useState<PostData | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
   const [instagramLink, setInstagramLink] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<any>(null);
-  const [newObrazForm, setNewObrazForm] = useState({
-    title: '',
-    description: '',
-    totalPrice: '',
-    type: '',
-    selectedPostIds: [] as string[],
-    mediaUrls: [] as string[]
-  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -528,16 +496,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       toast.error("Saqlashda xatolik yuz berdi");
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleDeleteObraz = async (obrazId: string) => {
-    try {
-      await deleteDoc(doc(db, 'obrazlar', obrazId));
-      toast.success("Obraz o'chirildi");
-    } catch (error) {
-      console.error("Error deleting obraz:", error);
-      toast.error("Obrazni o'chirishda xatolik");
     }
   };
 
@@ -1049,10 +1007,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                     {localShopData.name}
                   </h1>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-accent-blue/10 rounded-full border border-accent-blue/20">
-                      <Star size={10} className="text-accent-blue" fill="currentColor" />
-                      <span className="text-[10px] font-black text-accent-blue uppercase tracking-widest">4.9 {t.top_rated}</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1062,7 +1016,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             <div className="px-6 py-4 flex items-center justify-between border-b border-border-primary">
               <div className="flex items-center gap-4">
                 <div className="flex flex-col">
-                  <span className="text-lg font-black text-text-primary">1.2K</span>
+                  <span className="text-lg font-black text-text-primary">0</span>
                   <span className="text-[9px] text-text-secondary uppercase font-black tracking-widest">Obunachilar</span>
                 </div>
                 <div className="w-px h-6 bg-border-primary" />
@@ -1587,7 +1541,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                                 className="w-full h-full object-cover scale-x-[-1]" 
                                 loop 
                                 muted 
-                                onMouseOver={(e) => e.currentTarget.play()}
+                                onMouseOver={(e) => safePlayVideo(e.currentTarget)}
                                 onMouseOut={(e) => e.currentTarget.pause()}
                               />
                               <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

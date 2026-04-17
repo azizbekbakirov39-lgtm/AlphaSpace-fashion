@@ -6,7 +6,7 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 
 import { Language, translations } from '../translations';
-import { isVideoUrl, getProxiedUrl, useShare } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
 
 interface PostProps {
   post: PostData;
@@ -147,13 +147,17 @@ const Post: React.FC<PostProps> = ({
     };
   }, []);
 
+  const [videoLoading, setVideoLoading] = useState(true);
+  const [videoError, setVideoError] = useState(false);
+
   useEffect(() => {
     if (videoRef.current) {
       if (isActive) {
-        videoRef.current.play().catch(() => {});
+        setVideoError(false);
+        safePlayVideo(videoRef.current);
       } else {
         videoRef.current.pause();
-        videoRef.current.currentTime = 0;
+        // Removed currentTime = 0 to prevent flickering when scrolling slightly
       }
     }
   }, [isActive]);
@@ -281,16 +285,59 @@ const Post: React.FC<PostProps> = ({
 
         {post.mediaType === 'video' ? (
           <div 
-            className="w-full h-full cursor-pointer relative"
+            className="w-full h-full cursor-pointer relative bg-black/10"
             onClick={handleMediaClick}
           >
+            {/* Loading Indicator */}
+            {videoLoading && !videoError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10">
+                <div className="w-8 h-8 border-3 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin"></div>
+              </div>
+            )}
+            
+            {/* Error Indicator */}
+            {videoError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 z-10 p-4 text-center">
+                <VolumeX size={32} className="text-white/20 mb-2" />
+                <p className="text-white/40 text-[10px] uppercase font-black tracking-widest">{language === 'uz' ? 'Video yuklanmadi' : 'Video not loaded'}</p>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setVideoError(false);
+                    setVideoLoading(true);
+                    if (videoRef.current) videoRef.current.load();
+                  }}
+                  className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10"
+                >
+                  Qayta yuklash
+                </button>
+              </div>
+            )}
+
             <video
               ref={videoRef}
               src={post.mediaUrls?.[0]}
-              className="w-full h-full object-cover"
+              poster={post.thumbnailUrl || (post.mediaType === 'image' ? post.mediaUrls[0] : undefined)}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${videoLoading ? 'opacity-0' : 'opacity-100'}`}
               loop
               muted={isMuted}
               playsInline
+              preload="auto"
+              onLoadedData={() => setVideoLoading(false)}
+              onWaiting={() => setVideoLoading(true)}
+              onPlaying={() => setVideoLoading(false)}
+              onError={(e) => {
+                const video = e.currentTarget;
+                if (!video.dataset.triedProxy) {
+                  video.dataset.triedProxy = 'true';
+                  video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(post.mediaUrls[0])}`;
+                  video.load();
+                  if (isActive) safePlayVideo(video);
+                } else {
+                  setVideoLoading(false);
+                  setVideoError(true);
+                }
+              }}
             />
             
             {/* Mute/Unmute Toggle */}
@@ -325,14 +372,27 @@ const Post: React.FC<PostProps> = ({
                     style={{ scrollSnapStop: 'always' }}
                   >
                     {isVideo ? (
-                      <video
-                        src={url}
-                        className="w-full h-full object-cover"
-                        autoPlay={isActive && idx === currentImageIndex}
-                        loop
-                        muted
-                        playsInline
-                      />
+                      <div className="w-full h-full relative bg-black/10">
+                        <video
+                          src={url}
+                          poster={post.thumbnailUrl || (idx === 0 ? url : undefined)}
+                          className="w-full h-full object-cover"
+                          autoPlay={isActive && idx === currentImageIndex}
+                          loop
+                          muted
+                          playsInline
+                          preload="metadata"
+                          onError={(e) => {
+                            const video = e.currentTarget;
+                            if (!video.dataset.triedProxy) {
+                              video.dataset.triedProxy = 'true';
+                              video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                              video.load();
+                              if (isActive && idx === currentImageIndex) video.play().catch(() => {});
+                            }
+                          }}
+                        />
+                      </div>
                     ) : (
                       <img
                         src={proxiedUrl}

@@ -160,17 +160,11 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
               )}
             </div>
             
-            <div className="flex-1 mb-1">
-              <h1 className="text-2xl font-black text-text-primary tracking-tight leading-none mb-1">
-                {seller.name}
-              </h1>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-accent-blue/10 rounded-full border border-accent-blue/20">
-                  <Star size={10} className="text-accent-blue" fill="currentColor" />
-                  <span className="text-[10px] font-black text-accent-blue uppercase tracking-widest">4.9 {t.top_rated}</span>
-                </div>
+              <div className="flex-1 mb-1">
+                <h1 className="text-2xl font-black text-text-primary tracking-tight leading-none mb-1">
+                  {seller.name}
+                </h1>
               </div>
-            </div>
           </div>
         </div>
 
@@ -185,13 +179,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
             <div className="flex flex-col">
               <span className="text-lg font-black text-text-primary">{posts.length}</span>
               <span className="text-[9px] text-text-secondary uppercase font-black tracking-widest">Postlar</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-accent-blue/5 to-accent-light/5 rounded-2xl border border-accent-blue/10">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-text-primary uppercase tracking-widest">{t.style_match}</span>
-              <span className="text-[8px] text-text-secondary uppercase font-bold tracking-tighter">Sizga mos keladi</span>
             </div>
           </div>
         </div>

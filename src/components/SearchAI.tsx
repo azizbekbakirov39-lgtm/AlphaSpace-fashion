@@ -1,9 +1,80 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt } from 'lucide-react';
+import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt, Search } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
-import { AIMessage, PostData, Obraz } from '../types';
+import { AIMessage, PostData } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartSellerLogo from './SmartSellerLogo';
+
+const SearchProgressIndicator = () => {
+  return (
+    <div className="relative w-28 h-28 flex items-center justify-center">
+      {/* Outer Rotating Glow - Blue and Purple */}
+      <motion.div
+        animate={{ 
+          rotate: 360,
+          scale: [1, 1.1, 1],
+        }}
+        transition={{ 
+          rotate: { duration: 5, repeat: Infinity, ease: "linear" },
+          scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+        }}
+        className="absolute inset-0 rounded-full bg-gradient-to-tr from-accent-blue/40 via-transparent to-purple-500/40 blur-xl"
+      />
+      
+      {/* Rotating Saturated Ring */}
+      <motion.div
+        animate={{ rotate: -360 }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        className="absolute inset-4 rounded-full border-[3px] border-transparent border-t-accent-blue border-b-purple-500 opacity-80"
+      />
+      
+      {/* Central Magnifying Glass */}
+      <motion.div
+        animate={{ 
+          y: [-3, 3, -3],
+          scale: [1, 1.1, 1],
+          rotate: [0, 8, -8, 0]
+        }}
+        transition={{ 
+          duration: 3, 
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="relative z-10 p-5 bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-white/10 shadow-2xl"
+      >
+        <Search size={36} className="text-accent-blue drop-shadow-[0_0_12px_rgba(0,85,255,0.6)]" strokeWidth={3} />
+      </motion.div>
+
+      {/* 3 Magical Stars Effect */}
+      {[
+        { x: -45, y: -40, size: 18, delay: 0, color: 'text-accent-light' },
+        { x: 50, y: -30, size: 24, delay: 0.9, color: 'text-purple-400' },
+        { x: 10, y: 55, size: 16, delay: 1.8, color: 'text-blue-300' }
+      ].map((star, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ 
+            opacity: [0, 1, 1, 0],
+            scale: [0, 1.3, 1, 0],
+            x: [0, star.x],
+            y: [0, star.y],
+            rotate: [0, 270]
+          }}
+          transition={{ 
+            duration: 3.5, 
+            repeat: Infinity, 
+            delay: star.delay,
+            ease: "anticipate"
+          }}
+          className={`absolute z-20 ${star.color}`}
+        >
+          <Sparkles size={star.size} className="fill-current drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 interface SearchAIProps {
   language?: string;
@@ -12,11 +83,8 @@ interface SearchAIProps {
   initialQuery?: string;
   onClearInitialQuery?: () => void;
   allPosts?: PostData[];
-  allObrazlar?: Obraz[];
   foundPosts?: PostData[];
   setFoundPosts?: React.Dispatch<React.SetStateAction<PostData[]>>;
-  foundObrazlar?: Obraz[];
-  setFoundObrazlar?: React.Dispatch<React.SetStateAction<Obraz[]>>;
   onOpenPostDetails?: (post: PostData) => void;
 }
 
@@ -32,7 +100,9 @@ Obraz yaratishda (outfit matching) mohirsiz. Masalan, jigarrang ko'ylak bilan oq
 
 MUHIM: Agar foydalanuvchi kiyim, poyabzal, shim, ko'ylak yoki biror mahsulot haqida so'rasa, albatta "find_products" funksiyasini chaqir. 
 Hatto rasm tashlab "shunga o'xshashini top" desa ham funksiyani ishlat.
-Javobingda "Hozir qidirib ko'raman..." yoki "Kutib tur, qidiryapman..." kabi iboralarni ishlatsang, tizim avtomatik ravishda qidiruv animatsiyasini ko'rsatadi.`;
+
+QIDIRUV QOIDASI: Qidiruv so'rovi bo'lganda (kiyim, narx, qidirish haqida), ALBATTA bitta javobning o'zida ham qidiruvni boshlayotganing haqida matnli xabarni ("Hozir qidirib ko'raman...", "Hozir ko'ramiz, qidiryapman...") ham "find_products" funksiyasini birgalikda yubor. 
+Hech qachon mahsulotlarni topmasdan turib "Topdim" deb aytma.`;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -58,11 +128,8 @@ const SearchAI: React.FC<SearchAIProps> = ({
   initialQuery,
   onClearInitialQuery,
   allPosts = [],
-  allObrazlar = [],
   foundPosts = [],
   setFoundPosts,
-  foundObrazlar = [],
-  setFoundObrazlar,
   onOpenPostDetails
 }) => {
   const [input, setInput] = useState('');
@@ -113,10 +180,9 @@ const SearchAI: React.FC<SearchAIProps> = ({
     const currentImage = selectedImage;
     setSelectedImage(null);
     setIsLoading(true);
-    setIsSearching(messageText.toLowerCase().includes('top') || 
-                   messageText.toLowerCase().includes('qidir') || 
-                   messageText.toLowerCase().includes('ko\'rsat') ||
-                   !!selectedImage);
+    const searchKeywords = ['top', 'qidir', 'ko\'rsat', 'kerak', 'bor', 'qanaqa', 'kiyim', 'shim', 'koylak', 'ko\'ylak', 'razmer', 'narx', 'sotuvchi', 'natija', 'topildimi', 'topdingmi'];
+    const isSearchQuery = searchKeywords.some(kw => messageText.toLowerCase().includes(kw)) || !!selectedImage;
+    setIsSearching(isSearchQuery);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -125,7 +191,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
       for (let i = 0; i < retries; i++) {
         try {
           return await ai.models.generateContent({
-            model: 'gemini-1.5-flash', // Reverted to 1.5-flash as 3-flash was not found
+            model: 'gemini-flash-latest',
             contents: contents,
             config: config
           });
@@ -143,17 +209,19 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
     try {
       // Provide a summary of all available products to the AI so it knows what it can find
-      const productsSummary = allPosts.map(p => `- ${p.outfitName} (ID: ${p.id}, Narxi: ${p.price})`).join('\n');
-      const obrazlarSummary = allObrazlar.map(o => `- ${o.title} (ID: ${o.id})`).join('\n');
+      const productsSummary = allPosts.map(p => {
+        const info = [
+          p.outfitName,
+          p.aiMetadata?.color ? `Rangi: ${p.aiMetadata.color}` : '',
+          p.aiMetadata?.category ? `Kategoriya: ${p.aiMetadata.category}` : '',
+          p.aiMetadata?.tags?.length ? `Teglar: ${p.aiMetadata.tags.join(', ')}` : ''
+        ].filter(Boolean).join(', ');
+        return `- ${info} (ID: ${p.id}, Narxi: ${p.price})`;
+      }).join('\n');
       
       const contextInstruction = `
 Hozirgi vaqtda marketplace-da quyidagi mahsulotlar bor:
 ${productsSummary || 'Hech qanday mahsulot yo\'q'}
-
-Va quyidagi obrazlar bor:
-${obrazlarSummary || 'Hech qanday obraz yo\'q'}
-
-Agar foydalanuvchi kiyim yoki poyabzal so'rasa, yuqoridagi ro'yxatdan mosini topib "find_products" funksiyasini chaqir.
 `;
 
       // Detect product link in message to provide context
@@ -184,10 +252,11 @@ Foydalanuvchi xabari: ${messageText}`;
 
       const parts: any[] = [{ text: enhancedMessageText }];
       if (currentImage) {
+        const base64Data = currentImage.includes(',') ? currentImage.split(',')[1] : currentImage;
         parts.push({
           inlineData: {
             mimeType: "image/jpeg",
-            data: currentImage.split(',')[1]
+            data: base64Data
           }
         });
       }
@@ -199,40 +268,26 @@ Foydalanuvchi xabari: ${messageText}`;
 
       const findProductsTool = {
         name: "find_products",
-        description: "Marketplace-dan mahsulotlarni qidirish",
+        description: "Marketplace-dan mahsulotlarni qidirish. Rang, kategoriya, brend yoki kiyim turi bo'yicha qidirish imkoniyati bor.",
         parameters: {
           type: Type.OBJECT,
           properties: {
-            query: { type: Type.STRING, description: "Qidiruv so'rovi (masalan: 'oq ko'ylak')" },
+            query: { type: Type.STRING, description: "Qidiruv so'rovi (masalan: 'jigarrang kastyum' yoki 'sport kiyimi')" },
             ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Aniq mahsulot ID-lari" }
-          }
-        }
-      };
-
-      const findOutfitsTool = {
-        name: "find_outfits",
-        description: "Marketplace-dan tayyor obrazlarni qidirish",
-        parameters: {
-          type: Type.OBJECT,
-          properties: {
-            query: { type: Type.STRING, description: "Obraz turi (masalan: 'to'y uchun')" },
-            ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Aniq obraz ID-lari" }
           }
         }
       };
 
       const response = await callAiWithRetry(contents as any, {
         systemInstruction: SYSTEM_INSTRUCTION + contextInstruction,
-        tools: [{ functionDeclarations: [findProductsTool, findOutfitsTool] }]
+        tools: [{ functionDeclarations: [findProductsTool] }]
       });
 
       let aiResponseText = response.text;
       
       const functionCalls = response.functionCalls;
       if (functionCalls) {
-        if (!aiResponseText) {
-          aiResponseText = language === 'uz' ? "Mana, qidirib topdim:" : "Вот что я нашел:";
-        }
+        let hasResults = false;
         for (const call of functionCalls) {
           if (call.name === 'find_products') {
             const args = call.args as any;
@@ -241,44 +296,43 @@ Foydalanuvchi xabari: ${messageText}`;
               results = allPosts.filter(p => args.ids.includes(p.id));
             } else if (args.query) {
               const q = args.query.toLowerCase();
-              results = allPosts.filter(p => 
-                p.outfitName.toLowerCase().includes(q) || 
-                p.description?.toLowerCase().includes(q) ||
-                p.items?.some(item => item.name.toLowerCase().includes(q)) ||
-                p.seller.name.toLowerCase().includes(q) ||
-                p.aiMetadata?.tags?.some(tag => tag.toLowerCase().includes(q)) ||
-                p.aiMetadata?.color?.toLowerCase().includes(q) ||
-                p.aiMetadata?.category?.toLowerCase().includes(q) ||
-                p.aiMetadata?.style?.toLowerCase().includes(q)
-              );
+              const queryWords = q.split(/\s+/).filter(w => w.length > 1);
               
-              // If no results found with specific query, try a broader search if it's a generic term
+              results = allPosts.filter(p => {
+                const searchableText = [
+                  p.outfitName,
+                  p.description || '',
+                  p.seller.name,
+                  p.aiMetadata?.color || '',
+                  p.aiMetadata?.category || '',
+                  p.aiMetadata?.style || '',
+                  ...(p.aiMetadata?.tags || []),
+                  ...(p as any).items?.map((item: any) => item.name) || []
+                ].join(' ').toLowerCase();
+
+                if (queryWords.length > 1) {
+                  return queryWords.every(word => searchableText.includes(word));
+                }
+                return searchableText.includes(q);
+              });
+              
               if (results.length === 0 && (q.includes('kiyim') || q.includes('kiyimlar') || q.includes('hammasi'))) {
                 results = allPosts;
               }
             }
             if (results.length > 0) {
+              hasResults = true;
               setFoundPosts?.(results);
-              setFoundObrazlar?.([]);
-              setShowResults(false); // Don't show immediately, wait for user to click badge
+              setTimeout(() => setShowResults(true), 1500); 
             }
-          } else if (call.name === 'find_outfits') {
-            const args = call.args as any;
-            let results: Obraz[] = [];
-            if (args.ids) {
-              results = allObrazlar.filter(o => args.ids.includes(o.id));
-            } else if (args.query) {
-              const q = args.query.toLowerCase();
-              results = allObrazlar.filter(o => 
-                o.title.toLowerCase().includes(q) || 
-                o.description.toLowerCase().includes(q)
-              );
-            }
-            if (results.length > 0) {
-              setFoundObrazlar?.(results);
-              setFoundPosts?.([]);
-              setShowResults(false);
-            }
+          }
+        }
+
+        if (!aiResponseText) {
+          if (hasResults) {
+            aiResponseText = language === 'uz' ? "Siz so'ragan narsalarni topdim, mana ular:" : "Я нашел то, что вы просили, вот они:";
+          } else {
+            aiResponseText = language === 'uz' ? "Kechirasiz, marketplace-dan siz qidirgan mahsulotlarni topa olmadim." : "Извините, я не нашел в маркетплейсе товары, которые вы искали.";
           }
         }
       }
@@ -294,14 +348,37 @@ Foydalanuvchi xabari: ${messageText}`;
       // If AI didn't call the tool but the user clearly wanted a search, do a fallback search
       if (!functionCalls && isSearching) {
         const q = messageText.toLowerCase();
-        const results = allPosts.filter(p => 
-          p.outfitName.toLowerCase().includes(q) || 
-          p.description?.toLowerCase().includes(q) ||
-          p.items?.some(item => item.name.toLowerCase().includes(q))
-        );
+        const queryWords = q.split(/\s+/).filter(w => w.length > 1);
+
+        let results = allPosts.filter(p => {
+          const searchableText = [
+            p.outfitName,
+            p.description || '',
+            p.aiMetadata?.color || '',
+            p.aiMetadata?.category || '',
+            ...(p.aiMetadata?.tags || []),
+            ...(p as any).items?.map((item: any) => item.name) || []
+          ].join(' ').toLowerCase();
+
+          if (queryWords.length > 1) {
+            return queryWords.every(word => searchableText.includes(word));
+          }
+          return searchableText.includes(q);
+        });
+        
+        // If they just asked "topdingmi" and we have existing results, use those
+        if (results.length === 0 && foundPosts.length > 0 && (q.includes('top') || q.includes('natija'))) {
+          results = foundPosts;
+        }
+
         if (results.length > 0) {
           setFoundPosts?.(results);
+          setTimeout(() => setShowResults(true), 1500); 
         }
+      }
+      // Ensure searching continues for at least a duration to let animation play
+      if (isSearchQuery) {
+        await sleep(2500); 
       }
     } catch (error) {
       console.error('AI Error:', error);
@@ -326,7 +403,7 @@ Foydalanuvchi xabari: ${messageText}`;
 
       {/* "Topildi" Badge - Floating Right */}
       <AnimatePresence>
-        {(foundPosts.length > 0 || foundObrazlar.length > 0) && !showResults && (
+        {foundPosts.length > 0 && !showResults && (
           <motion.button
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -337,7 +414,7 @@ Foydalanuvchi xabari: ${messageText}`;
             <LayoutGrid size={14} />
             {language === 'uz' ? 'Topildi' : 'Найдено'}
             <span className="bg-white text-accent-blue w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-              {foundPosts.length || foundObrazlar.length}
+              {foundPosts.length}
             </span>
           </motion.button>
         )}
@@ -365,9 +442,7 @@ Foydalanuvchi xabari: ${messageText}`;
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-8 bg-accent-blue rounded-full" />
                 <h2 className="text-xl font-black text-text-primary uppercase tracking-tighter">
-                  {foundObrazlar.length > 0 
-                    ? (language === 'uz' ? 'Topilgan Obrazlar' : 'Найденные Образы')
-                    : (language === 'uz' ? 'Topilgan Mahsulotlar' : 'Найденные Товары')}
+                  {language === 'uz' ? 'Topilgan Mahsulotlar' : 'Найденные Товары'}
                 </h2>
               </div>
               <button 
@@ -384,92 +459,56 @@ Foydalanuvchi xabari: ${messageText}`;
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
-              {foundPosts.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4">
-                  {foundPosts.map(post => (
-                    <motion.div
-                      key={post.id}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => onOpenPostDetails?.(post)}
-                      className="bg-neutral-50 dark:bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-100 dark:border-neutral-800 shadow-sm"
-                    >
-                      <div className="aspect-[3/4] relative">
-                        <img 
-                          src={post.mediaUrls[0]} 
-                          alt={post.outfitName} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
-                          <p className="text-[10px] font-black truncate">{post.outfitName}</p>
-                          <p className="text-xs font-black text-accent-light">{post.price}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {foundObrazlar.map(obraz => (
-                    <div key={obraz.id} className="bg-neutral-50 dark:bg-neutral-900 rounded-[2.5rem] p-6 border border-neutral-100 dark:border-neutral-800">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-2xl bg-accent-blue/10 flex items-center justify-center text-accent-blue">
-                          <Shirt size={20} />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-black text-text-primary">{obraz.title}</h3>
-                          <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">{obraz.type}</p>
-                        </div>
-                      </div>
-                      <p className="text-xs font-medium text-text-secondary mb-6 leading-relaxed">{obraz.description}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {obraz.posts.map(post => (
-                          <motion.div
-                            key={post.id}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => onOpenPostDetails?.(post)}
-                            className="aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700"
-                          >
-                            <img 
-                              src={post.mediaUrls[0]} 
-                              alt={post.outfitName} 
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          </motion.div>
-                        ))}
+              <div className="grid grid-cols-2 gap-4">
+                {foundPosts.map(post => (
+                  <motion.div
+                    key={post.id}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => onOpenPostDetails?.(post)}
+                    className="bg-neutral-50 dark:bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-100 dark:border-neutral-800 shadow-sm"
+                  >
+                    <div className="aspect-[3/4] relative">
+                      <img 
+                        src={post.mediaUrls[0]} 
+                        alt={post.outfitName} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
+                        <p className="text-[10px] font-black truncate">{post.outfitName}</p>
+                        <p className="text-xs font-black text-accent-light">{post.price}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Messages */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-6 space-y-10 scrollbar-hide pt-32 pb-48"
-      >
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="mb-6">
-              <SmartSellerLogo width={100} showText={true} animated={true} />
+        {/* Messages */}
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-6 space-y-10 scrollbar-hide pt-32 pb-48"
+        >
+          {messages.length === 0 && !isLoading && !isSearching && (
+            <div className="flex flex-col items-center justify-center h-full text-center px-8">
+              <div className="mb-6 shadow-2xl shadow-accent-blue/20 rounded-full p-4">
+                <SmartSellerLogo width={120} showText={true} animated={true} />
+              </div>
+              <h3 className="text-2xl font-black text-text-primary mb-2 tracking-tight">
+                {language === 'uz' ? 'SmartSellerga xush kelibsiz' : 'Добро пожаловать в SmartSeller'}
+              </h3>
+              <p className="text-base font-medium text-text-secondary leading-relaxed max-w-[320px]">
+                {language === 'uz' 
+                  ? 'Istagan narsangizni qidiring, men marketplace bo\'yicha sizga yordam beraman!' 
+                  : 'Ищите что угодно, я помогу вам с маркетплейсом!'}
+              </p>
             </div>
-            <h3 className="text-xl font-black text-text-primary mb-2">
-              {language === 'uz' ? 'SmartSellerga xush kelibsiz' : 'Добро пожаловать в SmartSeller'}
-            </h3>
-            <p className="text-sm font-medium text-text-secondary leading-relaxed max-w-[280px]">
-              {language === 'uz' 
-                ? 'Sizga marketplace bo\'yicha istalgan savolga javob berishga tayyorman.' 
-                : 'Я готов ответить на любые вопросы по маркетплейсу.'}
-            </p>
-          </div>
-        )}
+          )}
 
-        {messages.map((message, index) => (
+          {messages.map((message, index) => (
           <motion.div
             key={message.id}
             initial={{ opacity: 0, y: 10 }}
@@ -502,14 +541,16 @@ Foydalanuvchi xabari: ${messageText}`;
             </div>
           </motion.div>
         ))}
-        {isLoading && (
+        {(isLoading || isSearching) && (
           <div className="flex flex-col items-start w-full gap-4">
-            <div className="flex items-center gap-3 py-2">
-              <div className="w-6 h-6 rounded-full bg-accent-blue/10 flex items-center justify-center">
-                <Loader2 size={14} className="animate-spin text-accent-blue" />
+            {isLoading && (
+              <div className="flex items-center gap-3 py-2">
+                <div className="w-6 h-6 rounded-full bg-accent-blue/10 flex items-center justify-center">
+                  <Loader2 size={14} className="animate-spin text-accent-blue" />
+                </div>
+                <span className="text-xs font-bold text-text-secondary uppercase tracking-widest animate-pulse">SmartSeller o'ylamoqda...</span>
               </div>
-              <span className="text-xs font-bold text-text-secondary uppercase tracking-widest animate-pulse">SmartSeller o'ylamoqda...</span>
-            </div>
+            )}
             
             {/* Magnifying Glass Search Animation - Only show when searching */}
             <AnimatePresence>
@@ -518,9 +559,14 @@ Foydalanuvchi xabari: ${messageText}`;
                   initial={{ opacity: 0, scale: 0.8, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                  className="ml-4 mb-4"
+                  className="ml-2 mb-4"
                 >
-                  <SmartSellerLogo width={60} showText={false} animated={true} />
+                  <div className="flex flex-col items-center gap-2">
+                    <SearchProgressIndicator />
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-accent-blue to-purple-500 bg-clip-text text-transparent animate-pulse">
+                      {language === 'uz' ? 'Marketplace tahlil qilinmoqda...' : 'Анализируем маркетплейс...'}
+                    </span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

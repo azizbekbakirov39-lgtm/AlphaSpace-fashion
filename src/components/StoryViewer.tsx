@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageCircle, Share2, Volume2, VolumeX, Check, ChevronLeft, ChevronRight, ShoppingBag, Send } from 'lucide-react';
 import { Story, PostData, User } from '../types';
-import { isVideoUrl, useShare } from '../utils/mediaUtils';
+import { isVideoUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
 import { Language } from '../translations';
@@ -68,6 +68,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const [isMediaLoading, setIsMediaLoading] = useState(true);
+  const [mediaError, setMediaError] = useState(false);
+
   // Pause/Resume video when details or comments are open
   useEffect(() => {
     const video = videoRef.current;
@@ -75,7 +78,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (showProductDetails || showComments) {
       video.pause();
     } else {
-      video.play().catch(() => {});
+      setMediaError(false);
+      safePlayVideo(video);
     }
   }, [showProductDetails, showComments]);
 
@@ -84,10 +88,12 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (currentStory) {
       onMarkViewed(currentStory.id);
       setProgress(0);
+      setIsMediaLoading(true);
+      setMediaError(false);
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         if (!showProductDetails && !showComments) {
-          videoRef.current.play().catch(() => {});
+          safePlayVideo(videoRef.current);
         }
       }
     }
@@ -165,7 +171,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (isPaused) {
       setIsPaused(false);
       if (videoRef.current && !showProductDetails && !showComments) {
-        videoRef.current.play().catch(() => {});
+        safePlayVideo(videoRef.current);
       }
     }
   };
@@ -236,21 +242,65 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       className="fixed inset-0 z-[5000] bg-black flex items-center justify-center overflow-hidden"
     >
       {isVideoUrl(currentStory.videoUrl) ? (
-        <video
-          ref={videoRef}
-          src={currentStory.videoUrl}
-          className="w-full h-full object-cover"
-          onEnded={handleNext}
-          autoPlay
-          playsInline
-          muted={isMuted}
-          onClick={handleTap}
-          onMouseDown={handlePressStart}
-          onMouseUp={handlePressEnd}
-          onMouseLeave={handlePressEnd}
-          onTouchStart={handlePressStart}
-          onTouchEnd={handlePressEnd}
-        />
+        <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
+          {isMediaLoading && !mediaError && (
+             <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+               <div className="w-8 h-8 border-3 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin"></div>
+             </div>
+          )}
+
+          {mediaError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 z-10 p-4 text-center">
+              <VolumeX size={32} className="text-white/20 mb-2" />
+              <p className="text-white/40 text-[10px] uppercase font-black tracking-widest">Video yuklanmadi</p>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMediaError(false);
+                  setIsMediaLoading(true);
+                  if (videoRef.current) videoRef.current.load();
+                }}
+                className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10"
+              >
+                Qayta yuklash
+              </button>
+            </div>
+          )}
+
+          <video
+            ref={videoRef}
+            src={currentStory.videoUrl}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+            onEnded={handleNext}
+            autoPlay
+            playsInline
+            muted={isMuted}
+            onClick={handleTap}
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={handlePressEnd}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+            preload="auto"
+            onLoadedData={() => setIsMediaLoading(false)}
+            onPlaying={() => setIsMediaLoading(false)}
+            onWaiting={() => setIsMediaLoading(true)}
+            onError={(e) => {
+              const video = e.currentTarget;
+              if (!video.dataset.triedProxy) {
+                video.dataset.triedProxy = 'true';
+                video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(currentStory.videoUrl)}`;
+                video.load();
+                if (videoRef.current && !showProductDetails && !showComments) {
+                  safePlayVideo(videoRef.current);
+                }
+              } else {
+                setIsMediaLoading(false);
+                setMediaError(true);
+              }
+            }}
+          />
+        </div>
       ) : (
         <img
           src={currentStory.videoUrl}

@@ -20,13 +20,48 @@ export const useShare = () => {
   return { shareContent };
 };
 
+export const safePlayVideo = async (video: HTMLVideoElement | null) => {
+  if (!video) return;
+  try {
+    // Ensure video is muted for autoplay compliance
+    if (video.autoplay && !video.muted) {
+      video.muted = true;
+    }
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      await playPromise;
+    }
+  } catch (error) {
+    // Silently handle autoplay prevention or other common playback issues
+    // We don't log "Autoplay prevented" to avoid polluting console as requested
+  }
+};
+
 export const isVideoUrl = (url: string): boolean => {
   if (!url) return false;
   const lowerUrl = url.toLowerCase();
-  return lowerUrl.includes('.mp4') || 
-         lowerUrl.includes('.mov') || 
-         lowerUrl.includes('.webm') ||
-         (lowerUrl.includes('video') && !lowerUrl.includes('.jpg') && !lowerUrl.includes('.png') && !lowerUrl.includes('.webp') && !lowerUrl.includes('.heic'));
+  
+  // Typical video extensions
+  if (lowerUrl.match(/\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|wmv)($|\?|&)/)) {
+    return true;
+  }
+  
+  // Common video hosting patterns
+  if (
+    lowerUrl.includes('video') || 
+    lowerUrl.includes('reel') || 
+    lowerUrl.includes('clip') ||
+    lowerUrl.includes('stream') ||
+    lowerUrl.includes('blob') ||
+    lowerUrl.includes('upload')
+  ) {
+    // Ensure it's not an image with these keywords in URL
+    const isLikelyImage = lowerUrl.match(/\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)($|\?|&)/);
+    if (isLikelyImage) return false;
+    return true;
+  }
+  
+  return false;
 };
 
 export const getProxiedUrl = (url: string): string => {

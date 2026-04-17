@@ -76,7 +76,7 @@ export const startBot = async () => {
             Return ONLY JSON: {"productName": "...", "price": "...", "description": "...", "imageUrl": "...", "channelName": "...", "tags": []}`;
 
             const result = await genAI.models.generateContent({
-              model: "gemini-3-flash-preview",
+              model: "gemini-flash-latest",
               contents: [{ role: 'user', parts: [{ text: prompt }] }]
             }) as any;
 
@@ -131,7 +131,7 @@ export const startBot = async () => {
         
         const currentAi = new GoogleGenAI({ apiKey: apiKey });
 
-        const model = "gemini-3-flash-preview";
+        const model = "gemini-flash-latest";
         const aiPromise = currentAi.models.generateContent({
           model,
           contents: [{ role: 'user', parts: [{ text: userMessage }] }],
@@ -188,14 +188,14 @@ export const startBot = async () => {
               
               // Ask Gemini again with the website data
               const secondAiPromise = currentAi.models.generateContent({
-                model: "gemini-3-flash-preview",
+                model: "gemini-flash-latest",
                 contents: [
                   { role: 'user', parts: [{ text: userMessage }] },
                   { role: 'model', parts: [{ text: aiResponse }] },
                   { role: 'user', parts: [{ text: `SmartSellerdan javob keldi:\n${websiteData}\n\nEndi foydalanuvchiga shu ma'lumotlar asosida chiroyli qilib javob bering.` }] }
                 ],
                 config: {
-                  systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz. Sizning modelingiz Gemini 3 Flash. Qisqa, erkin va do'stona javob bering.`
+                  systemInstruction: `Sizning ismingiz "SmartBot". Siz AlphaSpace platformasining Telegramdagi aqlli yordamchisisiz. Sizning modelingiz Gemini Flash Latest. Qisqa, erkin va do'stona javob bering.`
                 }
               });
               
