@@ -1396,7 +1396,7 @@ export default function App() {
 
             {/* Bottom Navigation */}
             {workspace === 'Marketplace' && (
-              <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} language={language} />
+              <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} language={language} user={user} />
             )}
 
             {/* Global Viewers */}

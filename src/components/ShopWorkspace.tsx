@@ -522,6 +522,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   };
 
   const handleDeletePost = async (postId: string) => {
+    console.log("Deleting post:", postId);
     if (!window.confirm("Haqiqatan ham ushbu postni o'chirmoqchimisiz?")) return;
     try {
       await deleteDoc(doc(db, 'posts', postId));
@@ -1280,21 +1281,32 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               onClick={() => setEditingPost(post)}
                             />
                           )}
-                          {post.mediaType === 'video' && (
-                            <div className="absolute top-1 right-1 bg-black/50 p-0.5 rounded">
-                              <Video size={10} className="text-white" />
-                            </div>
-                          )}
-                          
+                          {/* Direct delete button - Top Left, z-index 50 */}
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeletePost(post.id);
                             }}
-                            className="absolute top-2 left-2 p-1.5 bg-red-500/20 backdrop-blur-md border border-red-500/30 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white z-10"
+                            className="absolute top-2 left-2 p-3 bg-red-600 hover:bg-red-700 rounded-full text-white z-[50] shadow-2xl transition-transform hover:scale-110 active:scale-90"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
+
+                          {/* Stats/Settings Menu */}
+                          <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-md p-2 flex justify-between items-center z-[40]">
+                            <button 
+                              onClick={() => { /* Open Stats */ }}
+                              className="px-3 py-1.5 flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-black text-white hover:bg-white/20"
+                            >
+                              <Zap size={10} /> Statistika
+                            </button>
+                            <button 
+                              onClick={() => setEditingPost(post)}
+                              className="px-3 py-1.5 flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-black text-white hover:bg-white/20"
+                            >
+                              <Settings size={10} /> Tahrirlash
+                            </button>
+                          </div>
                         </motion.div>
                       ))}
                     </div>

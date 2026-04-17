@@ -1,26 +1,30 @@
 import React from 'react';
-import { Home, MapPin, User } from 'lucide-react';
+import { Home, MapPin, User as UserIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { BrandsIcon, SmartSellerTabIcon } from './CustomIcons';
+import SmartSellerLogo from './SmartSellerLogo';
+import Logo from './Logo';
+import { User } from '../types';
 
 interface BottomNavProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   language: Language;
+  user: User | null;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language, user }) => {
   const t = translations[language];
   const { isKeyboardOpen } = useKeyboard();
   
   const tabs = [
-    { name: 'Home', icon: Home, label: t.home },
-    { name: 'Brands', icon: BrandsIcon, label: t.brands },
-    { name: 'Search', icon: SmartSellerTabIcon, label: t.ai },
-    { name: 'Live', icon: MapPin, label: t.live },
-    { name: 'Profile', icon: User, label: t.profile },
+    { name: 'Home', label: t.home, isLogo: true },
+    { name: 'Brands', icon: BrandsIcon, label: t.brands, isLogo: false },
+    { name: 'Search', label: t.ai, isLogo: true },
+    { name: 'Live', icon: MapPin, label: t.live, isLogo: false },
+    { name: 'Profile', icon: UserIcon, label: t.profile, isLogo: false },
   ];
 
   if (isKeyboardOpen) return null;
@@ -50,38 +54,56 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
             >
               <motion.div
                 animate={{
-                  scale: isActive ? 1.2 : 1,
-                  y: isActive ? -4 : 0,
+                  scale: isActive ? (tab.isLogo ? 0.9 : 1.2) : (tab.isLogo ? 0.8 : 1),
+                  y: isActive ? (tab.isLogo ? 0 : -4) : 0,
                 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="relative z-10"
+                className="relative z-10 flex items-center justify-center h-[28px]"
               >
-                <Icon 
-                  size={22} 
-                  strokeWidth={isActive ? 2 : 1.5} 
-                  stroke={isActive ? "url(#nav-gradient)" : "currentColor"}
-                  className={`transition-colors duration-300 ${isActive ? '' : 'text-text-primary/50'}`}
-                />
+                {tab.name === 'Search' ? (
+                  <SmartSellerLogo width={61} showText={true} className="-mt-5" />
+                ) : tab.name === 'Brands' ? (
+                  <BrandsIcon size={40} isActive={isActive} />
+                ) : tab.name === 'Home' ? (
+                  <div className="mt-[-4px]">
+                    <Logo width={45} showText={true} />
+                  </div>
+                ) : tab.name === 'Profile' && user?.photoURL ? (
+                  <img 
+                    src={user.photoURL} 
+                    alt={user.displayName || 'Profile'} 
+                    className="w-[28px] h-[28px] rounded-full border border-border-primary object-cover" 
+                  />
+                ) : (
+                  <Icon 
+                    size={22} 
+                    strokeWidth={isActive ? 2 : 1.5} 
+                    stroke={isActive ? "url(#nav-gradient)" : "currentColor"}
+                    className={`transition-colors duration-300 ${isActive ? '' : 'text-text-primary/50'}`}
+                  />
+                )}
               </motion.div>
               
-              <div className="relative mt-1 flex flex-col items-center">
-                <motion.span 
-                  animate={{
-                    opacity: isActive ? 1 : 0.6,
-                    scale: isActive ? 1.1 : 1,
-                  }}
-                  className={`text-[8px] font-black tracking-[0.1em] uppercase transition-all duration-300 text-center px-1 whitespace-nowrap relative ${isActive ? 'bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent' : 'text-text-primary/50'}`}
-                >
-                  {tab.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute -bottom-[1px] left-0 right-0 h-[1px] rounded-full bg-accent-blue shadow-[0_0_3px_#0095FF]"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </motion.span>
-              </div>
+              {!tab.isLogo && (
+                <div className="relative mt-1 flex flex-col items-center">
+                  <motion.span 
+                    animate={{
+                      opacity: isActive ? 1 : 0.6,
+                      scale: isActive ? 1.1 : 1,
+                    }}
+                    className={`text-[8px] font-black tracking-[0.1em] uppercase transition-all duration-300 text-center px-1 whitespace-nowrap relative ${isActive ? 'bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent' : 'text-text-primary/50'}`}
+                  >
+                    {tab.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-indicator"
+                        className="absolute -bottom-[1px] left-0 right-0 h-[1px] rounded-full bg-accent-blue shadow-[0_0_3px_#0095FF]"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </motion.span>
+                </div>
+              )}
             </button>
           );
         })}
