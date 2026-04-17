@@ -194,24 +194,7 @@ const Post: React.FC<PostProps> = ({
       text: post.outfitName,
       url: window.location.href,
     };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!');
-      }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Share failed:', err);
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-          alert('Link copied to clipboard!');
-        } catch (clipErr) {
-          console.error('Clipboard fallback failed:', clipErr);
-        }
-      }
-    }
+    await shareContent(shareData.title, shareData.text, shareData.url);
   };
 
   return (

@@ -8,6 +8,7 @@ import { PostData, User } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 import { Language } from '../translations';
+import { useShare } from '../utils/mediaUtils';
 
 interface ReelsViewerProps {
   posts: PostData[];
@@ -150,24 +151,7 @@ const ReelItem: React.FC<{
       text: realPost.outfitName,
       url: window.location.href,
     };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        showToast(language === 'uz' ? 'Havola nusxalandi!' : 'Link copied!');
-      }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Share failed:', err);
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-          showToast(language === 'uz' ? 'Havola nusxalandi!' : 'Link copied!');
-        } catch (clipErr) {
-          console.error('Clipboard fallback failed:', clipErr);
-        }
-      }
-    }
+    await shareContent(shareData.title, shareData.text, shareData.url);
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {

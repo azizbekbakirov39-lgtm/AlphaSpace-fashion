@@ -103,24 +103,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                 text: post.outfitName,
                 url: window.location.href,
               };
-              try {
-                if (navigator.share) {
-                  await navigator.share(shareData);
-                } else {
-                  await navigator.clipboard.writeText(window.location.href);
-                  showToast(language === 'uz' ? 'Havola nusxalandi!' : 'Link copied!');
-                }
-              } catch (err: any) {
-                if (err.name !== 'AbortError') {
-                  console.error('Share failed:', err);
-                  try {
-                    await navigator.clipboard.writeText(window.location.href);
-                    showToast(language === 'uz' ? 'Havola nusxalandi!' : 'Link copied!');
-                  } catch (clipErr) {
-                    console.error('Clipboard fallback failed:', clipErr);
-                  }
-                }
-              }
+              await shareContent(shareData.title, shareData.text, shareData.url);
             }}
             className="p-3 bg-black/20 backdrop-blur-xl border border-white/20 rounded-2xl text-white shadow-2xl pointer-events-auto"
           >

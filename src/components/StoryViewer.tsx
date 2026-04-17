@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageCircle, Share2, Volume2, VolumeX, Check, ChevronLeft, ChevronRight, ShoppingBag, Send } from 'lucide-react';
 import { Story, PostData, User } from '../types';
-import { isVideoUrl } from '../utils/mediaUtils';
+import { isVideoUrl, useShare } from '../utils/mediaUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
 import { Language } from '../translations';
@@ -35,6 +35,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   user
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const { shareContent } = useShare();
   const currentStory = allStories.find(s => s.id === stories[currentIndex]?.id) || stories[currentIndex];
   const [showProductDetails, setShowProductDetails] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -209,24 +210,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       text: "Check out this story on AlphaSpace",
       url: window.location.href,
     };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        showToast(language === 'uz' ? 'Havola nusxalandi!' : 'Link copied!');
-      }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Share failed:', err);
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-          showToast(language === 'uz' ? 'Havola nusxalandi!' : 'Link copied!');
-        } catch (clipErr) {
-          console.error('Clipboard fallback failed:', clipErr);
-        }
-      }
-    }
+    await shareContent(shareData.title, shareData.text, shareData.url);
   };
 
   if (!currentStory) return null;

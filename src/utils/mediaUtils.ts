@@ -1,3 +1,25 @@
+export const useShare = () => {
+  const shareContent = async (title: string, text: string, url: string) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+      } else {
+        // Fallback for browsers that don't support navigator.share
+        await navigator.clipboard.writeText(url);
+        alert('Havola nusxalandi');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  return { shareContent };
+};
+
 export const isVideoUrl = (url: string): boolean => {
   if (!url) return false;
   const lowerUrl = url.toLowerCase();

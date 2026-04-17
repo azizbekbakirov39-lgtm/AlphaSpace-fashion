@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Seller, PostData } from '../types';
 import { Language, translations } from '../translations';
-import { isVideoUrl } from '../utils/mediaUtils';
+import { isVideoUrl, useShare } from '../utils/mediaUtils';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 
 interface ShopProfileProps {
@@ -37,6 +37,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
   const [showMap, setShowMap] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'lookbooks'>('posts');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { shareContent } = useShare();
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -101,19 +102,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                 text: seller.description,
                 url: window.location.href,
               };
-              try {
-                if (navigator.share) {
-                  await navigator.share(shareData);
-                } else {
-                  await navigator.clipboard.writeText(window.location.href);
-                  showToast(language === 'uz' ? 'Do\'kon havolasi nusxalandi!' : 'Shop link copied!');
-                }
-              } catch (err: any) {
-                if (err.name !== 'AbortError') {
-                  await navigator.clipboard.writeText(window.location.href);
-                  showToast(language === 'uz' ? 'Do\'kon havolasi nusxalandi!' : 'Shop link copied!');
-                }
-              }
+              await shareContent(shareData.title, shareData.text, shareData.url);
             }}
             className="p-2 bg-black/20 backdrop-blur-md text-white rounded-full hover:bg-black/40 transition-colors"
           >

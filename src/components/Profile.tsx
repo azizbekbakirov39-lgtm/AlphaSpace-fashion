@@ -188,30 +188,55 @@ const Profile: React.FC<ProfileProps> = ({
     // Add subscribed sellers
     subscribedSellers.forEach(s => sellersMap.set(s.id, s));
     
-    // Add sellers from chatMessages if not already there
+    // Ensure all sellers from chat history are included
     Object.keys(chatMessages).forEach(sellerId => {
       if (!sellersMap.has(sellerId)) {
-        sellersMap.set(sellerId, {
-          id: sellerId,
-          name: `Sotuvchi ${sellerId.substring(0, 4)}`,
-          logo: '',
-          followers: 0,
-          isVerified: false,
-          hasStory: false,
-          categories: []
-        });
+        // Construct a partial seller from history if not subscribed
+        const firstMessage = chatMessages[sellerId][0];
+        if (firstMessage && firstMessage.post) {
+          sellersMap.set(sellerId, {
+            ...firstMessage.post.seller,
+            isSubscribed: false
+          });
+        } else {
+          sellersMap.set(sellerId, {
+            id: sellerId,
+            name: `Sotuvchi ${sellerId.substring(0, 4)}`,
+            logo: '',
+            followers: 0,
+            isVerified: false,
+            hasStory: false,
+            categories: []
+          });
+        }
       }
     });
+
+    if (activeChatSeller && !sellersMap.has(activeChatSeller.id)) {
+        sellersMap.set(activeChatSeller.id, activeChatSeller);
+    }
     
-    // Sort by latest message time (if available) - returning array
+    // Sort by latest message time
     return Array.from(sellersMap.values()).sort((a, b) => {
       const msgsA = chatMessages[a.id] || [];
       const msgsB = chatMessages[b.id] || [];
-      const timeA = msgsA.length > 0 ? (msgsA[msgsA.length - 1].timestamp?.seconds || 0) : 0;
-      const timeB = msgsB.length > 0 ? (msgsB[msgsB.length - 1].timestamp?.seconds || 0) : 0;
-      return (timeB as number) - (timeA as number);
+      
+      const getTime = (msgs: any[]) => {
+        if (msgs.length === 0) return 0;
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg.timestamp?.seconds) return lastMsg.timestamp.seconds;
+        if (lastMsg.date && lastMsg.time) {
+            return new Date(`${lastMsg.date} ${lastMsg.time}`).getTime();
+        }
+        return 0;
+      };
+
+      const timeA = getTime(msgsA);
+      const timeB = getTime(msgsB);
+      
+      return timeB - timeA;
     });
-  }, [subscribedSellers, chatMessages]);
+  }, [subscribedSellers, chatMessages, activeChatSeller]);
 
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
