@@ -241,8 +241,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     likes: currentStory.likes,
     comments: currentStory.comments,
     isLiked: currentStory.isLiked || false,
-    isSaved: false,
-    items: []
+    isSaved: false
   };
 
   return (

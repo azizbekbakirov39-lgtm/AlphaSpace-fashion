@@ -88,6 +88,7 @@ export default function App() {
   const [sharingPost, setSharingPost] = useState<PostData | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(5); // Changed from 3 to 5 to show it's "real"
   const [profileSubView, setProfileSubView] = useState<SubView>('main');
+  const [sentPosts, setSentPosts] = useState<Set<string>>(new Set());
   const [selectedPostForDetails, setSelectedPostForDetails] = useState<any | null>(null);
   const [selectedPostForComments, setSelectedPostForComments] = useState<any | null>(null);
   const [aiMessages, setAiMessages] = useState<AIMessage[]>([]);
@@ -423,7 +424,7 @@ export default function App() {
   const [showShopSelector, setShowShopSelector] = useState(false);
 
   // Shop Workspace Internal Navigation (Lifted for history management)
-  const [shopWorkspaceTab, setShopWorkspaceTab] = useState('MyShop');
+  const [shopWorkspaceTab, setShopWorkspaceTab] = React.useState('MyShop');
   const [shopWorkspaceChatId, setShopWorkspaceChatId] = useState<string | null>(null);
 
   const t = translations[language];
@@ -1387,6 +1388,8 @@ export default function App() {
                       onLogout={logout}
                       initialChatSellerId={initialChatSellerId}
                       initialChatProduct={initialChatProduct}
+                      sentPosts={sentPosts}
+                      setSentPosts={setSentPosts}
                       savedObrazlar={obrazlar}
                       onOpenShopSelector={() => setShowShopSelector(true)}
                       userShops={userShops}

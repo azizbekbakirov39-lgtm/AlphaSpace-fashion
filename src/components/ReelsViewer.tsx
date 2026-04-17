@@ -1,13 +1,13 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, Heart, MessageCircle, Share2, Bookmark, ShoppingBag, Sparkles, 
-  Zap, ChevronRight, Plus, Send, Volume2, VolumeX, ChevronLeft, Check 
+  X, Heart, MessageCircle, Share2, Bookmark, 
+  Zap, Plus, Send, Volume2, VolumeX, Check 
 } from 'lucide-react';
 import { PostData, User } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
-import { Language, translations } from '../translations';
+import { Language } from '../translations';
 
 interface ReelsViewerProps {
   posts: PostData[];
@@ -41,7 +41,7 @@ const ReelItem: React.FC<{
   allPosts?: PostData[];
   user: User | null;
 }> = ({ post, isActive, onToggleLike, onToggleSave, onToggleSubscribe, onOpenShopProfile, onOpenChat, onSharePost, language, isMuted, onToggleMute, allPosts = [], user }) => {
-  const realPost = allPosts.find(p => p.id === post.id) || post;
+  const realPost = useMemo(() => allPosts.find(p => p.id === post.id) || post, [allPosts, post.id, post]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showComments, setShowComments] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -215,69 +215,6 @@ const ReelItem: React.FC<{
         ))}
       </div>
 
-      {/* Gallery Navigation Arrows */}
-      {realPost.mediaUrls.length > 1 && (
-        <>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (carouselRef.current) {
-                const newIndex = (currentMediaIndex - 1 + realPost.mediaUrls.length) % realPost.mediaUrls.length;
-                carouselRef.current.scrollTo({
-                  left: newIndex * carouselRef.current.offsetWidth,
-                  behavior: 'smooth'
-                });
-              }
-            }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-black/20 backdrop-blur-md text-white rounded-full opacity-0 hover:opacity-100 transition-opacity"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (carouselRef.current) {
-                const newIndex = (currentMediaIndex + 1) % realPost.mediaUrls.length;
-                carouselRef.current.scrollTo({
-                  left: newIndex * carouselRef.current.offsetWidth,
-                  behavior: 'smooth'
-                });
-              }
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-black/20 backdrop-blur-md text-white rounded-full opacity-0 hover:opacity-100 transition-opacity"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </>
-      )}
-
-      {/* Mute Toggle */}
-      {realPost.mediaType === 'video' && currentMediaIndex === 0 && (
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleMute();
-          }}
-          className="absolute top-6 right-4 z-[10000] p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white active:scale-90 transition-all shadow-2xl"
-        >
-          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-        </button>
-      )}
-
-      {/* Media Indicators for Carousel */}
-      {realPost.mediaUrls.length > 1 && (
-        <div className="absolute top-20 left-4 right-4 flex gap-1 z-30">
-          {realPost.mediaUrls.map((_, idx) => (
-            <div 
-              key={idx} 
-              className={`h-0.5 flex-1 rounded-full transition-all ${idx === currentMediaIndex ? 'bg-white' : 'bg-white/30'}`} 
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
-
       {/* Right Side Actions - Glassmorphic Sidebar */}
       <div className="absolute right-3 bottom-24 flex flex-col gap-5 items-center z-20">
         {/* Like */}
@@ -346,7 +283,34 @@ const ReelItem: React.FC<{
         </motion.button>
       </div>
 
-      {/* Bottom Info - Redesigned */}
+      {/* Right Side Controls Layer */}
+      <div className="absolute top-6 right-4 z-50 flex flex-col gap-3">
+        {realPost.mediaType === 'video' && currentMediaIndex === 0 && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMute();
+            }}
+            className="p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white active:scale-90 transition-all shadow-2xl"
+          >
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+        )}
+      </div>
+
+      {/* Carousel Navigation Indicators */}
+      {realPost.mediaUrls.length > 1 && (
+        <div className="absolute top-20 left-4 right-4 flex gap-1 z-30">
+          {realPost.mediaUrls.map((_, idx) => (
+            <div 
+              key={idx} 
+              className={`h-0.5 flex-1 rounded-full transition-all ${idx === currentMediaIndex ? 'bg-white' : 'bg-white/30'}`} 
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Bottom Info Section */}
       <div className="absolute bottom-6 left-4 right-4 z-20 flex items-end justify-between gap-4">
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
@@ -380,9 +344,9 @@ const ReelItem: React.FC<{
               <div className="flex items-center gap-3 mb-1">
                 <div className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md inline-block">
                   <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent font-black text-sm drop-shadow-lg">
-                    {post.price && post.price.trim() !== "" 
-                      ? post.price 
-                      : (post.priceMessage || (language === 'uz' ? 'Narx qancha?' : language === 'ru' ? 'Какая цена?' : 'What is the price?'))}
+                    {realPost.price && realPost.price.trim() !== "" 
+                      ? realPost.price 
+                      : (realPost.priceMessage || (language === 'uz' ? 'Narx qancha?' : language === 'ru' ? 'Какая цена?' : 'What is the price?'))}
                   </span>
                 </div>
                 {/* Send Message - Purple gradient, glassmorphism */}

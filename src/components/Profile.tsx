@@ -14,8 +14,6 @@ import {
   ShoppingBag,
   Send,
   Dna,
-  Award,
-  Star,
   LayoutGrid,
   Heart,
   Sparkles,
@@ -32,7 +30,6 @@ import {
   Reply,
   RefreshCw,
   Trash,
-  Info,
   Store,
   ShieldCheck,
   Download,
@@ -82,7 +79,7 @@ interface ProfileProps {
   savedObrazlar?: Obraz[];
 }
 
-export type SubView = 'main' | 'language' | 'subscriptions' | 'chats' | 'saved' | 'style-dna' | 'closet' | 'try-ons' | 'fit-profile' | 'info' | 'comments' | 'liked-posts' | 'recently-viewed';
+export type SubView = 'main' | 'language' | 'subscriptions' | 'chats' | 'saved' | 'style-dna' | 'closet' | 'try-ons' | 'fit-profile' | 'comments' | 'liked-posts' | 'recently-viewed';
 
 interface ChatMessage {
   id: string;
@@ -127,6 +124,8 @@ const Profile: React.FC<ProfileProps> = ({
   onOpenAdminDashboard,
   initialChatSellerId,
   initialChatProduct,
+  sentPosts,
+  setSentPosts,
   savedObrazlar = []
 }) => {
   const { isKeyboardOpen } = useKeyboard();
@@ -141,7 +140,6 @@ const Profile: React.FC<ProfileProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [activeProduct, setActiveProduct] = useState<PostData | null>(initialChatProduct || null);
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
   
   // Firestore Chat Listeners
@@ -216,7 +214,6 @@ const Profile: React.FC<ProfileProps> = ({
   }, [subscribedSellers, chatMessages]);
 
   const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   
@@ -225,14 +222,9 @@ const Profile: React.FC<ProfileProps> = ({
   const [audioProgress, setAudioProgress] = useState<{[key: string]: number}>({});
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
-  const [infoData, setInfoData] = useState<{ title: string; description: string } | null>(null);
   const [activeClosetCategory, setActiveClosetCategory] = useState<'all' | 'clothing' | 'outfits' | 'other'>('all');
 
   const handleBack = () => {
-    if (subView === 'info') {
-      setSubView('main');
-      return;
-    }
     if (activeChatSeller) {
       setActiveChatSeller(null);
       window.history.back();
@@ -242,11 +234,6 @@ const Profile: React.FC<ProfileProps> = ({
     } else if (onBackToHome) {
       onBackToHome();
     }
-  };
-
-  const openInfo = (title: string, description: string) => {
-    setInfoData({ title, description });
-    setSubView('info');
   };
 
   // Voice Recording State
@@ -270,6 +257,7 @@ const Profile: React.FC<ProfileProps> = ({
   const [stagedLocation, setStagedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const isSendingRef = React.useRef(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const recordButtonRef = React.useRef<HTMLButtonElement>(null);
   const cancelAreaRef = React.useRef<HTMLDivElement>(null);
@@ -343,8 +331,13 @@ const Profile: React.FC<ProfileProps> = ({
       if (file) {
         setStagedFile(file);
         const previewUrl = URL.createObjectURL(file);
-        if (type === 'image') setStagedImage(previewUrl);
-        else setStagedVideo(previewUrl);
+        if (type === 'image') {
+          setStagedImage(previewUrl);
+          setStagedVideo(null);
+        } else {
+          setStagedVideo(previewUrl);
+          setStagedImage(null);
+        }
       }
       document.body.removeChild(input);
     };
@@ -427,7 +420,7 @@ const Profile: React.FC<ProfileProps> = ({
     }
   };
 
-  // Handle initial chat seller
+  const t = translations[language];
   React.useEffect(() => {
     if (initialChatSellerId && subView === 'chats') {
       // Find seller in subscribed sellers or create a temporary one
@@ -447,22 +440,22 @@ const Profile: React.FC<ProfileProps> = ({
       }
 
       if (seller) {
-        setActiveChatSeller(seller);
-        setActiveProduct(initialChatProduct || null);
+        if (activeChatSeller?.id !== seller.id) {
+          setActiveChatSeller(seller);
+        }
 
-        // If it's a shared post, send it as a message
-        if (initialChatProduct && !sentPosts.has(`${seller.id}-${initialChatProduct.id}`)) {
+        // If it's a shared post, send it as a message once
+        const sendKey = `${seller.id}-${initialChatProduct?.id}`;
+        if (initialChatProduct && !sentPosts.has(sendKey)) {
+          // Immediately mark as sent to prevent double triggers
+          setSentPosts(prev => new Set(prev).add(sendKey));
           handleSendMessage(undefined, undefined, undefined, undefined, undefined, undefined, initialChatProduct, seller.id);
-          setSentPosts(prev => new Set(prev).add(`${seller.id}-${initialChatProduct.id}`));
         }
       }
     } else if (!initialChatSellerId) {
       setActiveChatSeller(null);
-      setActiveProduct(null);
     }
-  }, [initialChatSellerId, subView, subscribedSellers, initialChatProduct]);
-
-  const t = translations[language];
+  }, [initialChatSellerId, subView, subscribedSellers, initialChatProduct, activeChatSeller?.id]);
 
   const languages: { code: Language; name: string }[] = [
     { code: 'uz', name: "O'zbek (Lotin)" },
@@ -471,14 +464,16 @@ const Profile: React.FC<ProfileProps> = ({
     { code: 'en', name: "English" },
   ];
 
-  const [sentPosts, setSentPosts] = useState<Set<string>>(new Set());
-
   const handleSendMessage = async (text?: string, audio?: string, image?: string, video?: string, videoMessage?: string, location?: {lat: number, lng: number}, post?: PostData, targetSellerId?: string) => {
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
+    
     const messageText = text || newMessage;
     
     const prohibitedPattern = /🌈|🏳️‍🌈|🏳️‍⚧️|lgbt|gay|lesbian|homo/i;
     if (prohibitedPattern.test(messageText)) {
       toast.error("Ushbu xabarda taqiqlangan so'zlar yoki belgilar mavjud.");
+      isSendingRef.current = false;
       return;
     }
 
@@ -486,9 +481,15 @@ const Profile: React.FC<ProfileProps> = ({
     const locationData = location || stagedLocation;
     
     const sellerId = targetSellerId || activeChatSeller?.id;
-    if (!sellerId || !user) return;
+    if (!sellerId || !user) {
+      isSendingRef.current = false;
+      return;
+    }
 
-    if (!messageText.trim() && !audioData && !stagedFile && !image && !video && !videoMessage && !locationData && !post) return;
+    if (!messageText.trim() && !audioData && !stagedFile && !image && !video && !videoMessage && !locationData && !post) {
+      isSendingRef.current = false;
+      return;
+    }
 
     setIsUploading(true);
     try {
@@ -503,13 +504,27 @@ const Profile: React.FC<ProfileProps> = ({
             console.error("ImgBB upload error:", error);
           }
         } else if (stagedVideo) {
-          // Videos hala Firebase'da qoladi, chunki ImgBB faqat rasmlar uchun
           const fileExt = stagedFile.name.split('.').pop();
           const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
           const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
           
           await uploadBytes(storageRef, stagedFile);
           finalVideoUrl = await getDownloadURL(storageRef);
+        }
+      }
+
+      // If it's a video message (base64 from recording), upload it properly
+      if (videoMessage && videoMessage.startsWith('data:')) {
+        try {
+          const res = await fetch(videoMessage);
+          const blob = await res.blob();
+          const fileName = `vmsg_${Date.now()}.webm`;
+          const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
+          await uploadBytes(storageRef, blob);
+          finalVideoUrl = await getDownloadURL(storageRef);
+          videoMessage = undefined; // Clear base64, use finalVideoUrl
+        } catch (err) {
+          console.error("Video message upload error:", err);
         }
       }
 
@@ -527,7 +542,7 @@ const Profile: React.FC<ProfileProps> = ({
       const msgData: any = {
         chatId: chatId,
         senderUid: user.uid,
-        text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || undefined) : messageText,
+        text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
         audio: audioData || undefined,
         image: finalImageUrl || undefined,
         video: finalVideoUrl || undefined,
@@ -553,6 +568,7 @@ const Profile: React.FC<ProfileProps> = ({
       toast.error("Xabar yuborishda xatolik yuz berdi");
     } finally {
       setIsUploading(false);
+      isSendingRef.current = false;
     }
   };
 
@@ -890,9 +906,6 @@ const Profile: React.FC<ProfileProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-emerald-500 rounded-full border-4 border-bg-primary flex items-center justify-center text-white shadow-lg">
-                    <Award size={14} />
-                  </div>
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-white tracking-tight leading-none mb-1">{user.displayName || 'Foydalanuvchi'}</h2>
@@ -900,10 +913,6 @@ const Profile: React.FC<ProfileProps> = ({
                     <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/20">
                       {user.role === 'seller' ? 'SOTUVCHI' : t.alpha_member}
                     </span>
-                    <div className="flex items-center gap-1 text-amber-400">
-                      <Star size={10} fill="currentColor" />
-                      <span className="text-[10px] font-black">4.9</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1190,76 +1199,14 @@ const Profile: React.FC<ProfileProps> = ({
 
       return (
         <div className="flex flex-col h-full relative overflow-hidden">
-          {/* Product Context Header */}
-          {activeProduct && (
-            <motion.div 
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-border-primary p-3 flex items-center gap-3 z-30"
-            >
-              <div className="w-12 h-12 rounded-xl overflow-hidden border border-border-primary shrink-0">
-                <img 
-                  src={activeProduct.mediaUrls[0] || undefined} 
-                  alt={activeProduct.outfitName} 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-black text-text-primary truncate">{activeProduct.outfitName}</h4>
-                <p className="text-[10px] font-black text-accent-blue">{activeProduct.price}</p>
-              </div>
-              <button 
-                onClick={() => setActiveProduct(null)}
-                className="p-2 text-text-primary/40 hover:text-red-500 transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </motion.div>
-          )}
+          {/* Product Context removed */}
 
-          {/* Chat Background with Product Image */}
+          {/* Chat Background */}
           <div className="absolute inset-0 z-0">
-            {activeProduct ? (
-              <div className="relative w-full h-full">
-                <img 
-                  src={activeProduct.mediaUrls[0] || undefined} 
-                  alt="" 
-                  className="w-full h-full object-cover opacity-20 blur-3xl scale-110"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-[2px]" />
-              </div>
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#fdfbfb] to-[#ebedee] dark:from-neutral-900 dark:to-neutral-800">
-                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
-              </div>
-            )}
+            <div className="w-full h-full bg-gradient-to-br from-[#fdfbfb] to-[#ebedee] dark:from-neutral-900 dark:to-neutral-800">
+              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
+            </div>
           </div>
-
-          {/* Typing Indicator */}
-          <AnimatePresence>
-            {isTyping && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute top-16 left-4 z-40 flex items-center gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border-primary shadow-sm"
-              >
-                <div className="flex gap-1">
-                  {[0, 1, 2].map(i => (
-                    <motion.div 
-                      key={i}
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                      className="w-1.5 h-1.5 rounded-full bg-accent-blue"
-                    />
-                  ))}
-                </div>
-                <span className="text-[10px] font-black text-text-primary/60 uppercase tracking-widest">Sotuvchi yozmoqda...</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <div className="flex-1 overflow-y-auto p-4 pb-8 space-y-4 scrollbar-hide relative z-10 min-h-0">
             {messages.length === 0 && (
@@ -1309,15 +1256,14 @@ const Profile: React.FC<ProfileProps> = ({
                     </div>
                   )}
 
-                  {msg.video && (
-                    <div className="mb-2 rounded-xl overflow-hidden border border-black/5 bg-black">
-                      <video src={msg.video || undefined} controls className="w-full max-h-60" />
-                    </div>
-                  )}
-
-                  {msg.videoMessage && (
-                    <div className="mb-2 w-48 h-48 rounded-2xl overflow-hidden border-4 border-accent-blue/20 bg-black shadow-xl">
-                      <video src={msg.videoMessage || undefined} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                  {(msg.video || msg.videoMessage) && (
+                    <div className="mb-2 rounded-xl overflow-hidden border border-black/5 bg-black w-full max-w-[200px]">
+                      <video 
+                        src={`${msg.video || msg.videoMessage}#t=0.1`} 
+                        controls 
+                        preload="metadata" 
+                        className="w-full h-auto" 
+                      />
                     </div>
                   )}
 
@@ -2059,18 +2005,6 @@ const Profile: React.FC<ProfileProps> = ({
     </div>
   );
 
-  const renderInfo = () => (
-    <div className="p-6 flex flex-col items-center justify-center text-center py-20">
-      <div className="w-20 h-20 bg-accent-blue/10 rounded-full flex items-center justify-center text-accent-blue mb-6">
-        <Info size={40} />
-      </div>
-      <h2 className="text-2xl font-black text-text-primary mb-4 uppercase tracking-tight italic">{infoData?.title}</h2>
-      <p className="text-sm text-text-primary/60 font-medium leading-relaxed max-w-xs">
-        {infoData?.description}
-      </p>
-    </div>
-  );
-
   return (
     <div className="h-full flex flex-col bg-bg-primary overflow-hidden">
       {/* Sub-view Header */}
@@ -2101,15 +2035,15 @@ const Profile: React.FC<ProfileProps> = ({
               <h1 className="text-sm font-black truncate leading-tight uppercase tracking-tighter italic">
                 {activeChatSeller.name}
               </h1>
-              <p className="text-[10px] font-black text-accent-blue uppercase tracking-widest">
-                {isTyping ? "Yozmoqda..." : "Online"}
+              <p className="text-[10px] font-black text-accent-blue uppercase tracking-widest leading-none">
+                Online
               </p>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between w-full">
             <h1 className="text-lg font-black italic tracking-tighter uppercase">
-              {subView === 'main' ? t.profile : subView === 'info' ? infoData?.title : subView === 'comments' ? t.my_comments : subView === 'liked-posts' ? t.liked_posts : subView === 'recently-viewed' ? t.recently_viewed : t[subView as keyof typeof t] as string}
+              {subView === 'main' ? t.profile : subView === 'comments' ? t.my_comments : subView === 'liked-posts' ? t.liked_posts : subView === 'recently-viewed' ? t.recently_viewed : t[subView as keyof typeof t] as string}
             </h1>
             {subView === 'main' && onOpenShopSelector && (
               <button 
@@ -2172,7 +2106,6 @@ const Profile: React.FC<ProfileProps> = ({
             {subView === 'comments' && renderComments()}
             {subView === 'liked-posts' && renderLikedPosts()}
             {subView === 'recently-viewed' && renderRecentlyViewed()}
-            {subView === 'info' && renderInfo()}
           </motion.div>
         </AnimatePresence>
       </div>

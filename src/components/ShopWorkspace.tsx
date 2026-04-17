@@ -230,7 +230,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
   const [messageInput, setMessageInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
   const [isVideoRecording, setIsVideoRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordType, setRecordType] = useState<'voice' | 'video'>('voice');
@@ -240,7 +239,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isCancelAreaHovered, setIsCancelAreaHovered] = useState(false);
   const [stagedImage, setStagedImage] = useState<string | null>(null);
@@ -259,10 +257,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
-  const [selectedPremiumService, setSelectedPremiumService] = useState<any | null>(null);
-  const [activePremiumServices, setActivePremiumServices] = useState<any[]>([
-    { id: '1', title: "Postni topga chiqarish", expires: "2026-03-26T12:00:00Z", icon: TrendingUp }
-  ]);
 
   const QUICK_REPLIES = [
     "Assalomu alaykum! Ha, bu mahsulotimiz sotuvda bor.",
@@ -274,6 +268,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   
   // Post management states
   const [isUploading, setIsUploading] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
   const [selectedPostForInsights, setSelectedPostForInsights] = useState<PostData | null>(null);
@@ -962,45 +957,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     toast.success(`Chat holati: ${status === 'new' ? 'Yangi' : status === 'in-progress' ? 'Jarayonda' : 'Yakunlangan'}`);
   };
 
-  const [isPaying, setIsPaying] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success' | 'cancel'>('idle');
-
-  // Handle payment status from URL
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payment = params.get('payment');
-    if (payment === 'success') {
-      setPaymentStatus('success');
-      // Clear the URL parameter
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (payment === 'cancel') {
-      setPaymentStatus('cancel');
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
-
-  const handlePremiumSelect = async (title: string, price: string) => {
-    try {
-      setIsPaying(true);
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ title, price }),
-      });
-
-      if (!response.ok) throw new Error('To\'lov tizimiga ulanishda xatolik');
-
-      const { url } = await response.json();
-      // Redirect to Stripe Checkout
-      window.location.href = url;
-    } catch (error) {
-      console.error('Payment Error:', error);
-      alert('To\'lov tizimida xatolik yuz berdi. Iltimos keyinroq qayta urinib ko\'ring.');
-      setIsPaying(false);
-    }
-  };
+  // Premium features removed
 
   const handleFreezeShop = async () => {
     try {
@@ -1723,9 +1680,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                       <div className="flex-1">
                         <p className="font-black text-sm text-text-primary">{activeChat?.customerName}</p>
                         <div className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 ${isTyping ? 'bg-accent-blue animate-bounce' : 'bg-emerald-500 animate-pulse'} rounded-full`} />
-                          <p className={`text-[9px] ${isTyping ? 'text-accent-blue' : 'text-emerald-500'} font-black uppercase tracking-widest`}>
-                            {isTyping ? "Yozmoqda..." : "Online"}
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                          <p className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">
+                            Online
                           </p>
                         </div>
                       </div>
@@ -2251,151 +2208,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             </AnimatePresence>
           </div>
         );
-      case 'Premium':
-        return (
-          <div className="h-full overflow-y-auto scrollbar-hide p-6 pb-24 bg-bg-primary">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-black italic tracking-tighter uppercase text-text-primary">Premium</h2>
-                <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-[0.2em]">Do'koningizni rivojlantiring</p>
-              </div>
-              <div className="p-3 bg-white/5 backdrop-blur-md shadow-sm rounded-2xl border border-white/10">
-                <Zap size={20} className="text-amber-500 fill-amber-500" />
-              </div>
-            </div>
-            
-            {paymentStatus === 'success' && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-8 p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] text-emerald-600 text-center backdrop-blur-xl"
-              >
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <CheckCircle2 size={18} />
-                  <p className="font-black uppercase tracking-widest text-xs">Muvaffaqiyatli!</p>
-                </div>
-                <p className="text-[10px] opacity-70 uppercase tracking-widest">Xizmat tez orada faollashtiriladi.</p>
-              </motion.div>
-            )}
-
-            {/* Active Services Section */}
-            {activePremiumServices.length > 0 && (
-              <div className="mb-10">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary/30 mb-4 ml-2">Faol xizmatlar</h3>
-                <div className="flex flex-col gap-3">
-                  {activePremiumServices.map(service => (
-                    <div key={service.id} className="p-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-[1.5rem] flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-accent-blue/10 rounded-xl">
-                          <service.icon size={16} className="text-accent-blue" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-text-primary uppercase tracking-tight">{service.title}</p>
-                          <p className="text-[9px] text-text-primary/40 uppercase tracking-widest">Tugash vaqti: {new Date(service.expires).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                        </div>
-                      </div>
-                      <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                        <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Faol</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Bento Grid Services */}
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary/30 mb-4 ml-2">Xizmatlar</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Main Large Card */}
-              <div className="col-span-2">
-                <PremiumCard 
-                  icon={TrendingUp} 
-                  title="Postni topga chiqarish" 
-                  desc="Auditoriya qiziqishiga qarab videoni eng yuqori o'rinlarda ko'rsatish" 
-                  price="99 000 so'm / kun"
-                  onSelect={() => handlePremiumSelect("Postni topga chiqarish", "99000")}
-                  onClick={() => setSelectedPremiumService({
-                    icon: TrendingUp,
-                    title: "Postni topga chiqarish",
-                    desc: "Auditoriya qiziqishiga qarab videoni eng yuqori o'rinlarda ko'rsatish",
-                    price: "99 000 so'm / kun",
-                    priceVal: "99000"
-                  })}
-                  loading={isPaying}
-                  variant="large"
-                  color="purple"
-                />
-              </div>
-
-              {/* Smaller Cards */}
-              <PremiumCard 
-                icon={Clock} 
-                title="Storyga qo'yish" 
-                desc="Tepadagi storylar qatoriga bir kun davomida joylashtirish" 
-                price="29 000 so'm"
-                onSelect={() => handlePremiumSelect("Storyga qo'yish", "29000")}
-                onClick={() => setSelectedPremiumService({
-                  icon: Clock,
-                  title: "Storyga qo'yish",
-                  desc: "Tepadagi storylar qatoriga bir kun davomida joylashtirish",
-                  price: "29 000 so'm",
-                  priceVal: "29000"
-                })}
-                loading={isPaying}
-                color="emerald"
-              />
-              <PremiumCard 
-                icon={Video} 
-                title="Splash Reklama" 
-                desc="Ilovaga kirganda 5 soniyalik video" 
-                price="99 000 so'm"
-                onSelect={() => handlePremiumSelect("Splash Video Reklama", "99000")}
-                onClick={() => setSelectedPremiumService({
-                  icon: Video,
-                  title: "Splash Reklama",
-                  desc: "Ilovaga kirganda 5 soniyalik video",
-                  price: "99 000 so'm",
-                  priceVal: "99000"
-                })}
-                loading={isPaying}
-                color="amber"
-              />
-              
-              <div className="col-span-2">
-                <PremiumCard 
-                  icon={Send} 
-                  title="Bildirishnoma yuborish" 
-                  desc="Foydalanuvchi qiziqishiga qarab telefoniga do'kon haqida xabar yuborish" 
-                  price="99 000 so'm / kun"
-                  onSelect={() => handlePremiumSelect("Bildirishnoma yuborish", "99000")}
-                  onClick={() => setSelectedPremiumService({
-                    icon: Send,
-                    title: "Bildirishnoma yuborish",
-                    desc: "Foydalanuvchi qiziqishiga qarab telefoniga do'kon haqida xabar yuborish",
-                    price: "99 000 so'm / kun",
-                    priceVal: "99000"
-                  })}
-                  loading={isPaying}
-                  variant="wide"
-                  color="rose"
-                />
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {selectedPremiumService && (
-                <PremiumServiceDetailModal 
-                  service={selectedPremiumService}
-                  onClose={() => setSelectedPremiumService(null)}
-                  onSelect={() => handlePremiumSelect(selectedPremiumService.title, selectedPremiumService.priceVal)}
-                  loading={isPaying}
-                  shopData={localShopData}
-                  posts={posts}
-                />
-              )}
-            </AnimatePresence>
-          </div>
-        );
       case 'Settings':
         return (
           <div className="h-full overflow-y-auto scrollbar-hide p-4 pb-24 bg-bg-primary">
@@ -2661,12 +2473,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             onClick={() => handleTabChange('Chats')} 
             icon={MessageSquare} 
             label="Chatlar" 
-          />
-          <ShopNavButton 
-            active={activeTab === 'Premium'} 
-            onClick={() => handleTabChange('Premium')} 
-            icon={Zap} 
-            label="Premium" 
           />
           <ShopNavButton 
             active={activeTab === 'Telegram'} 
@@ -3092,298 +2898,7 @@ const ShopNavButton = ({ active, onClick, icon: Icon, label }: any) => (
   </button>
 );
 
-const PremiumCard = ({ icon: Icon, title, desc, price, onSelect, loading, variant = 'default', color = 'blue', onClick }: any) => {
-  const colorMap: any = {
-    purple: 'from-purple-500/20 to-purple-600/5 border-purple-500/20 text-purple-600',
-    emerald: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/20 text-emerald-600',
-    amber: 'from-amber-500/20 to-amber-600/5 border-amber-500/20 text-amber-600',
-    rose: 'from-rose-500/20 to-rose-600/5 border-rose-500/20 text-rose-600',
-    blue: 'from-accent-blue/20 to-accent-blue/5 border-accent-blue/20 text-accent-blue'
-  };
-
-  const glowMap: any = {
-    purple: 'bg-purple-500/10',
-    emerald: 'bg-emerald-500/10',
-    amber: 'bg-amber-500/10',
-    rose: 'bg-rose-500/10',
-    blue: 'bg-accent-blue/10'
-  };
-
-  return (
-    <motion.div 
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className={`relative overflow-hidden p-6 rounded-[2.5rem] border backdrop-blur-2xl flex flex-col justify-between transition-all group cursor-pointer bg-gradient-to-br ${colorMap[color]} ${
-        variant === 'large' ? 'min-h-[220px]' : variant === 'wide' ? 'min-h-[140px]' : 'min-h-[180px]'
-      }`}
-    >
-      {/* Background Glow */}
-      <div className={`absolute -top-10 -right-10 w-32 h-32 blur-[40px] group-hover:blur-[60px] transition-all ${glowMap[color]}`} />
-      
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-3 bg-white/10 rounded-2xl border border-white/20 shadow-sm backdrop-blur-md">
-            <Icon size={20} className={colorMap[color].split(' ').pop()} />
-          </div>
-          <div className="px-3 py-1 bg-white/10 rounded-full border border-white/20 backdrop-blur-md">
-            <span className="text-[8px] font-black text-text-primary/40 uppercase tracking-widest">Premium</span>
-          </div>
-        </div>
-        
-        <h3 className={`font-black text-text-primary uppercase tracking-tight leading-none mb-2 ${variant === 'large' ? 'text-lg' : 'text-xs'}`}>
-          {title}
-        </h3>
-        <p className="text-[10px] text-text-primary/50 font-bold leading-relaxed mb-4 line-clamp-2">
-          {desc}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between mt-auto">
-        <div className="flex flex-col">
-          <span className="text-[8px] font-black text-text-primary/20 uppercase tracking-widest">Narxi</span>
-          <span className="text-xs font-black text-text-primary">{price}</span>
-        </div>
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect();
-          }}
-          disabled={loading}
-          className="p-3 bg-white/10 text-text-primary rounded-2xl shadow-lg active:scale-90 transition-all disabled:opacity-50 border border-white/10 backdrop-blur-md"
-        >
-          {loading ? (
-            <div className="w-4 h-4 border-2 border-text-primary/20 border-t-text-primary rounded-full animate-spin" />
-          ) : (
-            <ChevronRight size={18} />
-          )}
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-const PremiumServiceDetailModal = ({ service, onClose, onSelect, loading, shopData, posts }: any) => {
-  if (!service) return null;
-
-  const details: any = {
-    "Postni topga chiqarish": {
-      fullDesc: "Sizning mahsulotingiz asosiy sahifada eng yuqori o'rinlarda ko'rsatiladi. Bu orqali ko'rishlar soni 10 barobargacha oshadi va sotuv ehtimoli sezilarli darajada ortadi.",
-      benefits: ["Asosiy sahifada birinchi o'rinlar", "Ko'rishlar soni 10x oshishi", "Maqsadli auditoriyaga ko'rsatish"],
-      previewType: "feed"
-    },
-    "Storyga qo'yish": {
-      fullDesc: "Mahsulotingiz tepadagi storylar qatoriga joylashtiriladi. Foydalanuvchilar ilovaga kirishi bilan sizning mahsulotingizni ko'rishadi va bir zumda o'tish imkoniyatiga ega bo'lishadi.",
-      benefits: ["Storylar qatorida birinchi bo'lish", "Tezkor o'tish tugmasi", "24 soat davomida faol bo'lish"],
-      previewType: "story"
-    },
-    "Splash Reklama": {
-      fullDesc: "Foydalanuvchi ilovaga kirgan zahoti 5 soniya davomida sizning reklamangizni ko'radi. Bu brendingizni tanitish va yangi kolleksiyalarni e'lon qilish uchun eng yaxshi usul.",
-      benefits: ["100% foydalanuvchilar ko'rishi", "To'liq ekranli reklama", "Brend tanilishini oshirish"],
-      previewType: "splash"
-    },
-    "Bildirishnoma yuborish": {
-      fullDesc: "Sizning mahsulotingizga qiziqishi mumkin bo'lgan foydalanuvchilarga to'g'ridan-to'g'ri push-bildirishnoma yuboriladi. Bu foydalanuvchini ilovaga qaytarishning eng samarali yo'li.",
-      benefits: ["To'g'ridan-to'g'ri push-xabar", "Qiziqishga qarab saralash", "Yuqori konversiya"],
-      previewType: "notification"
-    }
-  };
-
-  const detail = details[service.title] || {
-    fullDesc: service.desc,
-    benefits: ["Premium imkoniyatlar", "Kengaytirilgan statistika"],
-    previewType: "default"
-  };
-
-  const renderPreview = () => {
-    switch (detail.previewType) {
-      case 'story':
-        return (
-          <div className="w-full h-full bg-bg-primary flex flex-col">
-            {/* Header - Skrinshotdagidek */}
-            <div className="p-4 border-b border-border-primary flex items-center justify-between bg-white/5 backdrop-blur-md">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-accent-blue rounded-lg flex items-center justify-center text-white text-[6px] font-black italic">Alpha</div>
-                <span className="text-[10px] font-black italic tracking-tighter text-text-primary">AlphaSpace</span>
-              </div>
-              <div className="relative">
-                <Mail size={18} className="text-accent-blue" />
-                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-bg-primary flex items-center justify-center text-[6px] text-white font-bold">3</div>
-              </div>
-            </div>
-            
-            {/* Stories - Skrinshotdagidek */}
-            <div className="p-4 flex gap-4 overflow-hidden bg-white/5 backdrop-blur-md">
-              {/* Premium Story Preview */}
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-full p-1 border-2 border-red-500 relative shadow-lg shadow-red-500/20">
-                  <img src={shopData.logo || undefined} className="w-full h-full rounded-full object-cover" alt="Logo" />
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-red-500 text-white text-[6px] font-black rounded uppercase tracking-tighter">Live</div>
-                </div>
-                <span className="text-[8px] font-black uppercase text-red-500 tracking-tighter">{shopData.name}</span>
-              </div>
-              
-              {/* Other Stories */}
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex flex-col items-center gap-1 opacity-40">
-                  <div className="w-16 h-16 rounded-full p-1 border-2 border-accent-blue">
-                    <div className="w-full h-full rounded-full bg-text-primary/5" />
-                  </div>
-                  <div className="w-10 h-2 bg-text-primary/5 rounded" />
-                </div>
-              ))}
-            </div>
-
-            {/* Search Bar - Skrinshotdagidek */}
-            <div className="px-4 pb-4 bg-white/5 backdrop-blur-md border-b border-border-primary">
-              <div className="w-full h-11 bg-text-primary/5 rounded-xl flex items-center px-4 gap-3">
-                <Search size={16} className="text-text-primary/20" />
-                <span className="text-[10px] text-text-primary/30 font-medium">Maxsulotlarni qidirish...</span>
-              </div>
-            </div>
-            
-            {/* Content Area */}
-            <div className="flex-1 p-4 bg-bg-primary">
-              <div className="w-full h-full rounded-2xl border-2 border-dashed border-text-primary/5 flex items-center justify-center">
-                <span className="text-[8px] font-black text-text-primary/10 uppercase tracking-[0.3em]">Asosiy sahifa</span>
-              </div>
-            </div>
-          </div>
-        );
-      case 'feed':
-        return (
-          <div className="w-full h-full bg-bg-primary flex flex-col p-4 gap-4">
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-accent-blue/30 shadow-xl shadow-accent-blue/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 px-3 py-1 bg-accent-blue text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl">Top</div>
-              <div className="flex items-center gap-2 mb-3">
-                <img src={shopData.logo || undefined} className="w-6 h-6 rounded-full object-cover" alt="Logo" />
-                <span className="text-[10px] font-black uppercase text-text-primary">{shopData.name}</span>
-              </div>
-              <div className="aspect-video bg-text-primary/5 rounded-xl mb-3 overflow-hidden">
-                {posts?.[0] && <img src={posts[0].mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt="Post" />}
-              </div>
-              <div className="h-2 w-2/3 bg-text-primary/5 rounded mb-1" />
-              <div className="h-2 w-1/2 bg-text-primary/5 rounded" />
-            </div>
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/5 opacity-30">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-text-primary/10" />
-                <div className="w-20 h-2 bg-text-primary/10 rounded" />
-              </div>
-              <div className="aspect-video bg-text-primary/5 rounded-xl" />
-            </div>
-          </div>
-        );
-      case 'splash':
-        return (
-          <div className="w-full h-full relative bg-black flex items-center justify-center">
-            {posts?.[0] && <img src={posts[0].mediaUrls?.[0] || undefined} className="absolute inset-0 w-full h-full object-cover opacity-60" alt="Splash" />}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
-            <div className="relative z-10 text-center p-8">
-              <img src={shopData.logo || undefined} className="w-20 h-20 rounded-full border-2 border-white mx-auto mb-4 shadow-2xl" alt="Logo" />
-              <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">{shopData.name}</h4>
-              <p className="text-[10px] text-white/60 uppercase tracking-[0.2em]">Yangi kolleksiya bilan tanishing</p>
-            </div>
-            <div className="absolute top-6 right-6 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[8px] font-black text-white uppercase tracking-widest">O'tkazib yuborish 5s</div>
-          </div>
-        );
-      case 'notification':
-        return (
-          <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center p-6">
-            <div className="w-full p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-accent-blue rounded-xl flex items-center justify-center text-white text-[6px] font-black italic">Alpha</div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-black text-white uppercase tracking-tight">AlphaSpace</p>
-                  <p className="text-[8px] text-white/40 uppercase tracking-widest">Hozirda</p>
-                </div>
-              </div>
-              <h5 className="text-xs font-bold text-white mb-1">{shopData.name} dan yangi xabar!</h5>
-              <p className="text-[10px] text-white/60 leading-tight">Siz kutgan yangi kiyimlar do'konimizga keldi. Birinchilardan bo'lib ko'ring!</p>
-            </div>
-            <div className="mt-8 flex flex-col items-center gap-2 opacity-20">
-              <div className="w-12 h-1 bg-white/20 rounded-full" />
-              <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em]">Qulflash ekrani</p>
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="w-full h-full bg-black/5 flex items-center justify-center">
-            <service.icon size={48} className="text-black/10" />
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[15000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        className="w-full max-w-lg bg-white rounded-t-[3rem] sm:rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[95vh]"
-      >
-        <div className="relative h-[320px] w-full overflow-hidden bg-bg-primary border-b border-border-primary">
-          {renderPreview()}
-          
-          <button 
-            onClick={onClose}
-            className="absolute top-6 right-6 p-2 bg-black/20 backdrop-blur-md text-white rounded-full hover:bg-black/40 transition-all z-20"
-          >
-            <X size={20} />
-          </button>
-          
-          <div className="absolute top-6 left-6 z-20">
-            <div className="px-3 py-1 bg-accent-blue text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-accent-blue/20">
-              Jonli ko'rinish
-            </div>
-          </div>
-        </div>
-
-        <div className="p-8 overflow-y-auto scrollbar-hide bg-bg-primary">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-white/5 backdrop-blur-md shadow-sm rounded-2xl border border-white/10">
-              <service.icon size={24} className="text-accent-blue" />
-            </div>
-            <h3 className="text-2xl font-black uppercase tracking-tighter text-text-primary">{service.title}</h3>
-          </div>
-
-          <p className="text-sm text-text-primary/60 leading-relaxed mb-8 font-medium">
-            {detail.fullDesc}
-          </p>
-
-          <div className="space-y-4 mb-10">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/30">Asosiy afzalliklari</h4>
-            {detail.benefits.map((benefit: string, i: number) => (
-              <div key={i} className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
-                <div className="w-2 h-2 rounded-full bg-accent-blue shadow-[0_0_10px_rgba(0,149,255,0.5)]" />
-                <span className="text-xs font-bold text-text-primary">{benefit}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between p-6 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 mb-8">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-text-primary/30 uppercase tracking-widest">Xizmat narxi</span>
-              <span className="text-lg font-black text-text-primary">{service.price}</span>
-            </div>
-            <button 
-              onClick={() => {
-                onSelect();
-                onClose();
-              }}
-              disabled={loading}
-              className="px-8 py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-50"
-            >
-              {loading ? '...' : 'Sotib olish'}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
+// Premium features removed
 
 const PostInsightsModal = ({ post, onClose }: { post: PostData, onClose: () => void }) => {
   const engagementData = [

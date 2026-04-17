@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, MessageCircle, Bookmark, Share2, ChevronLeft, ChevronRight, Info, Store, Send, Volume2, VolumeX } from 'lucide-react';
-import { PostData, OutfitItem } from '../types';
+import { Heart, MessageCircle, Bookmark, Share2, ChevronLeft, ChevronRight, Send, Volume2, VolumeX, Store } from 'lucide-react';
+import { PostData } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 
@@ -44,7 +44,6 @@ const Post: React.FC<PostProps> = ({
   const t = translations[language];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [showTooltip, setShowTooltip] = useState<string | null>(null);
   const [showHeart, setShowHeart] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -419,10 +418,6 @@ const Post: React.FC<PostProps> = ({
             )}
           </div>
         )}
-
-        {/* Click Overlay removed - handled by touch events on carousel */}
-
-        {/* Outfit Icons removed as per user request */}
       </div>
 
       {/* Interaction Buttons - Below Media */}

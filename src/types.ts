@@ -78,14 +78,6 @@ export interface Seller {
   type?: string;
 }
 
-export interface OutfitItem {
-  id: string;
-  type: 'jacket' | 'pants' | 'shoes' | 'accessory' | 'shirt';
-  name: string;
-  price: string;
-  store: string;
-}
-
 export interface Review {
   id: string;
   user: string;
@@ -104,7 +96,6 @@ export interface PostData {
   description?: string;
   price: string;
   priceMessage?: string;
-  items: OutfitItem[];
   likes: number;
   comments: number;
   isLiked?: boolean;
