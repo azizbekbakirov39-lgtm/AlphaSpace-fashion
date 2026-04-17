@@ -6,7 +6,7 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 
 import { Language, translations } from '../translations';
-import { isVideoUrl, getProxiedUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare } from '../utils/mediaUtils';
 
 interface PostProps {
   post: PostData;
@@ -53,6 +53,8 @@ const Post: React.FC<PostProps> = ({
   const touchStartTime = useRef<number>(0);
   const isScrolling = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const { shareContent } = useShare();
 
   const handleMediaClick = (e: React.MouseEvent | React.TouchEvent) => {
     const now = Date.now();

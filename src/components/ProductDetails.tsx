@@ -8,7 +8,7 @@ import {
 import { PostData } from '../types';
 import { Language, translations } from '../translations';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { isVideoUrl, getProxiedUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare } from '../utils/mediaUtils';
 
 interface ProductDetailsProps {
   post: PostData;
@@ -31,6 +31,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
   const [selectedSize, setSelectedSize] = useState<string | null>(post.sizes?.[0] || null);
   const [selectedColor, setSelectedColor] = useState<{ name: string; hex: string } | null>(post.colors?.[0] || null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const { shareContent } = useShare();
 
   const showToast = (message: string) => {
     setToastMessage(message);

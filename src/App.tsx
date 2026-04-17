@@ -86,7 +86,7 @@ export default function App() {
   const [initialChatSellerId, setInitialChatSellerId] = useState<string | null>(null);
   const [initialChatProduct, setInitialChatProduct] = useState<PostData | null>(null);
   const [sharingPost, setSharingPost] = useState<PostData | null>(null);
-  const [unreadMessages, setUnreadMessages] = useState(5); // Changed from 3 to 5 to show it's "real"
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [profileSubView, setProfileSubView] = useState<SubView>('main');
   const [sentPosts, setSentPosts] = useState<Set<string>>(new Set());
   const [selectedPostForDetails, setSelectedPostForDetails] = useState<any | null>(null);

@@ -65,17 +65,6 @@ import {
 } from 'lucide-react';
 import { isVideoUrl, getProxiedUrl } from '../utils/mediaUtils';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area
-} from 'recharts';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { toast } from 'sonner';
@@ -151,13 +140,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFreezing, setIsFreezing] = useState(false);
 
-  const [showStatsModal, setShowStatsModal] = useState(false);
-  const [stats, setStats] = useState({
-    telegram: 124,
-    messages: 85,
-    calls: 42,
-    instagramClicks: 210
-  });
   const [chats, setChats] = useState<Chat[]>([]);
   
   // 1. Listen for chats list
@@ -600,21 +582,18 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   };
 
   const handleInstagramClick = () => {
-    setStats(prev => ({ ...prev, instagramClicks: prev.instagramClicks + 1 }));
     if (localShopData.instagram) {
       window.open(localShopData.instagram, '_blank');
     }
   };
 
   const handleTelegramClick = () => {
-    setStats(prev => ({ ...prev, telegram: prev.telegram + 1 }));
     if (localShopData.telegram) {
       window.open(localShopData.telegram, '_blank');
     }
   };
 
   const handlePhoneClick = () => {
-    setStats(prev => ({ ...prev, calls: prev.calls + 1 }));
     if (localShopData.phone) {
       window.location.href = `tel:${localShopData.phone}`;
     }
@@ -1092,46 +1071,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   <span className="text-[9px] text-text-secondary uppercase font-black tracking-widest">Postlar</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-accent-blue/5 to-accent-light/5 rounded-2xl border border-accent-blue/10">
-                <div className="relative w-10 h-10">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="20"
-                      cy="20"
-                      r="18"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      className="text-text-primary/5"
-                    />
-                    <circle
-                      cx="20"
-                      cy="20"
-                      r="18"
-                      fill="none"
-                      stroke="url(#matchGradient)"
-                      strokeWidth="3"
-                      strokeDasharray={113}
-                      strokeDashoffset={113 - (113 * 85) / 100}
-                      strokeLinecap="round"
-                    />
-                    <defs>
-                      <linearGradient id="matchGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="var(--color-accent-blue)" />
-                        <stop offset="100%" stopColor="var(--color-accent-light)" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[10px] font-black text-accent-blue">85%</span>
-                  </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-text-primary uppercase tracking-widest">{t.style_match}</span>
-                  <span className="text-[8px] text-text-secondary uppercase font-bold tracking-tighter">Sizga mos keladi</span>
-                </div>
-              </div>
             </div>
 
             {/* Management Actions */}
@@ -1142,13 +1081,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               >
                 <Settings size={16} className="text-text-primary/60" />
                 <span className="text-[10px] font-black text-text-primary uppercase tracking-widest">Sozlamalar</span>
-              </button>
-              <button 
-                onClick={() => setShowStatsModal(true)}
-                className="flex-1 py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-accent-blue/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-              >
-                <BarChart3 size={16} />
-                Statistika
               </button>
             </div>
 
@@ -1378,16 +1310,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               onClick={() => setEditingPost(post)}
                             />
                           )}
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPostForInsights(post);
-                            }}
-                            className="absolute bottom-1 left-1 right-1 py-1 bg-black/60 backdrop-blur-md text-white text-[7px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
-                          >
-                            <TrendingUp size={8} />
-                            Insights
-                          </button>
                           {post.mediaType === 'video' && (
                             <div className="absolute top-1 right-1 bg-black/50 p-0.5 rounded">
                               <Video size={10} className="text-white" />
@@ -1405,142 +1327,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 </div>
               )}
 
-            </div>
-          </div>
-        );
-      case 'Statistics':
-        return (
-          <div className="h-full overflow-y-auto scrollbar-hide p-6 pb-24 bg-bg-primary">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-black italic tracking-tighter uppercase text-text-primary">Statistika</h2>
-                <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-[0.2em]">Do'koningiz ko'rsatkichlari</p>
-              </div>
-              <div className="p-3 bg-white/5 backdrop-blur-md shadow-sm rounded-2xl border border-white/10">
-                <BarChart3 size={20} className="text-accent-blue" />
-              </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="p-5 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-sm">
-                <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mb-1">Jami ko'rishlar</p>
-                <p className="text-2xl font-black bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent">32,450</p>
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-500 font-bold">
-                  <TrendingUp size={10} />
-                  <span>+12% o'sish</span>
-                </div>
-              </div>
-              <div className="p-5 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-sm">
-                <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mb-1">Konversiya</p>
-                <p className="text-2xl font-black bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent">4.8%</p>
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-500 font-bold">
-                  <TrendingUp size={10} />
-                  <span>+0.5% o'sish</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Activity Chart */}
-            <div className="mb-8">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 mb-4 ml-2">Link bosishlar (Haftalik)</h4>
-              <div className="h-64 w-full bg-white/5 rounded-[2rem] p-6 border border-white/5 shadow-sm">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={[
-                    { name: 'Dush', clicks: 400, views: 2400 },
-                    { name: 'Sesh', clicks: 300, views: 1398 },
-                    { name: 'Chor', clicks: 200, views: 9800 },
-                    { name: 'Pay', clicks: 278, views: 3908 },
-                    { name: 'Jum', clicks: 189, views: 4800 },
-                    { name: 'Shan', clicks: 239, views: 3800 },
-                    { name: 'Yak', clicks: 349, views: 4300 },
-                  ]}>
-                    <defs>
-                      <linearGradient id="colorClicksMain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-accent-blue)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="var(--color-accent-blue)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#ffffff40" 
-                      fontSize={10} 
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <YAxis 
-                      stroke="#ffffff40" 
-                      fontSize={10} 
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1a1a1a', 
-                        border: '1px solid #ffffff10', 
-                        borderRadius: '12px',
-                        fontSize: '10px'
-                      }} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="clicks" 
-                      stroke="var(--color-accent-blue)" 
-                      strokeWidth={3}
-                      fillOpacity={1} 
-                      fill="url(#colorClicksMain)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Detailed Stats Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-5 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-sky-500/10 rounded-xl">
-                    <Send size={14} className="text-sky-500" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Telegram</span>
-                </div>
-                <p className="text-2xl font-black text-text-primary">{stats.telegram}</p>
-                <p className="text-[10px] text-text-secondary uppercase font-bold mt-1">Link bosishlar</p>
-              </div>
-
-              <div className="p-5 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-pink-500/10 rounded-xl">
-                    <Instagram size={14} className="text-pink-500" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Instagram</span>
-                </div>
-                <p className="text-2xl font-black text-text-primary">{stats.instagramClicks}</p>
-                <p className="text-[10px] text-text-secondary uppercase font-bold mt-1">Link bosishlar</p>
-              </div>
-
-              <div className="p-5 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-emerald-500/10 rounded-xl">
-                    <Phone size={14} className="text-emerald-500" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Telefon</span>
-                </div>
-                <p className="text-2xl font-black text-text-primary">{stats.calls}</p>
-                <p className="text-[10px] text-text-secondary uppercase font-bold mt-1">Raqam bosishlar</p>
-              </div>
-
-              <div className="p-5 bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-amber-500/10 rounded-xl">
-                    <MessageSquare size={14} className="text-amber-500" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Xabarlar</span>
-                </div>
-                <p className="text-2xl font-black text-text-primary">{stats.messages}</p>
-                <p className="text-[10px] text-text-secondary uppercase font-bold mt-1">Jami yozganlar</p>
-              </div>
             </div>
           </div>
         );
@@ -2642,16 +2428,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Post Insights Modal */}
-      <AnimatePresence>
-        {selectedPostForInsights && (
-          <PostInsightsModal 
-            post={selectedPostForInsights} 
-            onClose={() => setSelectedPostForInsights(null)} 
-          />
-        )}
-      </AnimatePresence>
-
       {/* Statistics Modal */}
       <AnimatePresence>
         {showCreateStoryModal && (
@@ -2661,13 +2437,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             ownerUid={user?.uid || ''}
             shopData={shopData}
             onClose={() => setShowCreateStoryModal(false)}
-          />
-        )}
-
-        {showStatsModal && (
-          <StatsModal 
-            stats={stats} 
-            onClose={() => setShowStatsModal(false)} 
           />
         )}
       </AnimatePresence>
@@ -2900,136 +2669,6 @@ const ShopNavButton = ({ active, onClick, icon: Icon, label }: any) => (
 
 // Premium features removed
 
-const PostInsightsModal = ({ post, onClose }: { post: PostData, onClose: () => void }) => {
-  const engagementData = [
-    { time: '0:00', engagement: 20 },
-    { time: '0:15', engagement: 45 },
-    { time: '0:30', engagement: 85 },
-    { time: '0:45', engagement: 60 },
-    { time: '1:00', engagement: 30 },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-lg bg-bg-primary rounded-[2.5rem] overflow-hidden shadow-2xl border border-border-primary flex flex-col max-h-[90vh]"
-      >
-        <div className="p-6 border-b border-border-primary flex items-center justify-between bg-bg-primary/80 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-blue/10 rounded-xl">
-              <TrendingUp size={20} className="text-accent-blue" />
-            </div>
-            <h3 className="text-lg font-black uppercase tracking-tighter text-text-primary">Post Insights</h3>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-text-primary/10 rounded-full transition-colors">
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-8">
-          {/* Main Metrics */}
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { label: 'Ko\'rish', value: '12.4K', icon: Zap },
-              { label: 'Like', value: post.likes, icon: TrendingUp },
-              { label: 'Izoh', value: post.comments, icon: MessageSquare },
-              { label: 'Saqlash', value: '450', icon: Grid },
-            ].map((stat, idx) => (
-              <div key={idx} className="p-3 bg-white/5 rounded-2xl border border-white/5 text-center">
-                <stat.icon size={14} className="mx-auto mb-1 text-text-primary/40" />
-                <p className="text-sm font-black text-text-primary">{stat.value}</p>
-                <p className="text-[8px] font-bold uppercase tracking-widest text-text-primary/40">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Video Retention / Engagement Chart */}
-          <div>
-            <div className="flex items-center justify-between mb-4 px-2">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Video faolligi</h4>
-              <span className="text-[9px] font-bold text-accent-blue">Eng qiziq nuqta: 0:32</span>
-            </div>
-            <div className="h-48 w-full bg-white/5 rounded-3xl p-4 border border-white/5">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={engagementData}>
-                  <defs>
-                    <linearGradient id="colorEngage" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-accent-blue)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--color-accent-blue)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                  <XAxis dataKey="time" hide />
-                  <YAxis hide />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #ffffff10', borderRadius: '12px', fontSize: '10px' }}
-                  />
-                  <Area type="monotone" dataKey="engagement" stroke="var(--color-accent-blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorEngage)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Audience Info */}
-          <div className="p-5 bg-white/5 rounded-3xl border border-white/5">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 mb-4">Auditoriya</h4>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-black text-text-primary">85%</p>
-                <p className="text-[9px] font-bold text-text-primary/40 uppercase tracking-widest">Obuna bo'lmaganlar</p>
-              </div>
-              <div className="w-px h-10 bg-white/10" />
-              <div className="text-right">
-                <p className="text-2xl font-black text-emerald-500">+124</p>
-                <p className="text-[9px] font-bold text-text-primary/40 uppercase tracking-widest">Yangi obunachilar</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Link Clicks Table */}
-          <div>
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 mb-4 ml-2">Link bosishlar (Ushbu postdan)</h4>
-            <div className="bg-white/5 rounded-3xl border border-white/5 overflow-hidden">
-              <table className="w-full text-left text-[10px]">
-                <thead>
-                  <tr className="border-b border-white/5 bg-white/5">
-                    <th className="px-4 py-3 font-black uppercase tracking-widest text-text-primary/40">Platforma</th>
-                    <th className="px-4 py-3 font-black uppercase tracking-widest text-text-primary/40 text-right">Bosishlar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {[
-                    { name: 'Instagram', value: 142, icon: Instagram, color: 'text-pink-500' },
-                    { name: 'Telegram', value: 89, icon: Send, color: 'text-sky-500' },
-                    { name: 'Telefon', value: 34, icon: Phone, color: 'text-emerald-500' },
-                    { name: 'Xabarlar', value: 56, icon: MessageSquare, color: 'text-amber-500' },
-                  ].map((row, idx) => (
-                    <tr key={idx}>
-                      <td className="px-4 py-3 flex items-center gap-2">
-                        <row.icon size={12} className={row.color} />
-                        <span className="font-bold">{row.name}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-black text-text-primary">{row.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-bg-primary border-t border-border-primary">
-          <button onClick={onClose} className="w-full py-4 bg-text-primary text-bg-primary rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all">
-            Yopish
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
 const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { posts: PostData[], sellerId: string, ownerUid: string, shopData: Seller, onClose: () => void }) => {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -3130,169 +2769,6 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
             className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50"
           >
             {isCreating ? "Yaratilmoqda..." : "Storyni Saqlash"}
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-const StatsModal = ({ stats, onClose }: { stats: any, onClose: () => void }) => {
-  const data = [
-    { name: 'Dush', clicks: 400, views: 2400 },
-    { name: 'Sesh', clicks: 300, views: 1398 },
-    { name: 'Chor', clicks: 200, views: 9800 },
-    { name: 'Pay', clicks: 278, views: 3908 },
-    { name: 'Jum', clicks: 189, views: 4800 },
-    { name: 'Shan', clicks: 239, views: 3800 },
-    { name: 'Yak', clicks: 349, views: 4300 },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="w-full max-w-lg bg-bg-primary rounded-[2.5rem] overflow-hidden shadow-2xl border border-border-primary flex flex-col max-h-[90vh]"
-      >
-        <div className="p-6 border-b border-border-primary flex items-center justify-between bg-bg-primary/80 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-blue/10 rounded-xl">
-              <BarChart3 size={20} className="text-accent-blue" />
-            </div>
-            <h3 className="text-lg font-black uppercase tracking-tighter text-text-primary">Batafsil Statistika</h3>
-          </div>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-text-primary/10 rounded-full transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10">
-              <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mb-1">Jami ko'rishlar</p>
-              <p className="text-2xl font-black bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent">32,450</p>
-              <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-500 font-bold">
-                <TrendingUp size={10} />
-                <span>+12% o'sish</span>
-              </div>
-            </div>
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10">
-              <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mb-1">Konversiya</p>
-              <p className="text-2xl font-black bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent">4.8%</p>
-              <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-500 font-bold">
-                <TrendingUp size={10} />
-                <span>+0.5% o'sish</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Activity Chart */}
-          <div className="mb-8">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 mb-4 ml-2">Link bosishlar (Haftalik)</h4>
-            <div className="h-64 w-full bg-white/5 rounded-3xl p-4 border border-white/5">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data}>
-                  <defs>
-                    <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-accent-blue)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--color-accent-blue)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#ffffff40" 
-                    fontSize={10} 
-                    tickLine={false} 
-                    axisLine={false} 
-                  />
-                  <YAxis 
-                    stroke="#ffffff40" 
-                    fontSize={10} 
-                    tickLine={false} 
-                    axisLine={false} 
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1a1a1a', 
-                      border: '1px solid #ffffff10', 
-                      borderRadius: '12px',
-                      fontSize: '10px'
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="clicks" 
-                    stroke="var(--color-accent-blue)" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorClicks)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Detailed Stats Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-sky-500/10 rounded-lg">
-                  <Send size={12} className="text-sky-500" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-text-primary/40">Telegram</span>
-              </div>
-              <p className="text-xl font-black text-text-primary">{stats.telegram}</p>
-              <p className="text-[9px] text-text-secondary uppercase font-bold mt-1">Link bosishlar</p>
-            </div>
-
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-pink-500/10 rounded-lg">
-                  <Instagram size={12} className="text-pink-500" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-text-primary/40">Instagram</span>
-              </div>
-              <p className="text-xl font-black text-text-primary">{stats.instagramClicks}</p>
-              <p className="text-[9px] text-text-secondary uppercase font-bold mt-1">Link bosishlar</p>
-            </div>
-
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-emerald-500/10 rounded-lg">
-                  <Phone size={12} className="text-emerald-500" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-text-primary/40">Telefon</span>
-              </div>
-              <p className="text-xl font-black text-text-primary">{stats.calls}</p>
-              <p className="text-[9px] text-text-secondary uppercase font-bold mt-1">Raqam bosishlar</p>
-            </div>
-
-            <div className="p-4 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-amber-500/10 rounded-lg">
-                  <MessageSquare size={12} className="text-amber-500" />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-text-primary/40">Xabarlar</span>
-              </div>
-              <p className="text-xl font-black text-text-primary">{stats.messages}</p>
-              <p className="text-[9px] text-text-secondary uppercase font-bold mt-1">Jami yozganlar</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-bg-primary border-t border-border-primary">
-          <button 
-            onClick={onClose}
-            className="w-full py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-accent-blue/20 active:scale-95 transition-all"
-          >
-            Yopish
           </button>
         </div>
       </motion.div>

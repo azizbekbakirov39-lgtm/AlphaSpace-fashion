@@ -35,7 +35,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
 }) => {
   const t = translations[language];
   const [showMap, setShowMap] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'lookbooks'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts'>('posts');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const { shareContent } = useShare();
 
@@ -69,15 +69,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
   };
 
   // Mock Lookbooks (Obrazlar)
-  const lookbooks = [
-    { id: 1, name: 'Summer Breeze', items: 4, image: posts[0]?.mediaUrls[0] || '' },
-    { id: 2, name: 'Urban Night', items: 3, image: posts[1]?.mediaUrls[0] || '' },
-    { id: 3, name: 'Classic Office', items: 5, image: posts[2]?.mediaUrls[0] || '' },
-  ];
-
-  // Mock Style Match Score
-  const styleMatchScore = 85;
-
   return (
     <motion.div
       initial={{ x: '100%' }}
@@ -198,39 +189,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
           </div>
 
           <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-accent-blue/5 to-accent-light/5 rounded-2xl border border-accent-blue/10">
-            <div className="relative w-10 h-10">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  className="text-text-primary/5"
-                />
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="18"
-                  fill="none"
-                  stroke="url(#matchGradient)"
-                  strokeWidth="3"
-                  strokeDasharray={113}
-                  strokeDashoffset={113 - (113 * styleMatchScore) / 100}
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient id="matchGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="var(--color-accent-blue)" />
-                    <stop offset="100%" stopColor="var(--color-accent-light)" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] font-black text-accent-blue">{styleMatchScore}%</span>
-              </div>
-            </div>
             <div className="flex flex-col">
               <span className="text-[9px] font-black text-text-primary uppercase tracking-widest">{t.style_match}</span>
               <span className="text-[8px] text-text-secondary uppercase font-bold tracking-tighter">Sizga mos keladi</span>
@@ -428,23 +386,12 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
         {/* Tabs - Centered and Styled */}
         <div className="px-6 mb-6 flex justify-center">
           <div className="bg-text-primary/5 p-1 rounded-2xl flex items-center gap-1 border border-border-primary">
-            {[
-              { id: 'posts', label: 'Postlar', icon: <Grid size={14} /> },
-              { id: 'lookbooks', label: 'Obrazlar', icon: <Sparkles size={14} /> },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl relative ${
-                  activeTab === tab.id 
-                  ? 'text-bg-primary bg-text-primary shadow-lg' 
-                  : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+            <button
+              className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl relative text-bg-primary bg-text-primary shadow-lg"
+            >
+              <Grid size={14} />
+              Postlar
+            </button>
           </div>
         </div>
 
@@ -482,31 +429,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                 </motion.div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'lookbooks' && (
-            <div className="space-y-4">
-              {lookbooks.map((lb) => (
-                <div key={lb.id} className="relative h-48 rounded-3xl overflow-hidden group">
-                  <img 
-                    src={lb.image} 
-                    alt={lb.name} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
-                    <div>
-                      <h4 className="text-white font-black uppercase tracking-widest text-lg mb-1">{lb.name}</h4>
-                      <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">{lb.items} Mahsulotlar</p>
-                    </div>
-                    <button className="p-3 bg-white text-black rounded-2xl shadow-xl active:scale-90 transition-all">
-                      <ChevronRight size={20} />
-                    </button>
-                  </div>
-                </div>
               ))}
             </div>
           )}

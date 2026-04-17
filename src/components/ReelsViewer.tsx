@@ -54,6 +54,8 @@ const ReelItem: React.FC<{
   const lastTap = useRef<number>(0);
   const tapTimeout = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  
+  const { shareContent } = useShare();
 
   const showToast = (message: string) => {
     setToastMessage(message);
