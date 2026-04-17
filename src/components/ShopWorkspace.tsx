@@ -211,6 +211,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const dragXRef = useRef(0);
   const isCancelAreaHoveredRef = useRef(false);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const coverVideoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -242,6 +243,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const recordingIntervalRef = useRef<any>(null);
   
   const activeChat = chats.find(c => c.id === activeChatId);
+  useEffect(() => {
+    if (coverVideoRef.current) {
+      safePlayVideo(coverVideoRef.current);
+    }
+  }, [activeTab]); // Retry when tab changes
+
   const t = translations[language];
 
   const handleTabChange = (tab: string) => {
@@ -445,6 +452,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         sizes: [],
         colors: [],
         mediaType: mediaType,
+        instagramUrl: cleanUrl,
         items: [{ id: '1', type: 'shirt', name: description.substring(0, 50), price: '', store: shopData.name }]
       };
       
@@ -514,8 +522,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   };
 
   const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Haqiqatan ham ushbu postni o'chirmoqchimisiz?")) return;
     try {
       await deleteDoc(doc(db, 'posts', postId));
+      setEditingPost(null);
       toast.success("Post o'chirildi");
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -622,7 +632,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       });
       streamRef.current = stream;
       setIsVideoRecording(true);
-      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = stream;
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+        safePlayVideo(videoPreviewRef.current);
+      }
 
       const recorder = new MediaRecorder(stream);
       recordingChunksRef.current = [];
@@ -718,7 +731,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         audio: true 
       });
       streamRef.current = newStream;
-      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = newStream;
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = newStream;
+        safePlayVideo(videoPreviewRef.current);
+      }
     }
   };
 
@@ -957,11 +973,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 if (isVideo) {
                   return (
                     <video 
+                      ref={coverVideoRef}
                       src={mediaUrl + '#t=0.1'}
                       className="w-full h-full object-cover"
                       muted
                       playsInline
-                      autoPlay
                       loop
                     />
                   );
@@ -1269,6 +1285,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               <Video size={10} className="text-white" />
                             </div>
                           )}
+                          
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePost(post.id);
+                            }}
+                            className="absolute top-2 left-2 p-1.5 bg-red-500/20 backdrop-blur-md border border-red-500/30 rounded-lg text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white z-10"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </motion.div>
                       ))}
                     </div>
@@ -1823,7 +1849,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                                 <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden border-4 border-accent-blue shadow-2xl shadow-accent-blue/20">
                                   <video 
                                     ref={videoPreviewRef} 
-                                    autoPlay 
                                     muted 
                                     playsInline 
                                     className="w-full h-full object-cover scale-x-[-1]" 

@@ -272,7 +272,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             src={currentStory.videoUrl}
             className={`w-full h-full object-cover transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
             onEnded={handleNext}
-            autoPlay
             playsInline
             muted={isMuted}
             onClick={handleTap}

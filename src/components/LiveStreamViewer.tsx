@@ -23,6 +23,13 @@ const LiveStreamViewer: React.FC<LiveStreamViewerProps> = ({ story, onClose, onO
   const [isMuted, setIsMuted] = useState(true);
   const [hearts, setHearts] = useState<{ id: number, x: number }[]>([]);
   const [showProducts, setShowProducts] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      safePlayVideo(videoRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -65,8 +72,8 @@ const LiveStreamViewer: React.FC<LiveStreamViewerProps> = ({ story, onClose, onO
       {/* Video Background (Mock) */}
       <div className="absolute inset-0 bg-neutral-900">
         <video 
+          ref={videoRef}
           src={story.videoUrl} 
-          autoPlay 
           loop 
           muted={isMuted}
           playsInline

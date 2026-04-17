@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Phone, Instagram, Send, MapPin, Clock, Users, Grid, Play, 
@@ -7,7 +7,28 @@ import {
 } from 'lucide-react';
 import { Seller, PostData } from '../types';
 import { Language, translations } from '../translations';
-import { isVideoUrl, useShare } from '../utils/mediaUtils';
+import { isVideoUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
+
+const ShopCoverVideo: React.FC<{ url: string }> = ({ url }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      safePlayVideo(videoRef.current);
+    }
+  }, [url]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={url}
+      className="w-full h-full object-cover"
+      muted
+      playsInline
+      loop
+    />
+  );
+};
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 
 interface ShopProfileProps {
@@ -112,14 +133,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
 
             if (isVideo) {
               return (
-                <video 
-                  src={mediaUrl + '#t=0.1'}
-                  className="w-full h-full object-cover"
-                  muted
-                  playsInline
-                  autoPlay
-                  loop
-                />
+                <ShopCoverVideo url={mediaUrl + '#t=0.1'} />
               );
             }
 

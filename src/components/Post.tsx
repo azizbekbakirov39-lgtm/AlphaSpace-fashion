@@ -6,7 +6,8 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 
 import { Language, translations } from '../translations';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
+import { db, updateDoc, doc } from '../firebase';
 
 interface PostProps {
   post: PostData;
@@ -24,6 +25,59 @@ interface PostProps {
   isMuted?: boolean;
   onToggleMute?: () => void;
 }
+
+const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string, post: PostData, index: number }> = ({ url, isActive, poster, post, index }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isActive) {
+        safePlayVideo(videoRef.current);
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isActive]);
+
+  return (
+    <video 
+      ref={videoRef}
+      src={url}
+      poster={poster}
+      className="w-full h-full object-cover"
+      loop
+      muted
+      playsInline
+      preload="metadata"
+      onError={async (e) => {
+        const video = e.currentTarget;
+        if (!video.dataset.triedProxy) {
+          video.dataset.triedProxy = 'true';
+          video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+          video.load();
+          if (isActive) safePlayVideo(video);
+        } else if (post.instagramUrl && !video.dataset.triedRefresh) {
+          video.dataset.triedRefresh = 'true';
+          const newUrl = await refreshMediaUrl(post.instagramUrl);
+          if (newUrl) {
+            const newMediaUrls = [...post.mediaUrls];
+            newMediaUrls[index] = newUrl;
+            try {
+              await updateDoc(doc(db, 'posts', post.id), {
+                mediaUrls: newMediaUrls
+              });
+            } catch (err) {
+              console.error("Firestore update failed during refresh:", err);
+            }
+            video.src = newUrl;
+            video.load();
+            if (isActive) safePlayVideo(video);
+          }
+        }
+      }}
+    />
+  );
+};
 
 const Post: React.FC<PostProps> = ({ 
   post, 
@@ -326,13 +380,33 @@ const Post: React.FC<PostProps> = ({
               onLoadedData={() => setVideoLoading(false)}
               onWaiting={() => setVideoLoading(true)}
               onPlaying={() => setVideoLoading(false)}
-              onError={(e) => {
+              onError={async (e) => {
                 const video = e.currentTarget;
+                const originalUrl = post.mediaUrls[0];
+
                 if (!video.dataset.triedProxy) {
                   video.dataset.triedProxy = 'true';
-                  video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(post.mediaUrls[0])}`;
+                  video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
                   video.load();
                   if (isActive) safePlayVideo(video);
+                } else if (post.instagramUrl && !video.dataset.triedRefresh) {
+                   video.dataset.triedRefresh = 'true';
+                   const newUrl = await refreshMediaUrl(post.instagramUrl);
+                   if (newUrl) {
+                      try {
+                        await updateDoc(doc(db, 'posts', post.id), {
+                          mediaUrls: [newUrl]
+                        });
+                      } catch (err) {
+                        console.error("Firestore update failed during refresh:", err);
+                      }
+                      video.src = newUrl;
+                      video.load();
+                      if (isActive) safePlayVideo(video);
+                   } else {
+                      setVideoLoading(false);
+                      setVideoError(true);
+                   }
                 } else {
                   setVideoLoading(false);
                   setVideoError(true);
@@ -373,24 +447,12 @@ const Post: React.FC<PostProps> = ({
                   >
                     {isVideo ? (
                       <div className="w-full h-full relative bg-black/10">
-                        <video
-                          src={url}
+                        <CarouselVideo 
+                          url={url} 
+                          isActive={isActive && idx === currentImageIndex}
                           poster={post.thumbnailUrl || (idx === 0 ? url : undefined)}
-                          className="w-full h-full object-cover"
-                          autoPlay={isActive && idx === currentImageIndex}
-                          loop
-                          muted
-                          playsInline
-                          preload="metadata"
-                          onError={(e) => {
-                            const video = e.currentTarget;
-                            if (!video.dataset.triedProxy) {
-                              video.dataset.triedProxy = 'true';
-                              video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                              video.load();
-                              if (isActive && idx === currentImageIndex) video.play().catch(() => {});
-                            }
-                          }}
+                          post={post}
+                          index={idx}
                         />
                       </div>
                     ) : (

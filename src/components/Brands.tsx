@@ -1,9 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Users, Play, Check, Search, X, Store, BadgeCheck } from 'lucide-react';
 import { Story, Seller, SELLER_CATEGORIES, PostData } from '../types';
 import SearchOverlay from './SearchOverlay';
-import { isVideoUrl } from '../utils/mediaUtils';
+import { isVideoUrl, safePlayVideo } from '../utils/mediaUtils';
+
+const BrandVideo: React.FC<{ url: string }> = ({ url }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      safePlayVideo(videoRef.current);
+    }
+  }, [url]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={url}
+      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+      muted
+      playsInline
+      loop
+    />
+  );
+};
 
 import { Language, translations } from '../translations';
 
@@ -431,14 +452,7 @@ const Brands: React.FC<BrandsProps> = ({
 
                     if (isVideo) {
                       return (
-                        <video 
-                          src={mediaUrl + '#t=0.1'}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          muted
-                          playsInline
-                          autoPlay
-                          loop
-                        />
+                        <BrandVideo url={mediaUrl + '#t=0.1'} />
                       );
                     }
 

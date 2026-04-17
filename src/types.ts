@@ -113,6 +113,7 @@ export interface PostData {
     description?: string;
     tags?: string[];
   };
+  instagramUrl?: string;
 }
 
 export interface AIMessage {

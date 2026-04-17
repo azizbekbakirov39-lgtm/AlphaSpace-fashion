@@ -39,6 +39,7 @@ import {
   EyeOff,
   AlertCircle
 } from 'lucide-react';
+import { isVideoUrl, safePlayVideo } from '../utils/mediaUtils';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
@@ -389,7 +390,10 @@ const Profile: React.FC<ProfileProps> = ({
       });
       setVideoStream(stream);
       setIsVideoRecording(true);
-      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = stream;
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+        safePlayVideo(videoPreviewRef.current);
+      }
 
       const recorder = new MediaRecorder(stream);
       const chunks: BlobPart[] = [];
@@ -439,7 +443,10 @@ const Profile: React.FC<ProfileProps> = ({
         audio: true 
       });
       setVideoStream(newStream);
-      if (videoPreviewRef.current) videoPreviewRef.current.srcObject = newStream;
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = newStream;
+        safePlayVideo(videoPreviewRef.current);
+      }
     }
   };
 
@@ -1527,7 +1534,7 @@ const Profile: React.FC<ProfileProps> = ({
                       animate={{ scale: 1, opacity: 1, y: 0 }}
                       className="absolute bottom-20 left-1/2 -translate-x-1/2 aspect-square w-48 rounded-2xl overflow-hidden bg-black border-2 border-accent-blue shadow-2xl z-[60]"
                     >
-                      <video ref={videoPreviewRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                      <video ref={videoPreviewRef} muted playsInline className="w-full h-full object-cover" />
                       <button 
                         onClick={(e) => { e.stopPropagation(); toggleCamera(); }}
                         className="absolute top-2 right-2 p-2 bg-black/40 backdrop-blur-md text-white rounded-full active:scale-90 transition-transform"

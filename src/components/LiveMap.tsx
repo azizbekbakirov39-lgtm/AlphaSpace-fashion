@@ -5,6 +5,7 @@ import { Seller, SellerCategory, SELLER_CATEGORIES } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../translations';
 import SearchOverlay from './SearchOverlay';
+import { safePlayVideo } from '../utils/mediaUtils';
 
 interface LiveMapProps {
   language: Language;
@@ -47,7 +48,10 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
     if (isAROpen && videoRef.current) {
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
-          if (videoRef.current) videoRef.current.srcObject = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            safePlayVideo(videoRef.current);
+          }
         })
         .catch(err => console.error("AR Camera error:", err));
     }
@@ -407,7 +411,6 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
           >
             <video 
               ref={videoRef} 
-              autoPlay 
               playsInline 
               className="w-full h-full object-cover opacity-60"
             />

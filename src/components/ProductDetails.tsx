@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Phone, Send, Instagram, MessageCircle, Clock, MapPin, 
@@ -8,7 +8,55 @@ import {
 import { PostData } from '../types';
 import { Language, translations } from '../translations';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { isVideoUrl, getProxiedUrl, useShare } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
+import { db, updateDoc, doc } from '../firebase';
+
+const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; index: number }> = ({ url, isMuted, post, index }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      safePlayVideo(videoRef.current);
+    }
+  }, [url]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={url}
+      className="w-full h-full object-cover"
+      loop
+      muted={isMuted}
+      playsInline
+      onError={async (e) => {
+        const video = e.currentTarget;
+        if (!video.dataset.triedProxy) {
+          video.dataset.triedProxy = 'true';
+          video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+          video.load();
+          safePlayVideo(video);
+        } else if (post.instagramUrl && !video.dataset.triedRefresh) {
+          video.dataset.triedRefresh = 'true';
+          const newUrl = await refreshMediaUrl(post.instagramUrl);
+          if (newUrl) {
+             const newMediaUrls = [...post.mediaUrls];
+             newMediaUrls[index] = newUrl;
+             try {
+               await updateDoc(doc(db, 'posts', post.id), {
+                 mediaUrls: newMediaUrls
+               });
+             } catch (err) {
+               console.error("Firestore update failed in ProductDetails:", err);
+             }
+             video.src = newUrl;
+             video.load();
+             safePlayVideo(video);
+          }
+        }
+      }}
+    />
+  );
+};
 
 interface ProductDetailsProps {
   post: PostData;
@@ -137,15 +185,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
               if (isVideo) {
                 return (
                   <div className="w-full h-full relative bg-neutral-900">
-                    <video
-                      key={currentMediaIndex}
-                      src={url}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      loop
-                      muted={isMuted}
-                      playsInline
-                    />
+                    <ProductVideo url={url} isMuted={isMuted} post={post} index={currentMediaIndex} />
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
