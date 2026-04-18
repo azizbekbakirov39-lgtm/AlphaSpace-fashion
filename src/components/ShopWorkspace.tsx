@@ -1536,8 +1536,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                         : `rounded-r-3xl ${isNextSame ? 'rounded-bl-3xl' : 'rounded-bl-sm'} ${isPrevSame ? 'rounded-tl-md' : 'rounded-tl-3xl'}`;
                       
                       const bubbleStyle = msg.sender === 'shop'
-                        ? 'bg-gradient-to-br from-blue-500 via-accent-blue to-purple-500 text-white shadow-lg shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20'
                         : 'bg-white/80 dark:bg-neutral-800/80 backdrop-blur-xl text-text-primary border border-white/40 dark:border-white/10 shadow-lg shadow-black/5';
+
+                      const hasMediaOnly = (msg.type === 'image' || msg.type === 'video' || msg.type === 'location' || msg.type === 'post' || msg.type === 'videoMessage') && !msg.text;
+                      const paddingStyle = hasMediaOnly ? 'p-1' : 'p-4';
 
                       return (
                       <motion.div 
@@ -1555,7 +1558,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
                         <div 
                           onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
-                          className={`p-4 text-[14px] shadow-sm cursor-pointer transition-all active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
+                          className={`${paddingStyle} text-[14px] shadow-sm cursor-pointer transition-all active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
                         >
                           {msg.type === 'text' && <p className="leading-relaxed">{msg.text}</p>}
                           {msg.type === 'image' && (
@@ -1568,11 +1571,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           )}
                           {msg.type === 'video' && (
                             <div className="relative aspect-video bg-black rounded-xl flex items-center justify-center overflow-hidden shadow-lg min-w-[200px] group">
-                              <video src={msg.mediaUrl || undefined} className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Play size={32} className="text-white" />
-                              </div>
-                              <span className="absolute bottom-2 right-2 text-[9px] font-black uppercase tracking-widest bg-black/50 px-2 py-0.5 rounded backdrop-blur-md text-white">Video</span>
+                              <video src={`${msg.mediaUrl}#t=0.1`} controls preload="metadata" className="w-full h-full object-cover" />
                             </div>
                           )}
                           {msg.type === 'videoMessage' && (
@@ -1613,11 +1612,32 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                             </div>
                           )}
                           {msg.type === 'post' && msg.post && (
-                            <div className="w-48 bg-white dark:bg-white/5 rounded-xl overflow-hidden border border-text-primary/10">
-                              <img src={msg.post.mediaUrls?.[0] || undefined} className="w-full aspect-square object-cover" alt="post" referrerPolicy="no-referrer" />
-                              <div className="p-2">
-                                <p className="text-[10px] font-black uppercase tracking-tight truncate">{msg.post.outfitName}</p>
-                                <p className="text-[10px] font-black text-accent-blue">{msg.post.price}</p>
+                            <div 
+                               className={`${msg.text ? 'mb-2' : ''} w-56 max-w-full bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-text-primary/10 shadow-sm cursor-pointer`}
+                               onClick={(e) => {
+                                  // Currently ShopWorkspace doesn't explicitly open post details here, but let's prevent defaults
+                                  // e.stopPropagation();
+                               }}
+                            >
+                              {isVideoUrl(msg.post.mediaUrls?.[0] || '') ? (
+                                <div className="relative w-full aspect-[9/16] bg-black flex items-center justify-center group">
+                                  <video 
+                                    src={`${msg.post.mediaUrls[0]}#t=0.1`} 
+                                    preload="metadata" 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-90 group-hover:bg-black/10 transition-colors">
+                                    <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
+                                      <Play size={24} className="text-white ml-1" fill="currentColor" />
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <img src={msg.post.mediaUrls?.[0] || undefined} className="w-full aspect-[9/16] object-cover" alt="post" referrerPolicy="no-referrer" />
+                              )}
+                              <div className="p-2.5 bg-white dark:bg-bg-primary">
+                                <p className="text-xs font-black uppercase tracking-tight text-text-primary truncate">{msg.post.outfitName}</p>
+                                <p className="text-[10px] font-black text-accent-blue mt-0.5">{msg.post.price}</p>
                               </div>
                             </div>
                           )}

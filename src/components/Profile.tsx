@@ -1262,8 +1262,11 @@ const Profile: React.FC<ProfileProps> = ({
                 : `rounded-r-3xl ${isNextSame ? 'rounded-bl-3xl' : 'rounded-bl-sm'} ${isPrevSame ? 'rounded-tl-md' : 'rounded-tl-3xl'}`;
               
               const bubbleStyle = msg.isMe
-                ? 'bg-gradient-to-br from-blue-500 via-accent-blue to-purple-500 text-white shadow-lg shadow-blue-500/20'
+                ? 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20'
                 : 'bg-white/80 dark:bg-neutral-800/80 backdrop-blur-xl text-text-primary border border-white/40 dark:border-white/10 shadow-lg shadow-black/5';
+
+              const hasMediaOnly = (msg.post || msg.image || msg.video || msg.videoMessage || msg.location) && !msg.text;
+              const paddingStyle = hasMediaOnly ? 'p-1' : 'px-4 py-2.5';
 
               return (
               <motion.div 
@@ -1274,7 +1277,7 @@ const Profile: React.FC<ProfileProps> = ({
               >
                 <div 
                   onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
-                  className={`relative max-w-[85%] px-4 py-2.5 text-[14px] transition-all cursor-pointer active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
+                  className={`relative max-w-[85%] ${paddingStyle} text-[14px] transition-all cursor-pointer active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
                 >
                   {/* Reply Preview */}
                   {msg.replyTo && (
@@ -1317,11 +1320,32 @@ const Profile: React.FC<ProfileProps> = ({
                   )}
 
                   {msg.post && (
-                    <div className="mb-2 w-48 bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-border-primary shadow-sm">
-                      <img src={msg.post.mediaUrls[0] || undefined} alt="" className="w-full h-32 object-cover" referrerPolicy="no-referrer" />
-                      <div className="p-2">
-                        <p className="text-[10px] font-black truncate">{msg.post.outfitName}</p>
-                        <p className="text-[10px] font-black text-accent-blue">{msg.post.price}</p>
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPostDetails(msg.post!);
+                      }}
+                      className={`${msg.text ? 'mb-2' : ''} w-56 max-w-full bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-border-primary shadow-sm cursor-pointer active:scale-95 transition-transform`}
+                    >
+                      {isVideoUrl(msg.post.mediaUrls[0] || '') ? (
+                        <div className="relative w-full aspect-[9/16] bg-black flex items-center justify-center group">
+                          <video 
+                            src={`${msg.post.mediaUrls[0]}#t=0.1`} 
+                            preload="metadata" 
+                            className="w-full h-full object-cover" 
+                          />
+                          <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center opacity-90 group-hover:bg-black/10 transition-colors">
+                            <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
+                              <Play size={24} className="text-white ml-1" fill="currentColor" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={msg.post.mediaUrls[0] || undefined} alt="" className="w-full aspect-[9/16] object-cover" referrerPolicy="no-referrer" />
+                      )}
+                      <div className="p-2.5 pointer-events-none bg-white dark:bg-neutral-800">
+                        <p className="text-xs font-black truncate text-text-primary">{msg.post.outfitName}</p>
+                        <p className="text-[10px] font-black text-accent-blue mt-0.5">{msg.post.price}</p>
                       </div>
                     </div>
                   )}
