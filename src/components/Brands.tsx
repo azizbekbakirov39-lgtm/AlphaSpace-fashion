@@ -212,7 +212,7 @@ const Brands: React.FC<BrandsProps> = ({
                   ? 'bg-red-600 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]' 
                   : story.isViewed 
                     ? 'bg-text-primary/10' 
-                    : 'bg-gradient-to-tr from-accent-blue via-accent-light to-accent-blue bg-[length:200%_200%] animate-gradient shadow-lg shadow-accent-light/20'
+                    : 'bg-gradient-to-tr from-blue-500 to-purple-600 shadow-lg shadow-purple-500/20'
               }`}
             >
               <div className="w-full h-full rounded-full bg-bg-primary p-[2px]">
@@ -340,22 +340,24 @@ const Brands: React.FC<BrandsProps> = ({
                 >
                   <div className={`w-16 h-16 rounded-2xl overflow-hidden relative transition-all duration-300 ${
                     selectedCategory === cat 
-                      ? 'ring-2 ring-accent-blue ring-offset-2 ring-offset-bg-primary shadow-lg scale-105' 
+                      ? 'p-[2px] bg-gradient-to-tr from-blue-500 to-purple-600 shadow-lg scale-105' 
                       : 'group-hover:scale-105'
                   }`}>
-                    <img 
-                      src={categoryImages[cat]}
-                      className="w-full h-full object-cover"
-                      alt={cat}
-                      referrerPolicy="no-referrer"
-                    />
+                    <div className="w-full h-full rounded-[14px] overflow-hidden">
+                      <img 
+                        src={categoryImages[cat]}
+                        className="w-full h-full object-cover"
+                        alt={cat}
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
                     <div className={`absolute inset-0 transition-opacity duration-300 ${
                       selectedCategory === cat ? 'bg-black/0' : 'bg-black/10'
                     }`} />
                   </div>
                   <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap ${
                     selectedCategory === cat
-                      ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
+                      ? 'bg-gradient-to-r from-blue-500/10 to-purple-600/10 text-transparent bg-clip-text border-transparent'
                       : 'bg-text-primary/5 text-text-secondary border-transparent'
                   }`}>
                     {cat}

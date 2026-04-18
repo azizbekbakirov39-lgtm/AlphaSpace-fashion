@@ -3,7 +3,7 @@ import { Home, MapPin, User as UserIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { BrandsIcon, SmartSellerTabIcon } from './CustomIcons';
+import { BrandsIcon, LiveIcon } from './CustomIcons';
 import SmartSellerLogo from './SmartSellerLogo';
 import Logo from './Logo';
 import { User } from '../types';
@@ -23,7 +23,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
     { name: 'Home', label: t.home, isLogo: true },
     { name: 'Brands', icon: BrandsIcon, label: t.brands, isLogo: false },
     { name: 'Search', label: t.ai, isLogo: true },
-    { name: 'Live', icon: MapPin, label: t.live, isLogo: false },
+    { name: 'Live', icon: LiveIcon, label: t.live, isLogo: false },
     { name: 'Profile', icon: UserIcon, label: t.profile, isLogo: false },
   ];
 
@@ -61,7 +61,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                 className="relative z-10 flex items-center justify-center h-[28px]"
               >
                 {tab.name === 'Search' ? (
-                  <SmartSellerLogo width={61} showText={true} className="-mt-5" />
+                  <SmartSellerLogo width={61} showText={true} className="-mt-3" />
                 ) : tab.name === 'Brands' ? (
                   <BrandsIcon size={40} isActive={isActive} />
                 ) : tab.name === 'Home' ? (
@@ -76,7 +76,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                   />
                 ) : (
                   <Icon 
-                    size={22} 
+                    size={tab.name === 'Live' ? 40 : 22} 
                     strokeWidth={isActive ? 2 : 1.5} 
                     stroke={isActive ? "url(#nav-gradient)" : "currentColor"}
                     className={`transition-colors duration-300 ${isActive ? '' : 'text-text-primary/50'}`}
@@ -88,19 +88,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                 <div className="relative mt-1 flex flex-col items-center">
                   <motion.span 
                     animate={{
-                      opacity: isActive ? 1 : 0.6,
-                      scale: isActive ? 1.1 : 1,
+                      opacity: isActive ? 1 : 0.8,
+                      scale: isActive ? 1.05 : 1,
                     }}
-                    className={`text-[8px] font-black tracking-[0.1em] uppercase transition-all duration-300 text-center px-1 whitespace-nowrap relative ${isActive ? 'bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent' : 'text-text-primary/50'}`}
+                    className={`${['Brands', 'Live'].includes(tab.name) ? 'text-sm font-bold font-cursive' : ['Profile'].includes(tab.name) ? 'text-sm font-medium font-cursive' : 'text-[8px] font-black tracking-[0.1em] uppercase'} transition-all duration-300 text-center px-1 whitespace-nowrap relative bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`}
                   >
                     {tab.label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute -bottom-[1px] left-0 right-0 h-[1px] rounded-full bg-accent-blue shadow-[0_0_3px_#0095FF]"
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      />
-                    )}
                   </motion.span>
                 </div>
               )}

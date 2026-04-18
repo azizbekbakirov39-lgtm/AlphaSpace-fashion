@@ -10,9 +10,9 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, animated = false, showText = true }) => {
-  const accentBlue = "#0095FF";
+  const accentBlue = "#3B82F6";
   const accentLight = "#5AC8FA";
-  const accentBlueBright = "#007AFF";
+  const accentBlueBright = "#9333EA";
 
   const pathVariants = {
     hidden: { pathLength: 0, opacity: 0 },
@@ -49,6 +49,10 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
           <stop offset="50%" stopColor={accentLight} />
           <stop offset="100%" stopColor="white" />
         </linearGradient>
+        <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#3B82F6" />
+          <stop offset="100%" stopColor="#A855F7" />
+        </linearGradient>
       </defs>
 
       <g clipPath="url(#appIconClip)">
@@ -60,13 +64,13 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
             width="120"
             height="120"
             rx="28"
-            fill="url(#logoBg)"
+            fill="white"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
         ) : (
-          <rect x="0" y="0" width="120" height="120" rx="28" fill="url(#logoBg)" />
+          <rect x="0" y="0" width="120" height="120" rx="28" fill="white" />
         )}
 
         {/* Tag Group */}
@@ -202,14 +206,14 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
           {animated ? (
             <motion.path
               d={tagPath}
-              fill="white"
+              fill="url(#logoBg)"
               filter="url(#dropShadow)"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
             />
           ) : (
-            <path d={tagPath} fill="white" filter="url(#dropShadow)" />
+            <path d={tagPath} fill="url(#logoBg)" filter="url(#dropShadow)" />
           )}
 
           {/* Tag Inner Border */}
@@ -329,7 +333,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
               fontFamily="'Dancing Script', cursive"
               fontSize="24"
               fontWeight="700"
-              fill={accentBlueBright}
+              fill="white"
               textAnchor="middle"
               transform="rotate(45 50 58)"
               initial={{ opacity: 0 }}
@@ -345,7 +349,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
               fontFamily="'Dancing Script', cursive"
               fontSize="24"
               fontWeight="700"
-              fill={accentBlueBright}
+              fill="white"
               textAnchor="middle"
               transform="rotate(45 50 58)"
             >
@@ -362,7 +366,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
             fontFamily="'Dancing Script', cursive"
             fontSize="22"
             fontWeight="700"
-            fill="white"
+            fill="url(#textGradient)"
             textAnchor="middle"
           >
             AlphaSpace

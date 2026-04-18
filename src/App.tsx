@@ -1105,7 +1105,7 @@ export default function App() {
                 </button>
               </div>
               <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
-                <p className="px-2 text-[10px] font-black uppercase tracking-widest text-text-secondary mb-2">Chatlar</p>
+                <p className="px-2 text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent mb-2">Chatlar</p>
                 {sellers.map(seller => (
                   <button
                     key={seller.id}
@@ -1148,7 +1148,7 @@ export default function App() {
 
                 {/* Middle Branding Text - Instagram Style */}
                 <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
-                  <h1 className="text-[32px] font-cursive font-bold italic bg-gradient-to-br from-accent-blue to-accent-light bg-clip-text text-transparent tracking-tight">
+                  <h1 className="text-[32px] font-cursive font-bold italic bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent tracking-tight">
                     AlphaSpace
                   </h1>
                 </div>
@@ -1172,8 +1172,8 @@ export default function App() {
                         }}
                         className="relative flex flex-col items-center gap-0.5 p-1 hover:bg-accent-blue/5 rounded-xl transition-all active:scale-95"
                       >
-                        <Mail size={24} strokeWidth={1.5} className="text-accent-blue" />
-                        <span className="text-[8px] font-bold text-accent-blue uppercase tracking-widest">Xabarlar</span>
+                        <Mail size={24} strokeWidth={1.5} className="text-blue-500" />
+                        <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent uppercase tracking-widest">Xabarlar</span>
                         {unreadMessages > 0 && (
                           <motion.div 
                             initial={{ scale: 0 }}

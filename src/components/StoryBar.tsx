@@ -44,7 +44,7 @@ const StoryBar: React.FC<StoryBarProps> = ({ stories, onMarkStoryViewed, onOpenS
               ? 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)] animate-pulse' 
               : story.isViewed 
                 ? 'bg-text-primary/10' 
-                : 'bg-accent-light shadow-lg shadow-accent-light/20'
+                : 'bg-gradient-to-tr from-blue-500 to-purple-600 shadow-lg shadow-purple-500/20'
           } group-active:scale-90 transition-transform`}>
             <div className="p-[2px] bg-bg-primary rounded-full">
               {story.seller.logo ? (
