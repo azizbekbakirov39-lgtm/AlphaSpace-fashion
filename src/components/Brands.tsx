@@ -212,7 +212,7 @@ const Brands: React.FC<BrandsProps> = ({
                   ? 'bg-red-600 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]' 
                   : story.isViewed 
                     ? 'bg-text-primary/10' 
-                    : 'bg-gradient-to-tr from-blue-500 to-purple-600 shadow-lg shadow-purple-500/20'
+                    : 'bg-gradient-to-tr from-blue-500 via-blue-500 to-purple-600 shadow-lg shadow-purple-500/20'
               }`}
             >
               <div className="w-full h-full rounded-full bg-bg-primary p-[2px]">
@@ -340,7 +340,7 @@ const Brands: React.FC<BrandsProps> = ({
                 >
                   <div className={`w-16 h-16 rounded-2xl overflow-hidden relative transition-all duration-300 ${
                     selectedCategory === cat 
-                      ? 'p-[2px] bg-gradient-to-tr from-blue-500 to-purple-600 shadow-lg scale-105' 
+                      ? 'p-[2px] bg-gradient-to-tr from-blue-500 via-blue-500 to-purple-600 shadow-lg scale-105' 
                       : 'group-hover:scale-105'
                   }`}>
                     <div className="w-full h-full rounded-[14px] overflow-hidden">
@@ -357,7 +357,7 @@ const Brands: React.FC<BrandsProps> = ({
                   </div>
                   <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap ${
                     selectedCategory === cat
-                      ? 'bg-gradient-to-r from-blue-500/10 to-purple-600/10 text-transparent bg-clip-text border-transparent'
+                      ? 'bg-gradient-to-r from-blue-500/10 via-blue-500/10 to-purple-600/10 text-transparent bg-clip-text border-transparent'
                       : 'bg-text-primary/5 text-text-secondary border-transparent'
                   }`}>
                     {cat}

@@ -66,7 +66,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                   <BrandsIcon size={40} isActive={isActive} />
                 ) : tab.name === 'Home' ? (
                   <div className="mt-[-4px]">
-                    <Logo width={45} showText={true} />
+                    <Logo width={63} showText={true} />
                   </div>
                 ) : tab.name === 'Profile' && user?.photoURL ? (
                   <img 

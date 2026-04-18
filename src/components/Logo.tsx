@@ -9,9 +9,10 @@ interface LogoProps {
   showText?: boolean;
 }
 
-const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, animated = false, showText = true }) => {
+const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animated = false, showText = true }) => {
+  const finalHeight = height || width;
   const accentBlue = "#3B82F6";
-  const accentLight = "#5AC8FA";
+  const accentLight = "#FFFFFF";
   const accentBlueBright = "#9333EA";
 
   const pathVariants = {
@@ -25,7 +26,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
   return (
     <svg
       width={width}
-      height={height}
+      height={finalHeight}
       viewBox="0 0 120 120"
       fill="none"
       className={className}
@@ -33,6 +34,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
       <defs>
         <linearGradient id="logoBg" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={accentBlue} />
+          <stop offset="60%" stopColor={accentBlue} />
           <stop offset="100%" stopColor={accentBlueBright} />
         </linearGradient>
         <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -45,12 +47,15 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height = 120, 
           <rect x="0" y="0" width="120" height="120" rx="28" />
         </clipPath>
         <linearGradient id="chainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="white" />
-          <stop offset="50%" stopColor={accentLight} />
-          <stop offset="100%" stopColor="white" />
+          <stop offset="0%" stopColor="#BF953F" />
+          <stop offset="25%" stopColor="#FCF6BA" />
+          <stop offset="50%" stopColor="#B38728" />
+          <stop offset="75%" stopColor="#FBF5B7" />
+          <stop offset="100%" stopColor="#AA771C" />
         </linearGradient>
         <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#3B82F6" />
+          <stop offset="60%" stopColor="#3B82F6" />
           <stop offset="100%" stopColor="#A855F7" />
         </linearGradient>
       </defs>

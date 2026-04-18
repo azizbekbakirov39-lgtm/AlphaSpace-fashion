@@ -39,9 +39,12 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
               </stop>
             </linearGradient>
             
-            <linearGradient id="chainGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={blue} />
-              <stop offset="100%" stopColor={purple} />
+            <linearGradient id="chainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#BF953F" />
+              <stop offset="25%" stopColor="#FCF6BA" />
+              <stop offset="50%" stopColor="#B38728" />
+              <stop offset="75%" stopColor="#FBF5B7" />
+              <stop offset="100%" stopColor="#AA771C" />
             </linearGradient>
 
             <filter id="glow">

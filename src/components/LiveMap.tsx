@@ -107,19 +107,32 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
     }
   };
 
+  const filteredSellers = React.useMemo(() => sellers.filter(s => 
+    s.location && 
+    typeof s.location.lat === 'number' && 
+    typeof s.location.lng === 'number' &&
+    s.categories.some(cat => selectedCategories.includes(cat)) &&
+    (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  ), [sellers, selectedCategories, searchQuery]);
+
   useEffect(() => {
     if (mapRef.current && filteredSellers.length > 0) {
       const bounds = filteredSellers.map(s => [s.location!.lat, s.location!.lng]);
       if (userLocation) bounds.push(userLocation);
-      // mapRef.current.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+      
+      if (bounds.length > 0) {
+        try {
+          mapRef.current.setBounds(bounds, { 
+            checkZoomRange: true, 
+            zoomMargin: 80,
+            duration: 1000 
+          });
+        } catch (err) {
+          console.warn("Could not set bounds:", err);
+        }
+      }
     }
-  }, [selectedCategories]);
-
-  const filteredSellers = sellers.filter(s => 
-    s.location && 
-    s.categories.some(cat => selectedCategories.includes(cat)) &&
-    (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  }, [filteredSellers, userLocation]);
 
   const searchResults = searchQuery.length > 1 
     ? sellers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
@@ -216,8 +229,8 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
               properties={{
                 iconContent: `
                   <div class="pulsing-marker" style="position: relative; display: flex; align-items: center; background: white; padding: 4px 12px 4px 4px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); cursor: pointer; white-space: nowrap; border: 1px solid rgba(0,0,0,0.05); transform: translate(-50%, -100%);">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: 1px solid rgba(0,0,0,0.1); background: #f5f5f5; flex-shrink: 0; position: relative; z-index: 2;">
-                      <img src="${seller.logo}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: 2px solid white; background: #f5f5f5; flex-shrink: 0; position: relative; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                      <img src="${seller.logo}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
                     </div>
                     <span style="margin-left: 8px; font-size: 13px; font-weight: 800; color: #000; letter-spacing: -0.02em; font-family: 'Inter', sans-serif; position: relative; z-index: 2;">
                       ${seller.name}
