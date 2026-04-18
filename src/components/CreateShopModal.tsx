@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 interface CreateShopModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, logoFile: File | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }) => void;
+  onSubmit: (name: string, logoFile: File | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }, region: string) => void;
   language: Language;
 }
 
@@ -22,6 +22,7 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [workingDays, setWorkingDays] = useState<string[]>(['Dush', 'Sesh', 'Chor', 'Pay', 'Jum']);
   const [selectedCategories, setSelectedCategories] = useState<SellerCategory[]>([]);
+  const [region, setRegion] = useState('Toshkent');
   const [location, setLocation] = useState<{ lat: number, lng: number }>({ lat: 41.311081, lng: 69.240562 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +54,7 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (shopName.trim() && selectedCategories.length > 0) {
-      onSubmit(shopName, logoFile, workingDays, selectedCategories, location);
+      onSubmit(shopName, logoFile, workingDays, selectedCategories, location, region);
     }
   };
 
@@ -214,6 +215,29 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Region Selection */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary/40 ml-1">
+                    Hudud *
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Toshkent', 'Samarqand', 'Buxoro', 'Farg\'ona', 'Namangan', 'Andijon', 'Xiva'].map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRegion(r)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                          region === r 
+                            ? 'bg-gradient-to-br from-accent-blue to-accent-light border-accent-blue text-white shadow-lg' 
+                            : 'bg-text-primary/5 border-text-primary/10 text-text-primary/40 hover:border-accent-blue/30'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

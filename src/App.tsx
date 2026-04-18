@@ -273,8 +273,11 @@ export default function App() {
   const postsWithUserStatus = React.useMemo(() => {
     return posts
       .map(post => {
-        // Find the seller from the sellers array if post only has sellerId
-        const sellerObj = post.seller || sellers.find(s => s.id === (post as any).sellerId);
+        // Prioritize fresh seller data from the real-time sellers list
+        const postSellerId = post.seller?.id || (post as any).sellerId;
+        const freshSeller = sellers.find(s => s.id === postSellerId);
+        const sellerObj = freshSeller || post.seller;
+        
         return {
           ...post,
           seller: sellerObj,
@@ -299,7 +302,11 @@ export default function App() {
   const storiesWithUserStatus = React.useMemo(() => {
     return stories
       .map(story => {
-        const sellerObj = story.seller || sellers.find(s => s.id === (story as any).sellerId);
+        // Prioritize fresh seller data from the real-time sellers list
+        const storySellerId = story.seller?.id || (story as any).sellerId;
+        const freshSeller = sellers.find(s => s.id === storySellerId);
+        const sellerObj = freshSeller || story.seller;
+
         return {
           ...story,
           seller: sellerObj,
@@ -329,7 +336,7 @@ export default function App() {
   const [isCreatingShop, setIsCreatingShop] = useState(false);
   const [isConstructingShop, setIsConstructingShop] = useState(false);
   const [constructionProgress, setConstructionProgress] = useState(0);
-  const [newShopData, setNewShopData] = useState<{name: string, logoFile: File | null, logoPreview: string | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }} | null>(null);
+  const [newShopData, setNewShopData] = useState<{name: string, logoFile: File | null, logoPreview: string | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }, region: string} | null>(null);
 
   // Firebase Auth Listener
   React.useEffect(() => {
@@ -449,13 +456,13 @@ export default function App() {
     }
   };
 
-  const handleCreateShopSubmit = (name: string, logoFile: File | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }) => {
+  const handleCreateShopSubmit = (name: string, logoFile: File | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }, region: string) => {
     // Create a preview for the construction screen
     let logoPreview = null;
     if (logoFile) {
       logoPreview = URL.createObjectURL(logoFile);
     }
-    setNewShopData({ name, logoFile, logoPreview, workingDays, categories, location });
+    setNewShopData({ name, logoFile, logoPreview, workingDays, categories, location, region });
     setIsCreatingShop(false);
     // If we're in the createShop state, go back
     if (window.history.state?.type === 'createShop') {
@@ -511,6 +518,7 @@ export default function App() {
             hasStory: false,
             followers: 0,
             description: 'Mening shaxsiy do\'konim tavsifi bu yerda bo\'ladi.',
+            region: newShopData.region || 'Toshkent',
             location: newShopData.location,
             ownerUid: user.uid,
             createdAt: serverTimestamp()

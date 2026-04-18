@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { YMaps, Map, Placemark, Circle, Polyline } from '@pbe/react-yandex-maps';
-import { Search, MapPin, Check, X, Navigation, ArrowRight, Star, Clock, Phone, Sparkles, Zap, Camera } from 'lucide-react';
+import { YMaps, Map, Placemark, Circle, Polyline, Clusterer } from '@pbe/react-yandex-maps';
+import { Search, MapPin, Check, X, Navigation, ArrowRight, Star, Clock, Phone, Sparkles, Zap, Camera, Plus, Minus } from 'lucide-react';
 import { Seller, SellerCategory, SELLER_CATEGORIES } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../translations';
@@ -25,6 +25,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
   const [mapState, setMapState] = useState({
     center: [41.311081, 69.240562],
     zoom: 13,
+    controls: []
   });
   const [selectedCategories, setSelectedCategories] = useState<SellerCategory[]>(SELLER_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,10 +93,11 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation([latitude, longitude]);
-          setMapState({
+          setMapState(prev => ({
+            ...prev,
             center: [latitude, longitude],
             zoom: 15
-          });
+          }));
           setError(null);
         },
         (err) => {
@@ -148,10 +150,11 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
 
   const handleSellerClick = (seller: Seller) => {
     setSelectedSeller(seller);
-    setMapState({
+    setMapState(prev => ({
+      ...prev,
       center: [seller.location!.lat, seller.location!.lng],
       zoom: 16
-    });
+    }));
 
     if (userLocation && seller.location) {
       setRoute([
@@ -159,6 +162,13 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
         [seller.location.lat, seller.location.lng]
       ]);
     }
+  };
+
+  const handleZoom = (delta: number) => {
+    setMapState(prev => ({
+      ...prev,
+      zoom: Math.max(1, Math.min(19, prev.zoom + delta))
+    }));
   };
 
   return (
@@ -184,10 +194,11 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
           width="100%"
           height="100%"
           onBoundsChange={(e: any) => {
-            setMapState({
+            setMapState(prev => ({
+              ...prev,
               center: e.get('target').getCenter(),
               zoom: e.get('target').getZoom()
-            });
+            }));
           }}
           options={{
             suppressMapOpenBlock: true,
@@ -222,33 +233,53 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             />
           )}
 
-          {filteredSellers.map(seller => (
-            <Placemark
-              key={seller.id}
-              geometry={[seller.location!.lat, seller.location!.lng]}
-              properties={{
-                iconContent: `
-                  <div class="pulsing-marker" style="position: relative; display: flex; align-items: center; background: white; padding: 4px 12px 4px 4px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); cursor: pointer; white-space: nowrap; border: 1px solid rgba(0,0,0,0.05); transform: translate(-50%, -100%);">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: 2px solid white; background: #f5f5f5; flex-shrink: 0; position: relative; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                      <img src="${seller.logo}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
-                    </div>
-                    <span style="margin-left: 8px; font-size: 13px; font-weight: 800; color: #000; letter-spacing: -0.02em; font-family: 'Inter', sans-serif; position: relative; z-index: 2;">
-                      ${seller.name}
-                    </span>
-                    <div class="pulse-ring" style="position: absolute; top: 50%; left: 16px; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(0, 149, 255, 0.2); z-index: 1;"></div>
-                  </div>
-                `,
-              }}
-              options={{
-                iconLayout: 'default#imageWithContent',
-                iconImageHref: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-                iconImageSize: [1, 1],
-                iconImageOffset: [0, 0],
-                iconContentOffset: [0, 0],
-              }}
-              onClick={() => handleSellerClick(seller)}
-            />
-          ))}
+          <Clusterer
+            options={{
+              preset: 'islands#invertedBlueClusterIcons',
+              groupByCoordinates: false,
+              clusterDisableClickZoom: false,
+              clusterHideIconOnBalloonOpen: false,
+              geoObjectHideIconOnBalloonOpen: false,
+            }}
+          >
+            {filteredSellers.map(seller => {
+              const hasDiscount = (seller.followers || 0) > 1000;
+              const discountText = hasDiscount ? (seller.followers > 5000 ? "40%" : "20%") : null;
+
+              return (
+                <Placemark
+                  key={seller.id}
+                  geometry={[seller.location!.lat, seller.location!.lng]}
+                  properties={{
+                    iconContent: `
+                      <div class="pulsing-marker" style="position: relative; display: flex; align-items: center; background: white; padding: 4px 14px 4px 4px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.18); cursor: pointer; white-space: nowrap; border: 1px solid rgba(0,0,0,0.08); transform: translate(-50%, -100%);">
+                        ${discountText ? `
+                          <div style="position: absolute; top: -14px; right: 8px; background: #22c55e; color: white; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 20px; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4); border: 1.5px solid white;">
+                            ${discountText}
+                          </div>
+                        ` : ''}
+                        <div style="width: 34px; height: 34px; border-radius: 50%; overflow: hidden; border: 2.5px solid white; background: #f5f5f5; flex-shrink: 0; position: relative; z-index: 2; box-shadow: 0 3px 10px rgba(0,0,0,0.12);">
+                          <img src="${seller.logo || `https://ui-avatars.com/api/?name=${seller.name}&background=random`}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
+                        </div>
+                        <span style="margin-left: 10px; font-size: 13px; font-weight: 800; color: #000; letter-spacing: -0.025em; font-family: 'Inter', sans-serif; position: relative; z-index: 2; padding-right: 4px;">
+                          ${seller.name}
+                        </span>
+                        <div class="pulse-ring" style="position: absolute; top: 50%; left: 18px; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 149, 255, 0.25); z-index: 1;"></div>
+                      </div>
+                    `,
+                  }}
+                  options={{
+                    iconLayout: 'default#imageWithContent',
+                    iconImageHref: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                    iconImageSize: [1, 1],
+                    iconImageOffset: [0, 0],
+                    iconContentOffset: [0, 0],
+                  }}
+                  onClick={() => handleSellerClick(seller)}
+                />
+              );
+            })}
+          </Clusterer>
 
           {userLocation && (
             <Placemark
@@ -296,12 +327,6 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
           >
             <Camera size={20} />
           </button>
-          <button 
-            onClick={handleLocationClick}
-            className="w-12 h-12 bg-bg-primary/80 backdrop-blur-xl border border-border-primary rounded-2xl shadow-2xl flex items-center justify-center text-accent-blue active:scale-90 transition-transform pointer-events-auto"
-          >
-            <Navigation size={20} />
-          </button>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide pointer-events-auto">
@@ -319,6 +344,29 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Floating Controls Side Bar (Like the reference image) */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-[1001]">
+        <button 
+          onClick={() => handleZoom(1)}
+          className="w-12 h-12 bg-bg-primary/95 backdrop-blur-xl border border-border-primary rounded-2xl shadow-2xl flex items-center justify-center text-text-primary active:scale-90 transition-all"
+        >
+          <Plus size={20} strokeWidth={3} />
+        </button>
+        <button 
+          onClick={() => handleZoom(-1)}
+          className="w-12 h-12 bg-bg-primary/95 backdrop-blur-xl border border-border-primary rounded-2xl shadow-2xl flex items-center justify-center text-text-primary active:scale-90 transition-all"
+        >
+          <Minus size={20} strokeWidth={3} />
+        </button>
+        <div className="h-2" />
+        <button 
+          onClick={handleLocationClick}
+          className="w-12 h-12 bg-bg-primary/95 backdrop-blur-xl border border-border-primary rounded-2xl shadow-2xl flex items-center justify-center text-accent-blue active:scale-90 transition-all"
+        >
+          <Navigation size={22} fill="currentColor" className={userLocation ? 'text-accent-blue' : 'text-text-primary/40'} />
+        </button>
       </div>
 
       <SearchOverlay 
@@ -363,6 +411,12 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
                     <span className="text-[10px] text-text-primary/40 font-black uppercase tracking-widest">
                       {selectedSeller.categories[0]}
                     </span>
+                    {selectedSeller.region && (
+                      <div className="flex items-center gap-1 text-accent-blue/60">
+                        <MapPin size={10} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{selectedSeller.region}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -492,7 +546,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
           animation-duration: 1s;
         }
         .ymaps-2-1-79-map {
-          filter: grayscale(0.2) contrast(1.1);
+          filter: grayscale(0.1) contrast(1.05);
         }
         .dark .ymaps-2-1-79-map {
           filter: invert(1) hue-rotate(180deg) grayscale(0.5) contrast(1.2);
@@ -503,6 +557,10 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
         }
         .dark .ymaps-2-1-79-placemark {
           filter: invert(1) hue-rotate(180deg);
+        }
+        /* Custom Cluster Design to match screenshot blue icons */
+        .ymaps-2-1-79-cluster-caption {
+          font-weight: 800 !important;
         }
       `}</style>
     </div>
