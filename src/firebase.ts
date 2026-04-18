@@ -12,7 +12,27 @@ import {
   signInWithCustomToken,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, orderBy, limit, getDocFromServer, increment } from 'firebase/firestore';
+import { 
+  initializeFirestore,
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  query, 
+  where, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp, 
+  Timestamp, 
+  orderBy, 
+  limit, 
+  getDocFromServer, 
+  increment 
+} from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -20,8 +40,10 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Use getFirestore as recommended in system instructions
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Resilient Firestore initialization
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId || '(default)');
 
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
