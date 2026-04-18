@@ -2161,6 +2161,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                         state={{ center: [localShopData.location?.lat || 41.311081, localShopData.location?.lng || 69.240562], zoom: 15 }}
                         width="100%"
                         height="100%"
+                        onClick={(e: any) => {
+                          const coords = e.get('coords');
+                          setLocalShopData(prev => ({
+                            ...prev,
+                            location: { lat: coords[0], lng: coords[1] }
+                          }));
+                        }}
                         options={{
                           suppressMapOpenBlock: true,
                         }}

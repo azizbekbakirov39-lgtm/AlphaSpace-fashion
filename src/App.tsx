@@ -106,46 +106,48 @@ export default function App() {
     const unsubSellers = onSnapshot(collection(db, 'shops'), (snapshot) => {
       const sellersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
       
-      // Agar Firebase o'rnatilgan bo'lsa-yu shops kolleksiyasi bo'sh bo'lsa, xarita oq bo'lib qolmasligi uchun vaqtincha mock ma'lumotlar kiritib turamiz
+      // Agar Firebase o'rnatilgan bo'lsa-yu shops kolleksiyasi bo'sh bo'lsa yoki juda kam bo'lsa, xarita oq bo'lib qolmasligi uchun mock ma'lumotlar qo'shamiz
+      const mockSellers: Seller[] = [
+        {
+          id: 'mock1',
+          name: 'Brend Krossovkalar',
+          logo: 'https://ui-avatars.com/api/?name=BK&background=random',
+          description: 'Eng yangi sport kiyimlari',
+          followers: 1200,
+          address: 'Amir Temur maydoni',
+          location: { lat: 41.3111, lng: 69.2797 },
+          rating: 4.8,
+          categories: ['Erkaklar kiyinishi', 'Aksessuarlar']
+        },
+        {
+          id: 'mock2',
+          name: 'Texnika Olami',
+          logo: 'https://ui-avatars.com/api/?name=TO&background=random',
+          description: 'Smartfonlar va Noutbuklar',
+          followers: 5500,
+          address: 'Chilonzor Oq-tepa',
+          location: { lat: 41.2950, lng: 69.2400 },
+          rating: 4.9,
+          categories: ['Texnika']
+        },
+        {
+          id: 'mock3',
+          name: 'Gullar Markazi',
+          logo: 'https://ui-avatars.com/api/?name=GM&background=random',
+          description: 'Yangi uzilgan gullar qulay narxlarda',
+          followers: 800,
+          address: 'Eski jo\'va bozori',
+          location: { lat: 41.3250, lng: 69.2450 },
+          rating: 4.5,
+          categories: ['Boshqa']
+        }
+      ];
+
       if (sellersData.length === 0) {
-        setSellers([
-          {
-            id: 'mock1',
-            name: 'Brend Krossovkalar',
-            logo: 'https://ui-avatars.com/api/?name=BK&background=random',
-            description: 'Eng yangi sport kiyimlari',
-            followers: 1200,
-            address: 'Amir Temur maydoni',
-            location: { lat: 41.3111, lng: 69.2797 },
-            rating: 4.8,
-            category: 'Kiyimlar',
-            categories: ['Kiyimlar', 'Sport']
-          },
-          {
-            id: 'mock2',
-            name: 'Texnika Olami',
-            logo: 'https://ui-avatars.com/api/?name=TO&background=random',
-            description: 'Smartfonlar va Noutbuklar',
-            followers: 5500,
-            address: 'Chilonzor Oq-tepa',
-            location: { lat: 41.2950, lng: 69.2400 },
-            rating: 4.9,
-            category: 'Elektronika',
-            categories: ['Elektronika']
-          },
-          {
-            id: 'mock3',
-            name: 'Gullar Markazi',
-            logo: 'https://ui-avatars.com/api/?name=GM&background=random',
-            description: 'Yangi uzilgan gullar qulay narxlarda',
-            followers: 800,
-            address: 'Eski jo\'va bozori',
-            location: { lat: 41.3250, lng: 69.2450 },
-            rating: 4.5,
-            category: 'Sovg\'alar',
-            categories: ['So\'vg\'alar']
-          }
-        ]);
+        setSellers(mockSellers);
+      } else if (sellersData.length < 3) {
+        // Agar real do'konlar kam bo'lsa, mock do'konlarni ham ko'rsatib turamiz (faqat id-lari bir xil bo'lmasa)
+        setSellers([...sellersData, ...mockSellers.filter(m => !sellersData.some(s => s.id === m.id))]);
       } else {
         setSellers(sellersData);
       }

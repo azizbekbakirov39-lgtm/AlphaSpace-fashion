@@ -252,6 +252,10 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
                         state={{ center: [location.lat, location.lng], zoom: 15 }}
                         width="100%"
                         height="100%"
+                        onClick={(e: any) => {
+                          const coords = e.get('coords');
+                          setLocation({ lat: coords[0], lng: coords[1] });
+                        }}
                         options={{
                           suppressMapOpenBlock: true,
                         }}
