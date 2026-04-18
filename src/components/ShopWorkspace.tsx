@@ -522,7 +522,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   };
 
   const handleDeletePost = async (postId: string) => {
-    console.log("Deleting post:", postId);
     if (!window.confirm("Haqiqatan ham ushbu postni o'chirmoqchimisiz?")) return;
     try {
       await deleteDoc(doc(db, 'posts', postId));

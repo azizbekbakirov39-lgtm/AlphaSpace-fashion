@@ -54,7 +54,7 @@ const LiveStreamViewer: React.FC<LiveStreamViewerProps> = ({ story, onClose, onO
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}?shop=${stream.seller.id}`;
+    const url = `${window.location.origin}?shop=${story.seller.id}`;
     navigator.clipboard.writeText(url);
     toast.success("Havola nusxalandi!", {
       description: "Jonli efir havolasini do'stlaringizga yuborishingiz mumkin.",

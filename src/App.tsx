@@ -114,10 +114,11 @@ export default function App() {
           logo: 'https://ui-avatars.com/api/?name=BK&background=random',
           description: 'Eng yangi sport kiyimlari',
           followers: 1200,
-          address: 'Amir Temur maydoni',
+          region: 'Toshkent',
           location: { lat: 41.3111, lng: 69.2797 },
           rating: 4.8,
-          categories: ['Erkaklar kiyinishi', 'Aksessuarlar']
+          categories: ['Erkaklar kiyinishi', 'Aksessuarlar'],
+          hasStory: false
         },
         {
           id: 'mock2',
@@ -125,10 +126,11 @@ export default function App() {
           logo: 'https://ui-avatars.com/api/?name=TO&background=random',
           description: 'Smartfonlar va Noutbuklar',
           followers: 5500,
-          address: 'Chilonzor Oq-tepa',
+          region: 'Toshkent',
           location: { lat: 41.2950, lng: 69.2400 },
           rating: 4.9,
-          categories: ['Texnika']
+          categories: ['Texnika'],
+          hasStory: false
         },
         {
           id: 'mock3',
@@ -136,10 +138,11 @@ export default function App() {
           logo: 'https://ui-avatars.com/api/?name=GM&background=random',
           description: 'Yangi uzilgan gullar qulay narxlarda',
           followers: 800,
-          address: 'Eski jo\'va bozori',
+          region: 'Toshkent',
           location: { lat: 41.3250, lng: 69.2450 },
           rating: 4.5,
-          categories: ['Boshqa']
+          categories: ['Boshqa'],
+          hasStory: false
         }
       ];
 
