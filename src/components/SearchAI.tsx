@@ -83,9 +83,13 @@ interface SearchAIProps {
   initialQuery?: string;
   onClearInitialQuery?: () => void;
   allPosts?: PostData[];
+  allSellers?: any[];
   foundPosts?: PostData[];
+  foundSellers?: any[];
   setFoundPosts?: React.Dispatch<React.SetStateAction<PostData[]>>;
+  setFoundSellers?: React.Dispatch<React.SetStateAction<any[]>>;
   onOpenPostDetails?: (post: PostData) => void;
+  onOpenShopProfile?: (shopId: string) => void;
 }
 
 const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 
@@ -99,10 +103,10 @@ Foydalanuvchi rasm tashlasa, undagi kiyimlarni tahlil qil va shunga o'xshash mah
 Obraz yaratishda (outfit matching) mohirsiz. Masalan, jigarrang ko'ylak bilan oq shim kabi mos keladigan kiyimlarni tavsiya qiling.
 
 MUHIM: Agar foydalanuvchi kiyim, poyabzal, shim, ko'ylak yoki biror mahsulot haqida so'rasa, albatta "find_products" funksiyasini chaqir. 
-Hatto rasm tashlab "shunga o'xshashini top" desa ham funksiyani ishlat.
+Agar foydalanuvchi do'konlar, lokatsiyalar yoki ma'lum bir hududdagi sotuvchilar haqida so'rasa, "find_shops" funksiyasini chaqir.
 
-QIDIRUV QOIDASI: Qidiruv so'rovi bo'lganda (kiyim, narx, qidirish haqida), ALBATTA bitta javobning o'zida ham qidiruvni boshlayotganing haqida matnli xabarni ("Hozir qidirib ko'raman...", "Hozir ko'ramiz, qidiryapman...") ham "find_products" funksiyasini birgalikda yubor. 
-Hech qachon mahsulotlarni topmasdan turib "Topdim" deb aytma.`;
+QIDIRUV QOIDASI: Qidiruv so'rovi bo'lganda (kiyim, narx, do'kon, qidirish haqida), ALBATTA bitta javobning o'zida ham qidiruvni boshlayotganing haqida matnli xabarni ("Hozir qidirib ko'raman...", "Hozir ko'ramiz, qidiryapman...") ham tegishli funksiyani ("find_products" yoki "find_shops") birgalikda yubor. 
+Hech qachon mahsulot yoki do'konlarni topmasdan turib "Topdim" deb aytma.`;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -128,9 +132,13 @@ const SearchAI: React.FC<SearchAIProps> = ({
   initialQuery,
   onClearInitialQuery,
   allPosts = [],
+  allSellers = [],
   foundPosts = [],
+  foundSellers = [],
   setFoundPosts,
-  onOpenPostDetails
+  setFoundSellers,
+  onOpenPostDetails,
+  onOpenShopProfile
 }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -208,20 +216,26 @@ const SearchAI: React.FC<SearchAIProps> = ({
     };
 
     try {
-      // Provide a summary of all available products to the AI so it knows what it can find
-      const productsSummary = allPosts.map(p => {
+      // Provide a summary of all available products and shops to the AI
+      const productsSummary = allPosts.slice(0, 20).map(p => {
         const info = [
           p.outfitName,
           p.aiMetadata?.color ? `Rangi: ${p.aiMetadata.color}` : '',
-          p.aiMetadata?.category ? `Kategoriya: ${p.aiMetadata.category}` : '',
-          p.aiMetadata?.tags?.length ? `Teglar: ${p.aiMetadata.tags.join(', ')}` : ''
+          p.aiMetadata?.category ? `Kategoriya: ${p.aiMetadata.category}` : ''
         ].filter(Boolean).join(', ');
         return `- ${info} (ID: ${p.id}, Narxi: ${p.price})`;
+      }).join('\n');
+
+      const shopsSummary = allSellers.slice(0, 15).map(s => {
+        return `- ${s.name} (Hudud: ${s.region || 'Noma\'lum'}, Kategoriyalar: ${s.categories?.join(', ') || 'Noma\'lum'})`;
       }).join('\n');
       
       const contextInstruction = `
 Hozirgi vaqtda marketplace-da quyidagi mahsulotlar bor:
 ${productsSummary || 'Hech qanday mahsulot yo\'q'}
+
+Va quyidagi do'konlar bor:
+${shopsSummary || 'Hech qanday do\'kon yo\'q'}
 `;
 
       // Detect product link in message to provide context
@@ -278,9 +292,20 @@ Foydalanuvchi xabari: ${messageText}`;
         }
       };
 
+      const findShopsTool = {
+        name: "find_shops",
+        description: "Marketplace-dan do'konlarni qidirish. Nomi, hududi yoki sotadigan mahsulot turi bo'yicha qidirish imkoniyati bor.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            query: { type: Type.STRING, description: "Qidiruv so'rovi (masalan: 'Chilonzordagi do'konlar' yoki 'sport do'koni')" }
+          }
+        }
+      };
+
       const response = await callAiWithRetry(contents as any, {
         systemInstruction: SYSTEM_INSTRUCTION + contextInstruction,
-        tools: [{ functionDeclarations: [findProductsTool] }]
+        tools: [{ functionDeclarations: [findProductsTool, findShopsTool] }]
       });
 
       let aiResponseText = response.text;
@@ -288,6 +313,9 @@ Foydalanuvchi xabari: ${messageText}`;
       const functionCalls = response.functionCalls;
       if (functionCalls) {
         let hasResults = false;
+        setFoundPosts?.([]);
+        setFoundSellers?.([]);
+
         for (const call of functionCalls) {
           if (call.name === 'find_products') {
             const args = call.args as any;
@@ -325,6 +353,26 @@ Foydalanuvchi xabari: ${messageText}`;
               setFoundPosts?.(results);
               setTimeout(() => setShowResults(true), 1500); 
             }
+          } else if (call.name === 'find_shops') {
+            const args = call.args as any;
+            if (args.query) {
+              const q = args.query.toLowerCase();
+              const results = allSellers.filter(s => {
+                const searchableText = [
+                  s.name,
+                  s.description || '',
+                  s.region || '',
+                  ...(s.categories || [])
+                ].join(' ').toLowerCase();
+                return searchableText.includes(q);
+              });
+              
+              if (results.length > 0) {
+                hasResults = true;
+                setFoundSellers?.(results);
+                setTimeout(() => setShowResults(true), 1500);
+              }
+            }
           }
         }
 
@@ -350,7 +398,8 @@ Foydalanuvchi xabari: ${messageText}`;
         const q = messageText.toLowerCase();
         const queryWords = q.split(/\s+/).filter(w => w.length > 1);
 
-        let results = allPosts.filter(p => {
+        // Fallback Products Search
+        let postResults = allPosts.filter(p => {
           const searchableText = [
             p.outfitName,
             p.description || '',
@@ -366,13 +415,24 @@ Foydalanuvchi xabari: ${messageText}`;
           return searchableText.includes(q);
         });
         
-        // If they just asked "topdingmi" and we have existing results, use those
-        if (results.length === 0 && foundPosts.length > 0 && (q.includes('top') || q.includes('natija'))) {
-          results = foundPosts;
-        }
+        // Fallback Shops Search
+        let shopResults = allSellers.filter(s => {
+          const searchableText = [
+            s.name,
+            s.description || '',
+            s.region || '',
+            ...(s.categories || [])
+          ].join(' ').toLowerCase();
+          return searchableText.includes(q);
+        });
 
-        if (results.length > 0) {
-          setFoundPosts?.(results);
+        // Ensure we clear previous results
+        setFoundPosts?.([]);
+        setFoundSellers?.([]);
+
+        if (postResults.length > 0 || shopResults.length > 0) {
+          if (postResults.length > 0) setFoundPosts?.(postResults);
+          if (shopResults.length > 0) setFoundSellers?.(shopResults);
           setTimeout(() => setShowResults(true), 1500); 
         }
       }
@@ -403,7 +463,7 @@ Foydalanuvchi xabari: ${messageText}`;
 
       {/* "Topildi" Badge - Floating Right */}
       <AnimatePresence>
-        {foundPosts.length > 0 && !showResults && (
+        {(foundPosts.length > 0 || foundSellers.length > 0) && !showResults && (
           <motion.button
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -414,7 +474,7 @@ Foydalanuvchi xabari: ${messageText}`;
             <LayoutGrid size={14} />
             {language === 'uz' ? 'Topildi' : 'Найдено'}
             <span className="bg-white text-accent-blue w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-              {foundPosts.length}
+              {foundPosts.length + foundSellers.length}
             </span>
           </motion.button>
         )}
@@ -459,39 +519,85 @@ Foydalanuvchi xabari: ${messageText}`;
             </div>
 
             <div className="flex-1 overflow-y-auto pb-safe scrollbar-hide">
-              <div className="grid grid-cols-2 gap-0">
-                {foundPosts.map(post => (
-                  <motion.div
-                    key={post.id}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => onOpenPostDetails?.(post)}
-                    className="bg-neutral-50 dark:bg-neutral-900 overflow-hidden relative"
-                  >
-                    <div className="aspect-[9/16] relative">
-                      {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
-                        <video 
-                          src={`${post.mediaUrls?.[0]}#t=0.1`}
-                          className="w-full h-full object-cover"
-                          preload="metadata"
-                          muted
-                          playsInline
-                        />
-                      ) : (
+              {foundSellers.length > 0 && (
+                <div className="p-4 space-y-4">
+                  <h3 className="text-xs font-black text-text-primary/40 uppercase tracking-widest mb-4">
+                    {language === 'uz' ? 'Topilgan do\'konlar' : 'Найденные магазины'}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {foundSellers.map(seller => (
+                      <motion.div
+                        key={seller.id}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setShowResults(false);
+                          onOpenShopProfile?.(seller.id);
+                        }}
+                        className="flex items-center gap-4 p-4 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800"
+                      >
                         <img 
-                          src={post.mediaUrls[0]} 
-                          alt={post.outfitName} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
+                          src={seller.logo} 
+                          alt={seller.name} 
+                          className="w-16 h-16 rounded-xl object-cover border border-white/20" 
                         />
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
-                        <p className="text-[10px] font-black truncate">{post.outfitName}</p>
-                        <p className="text-xs font-black text-accent-light">{post.price}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-text-primary">{seller.name}</h4>
+                          <p className="text-xs text-text-secondary line-clamp-1">{seller.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-black text-accent-blue uppercase">{seller.region}</span>
+                            <span className="text-[10px] text-text-primary/30">•</span>
+                            <span className="text-[10px] font-bold text-text-primary/60">{seller.categories?.[0]}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {foundPosts.length > 0 && (
+                <>
+                  {foundSellers.length > 0 && <div className="h-4" />}
+                  <div className="px-4 py-2">
+                    <h3 className="text-xs font-black text-text-primary/40 uppercase tracking-widest mb-4">
+                      {language === 'uz' ? 'Topilgan mahsulotlar' : 'Найденные товары'}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-0">
+                    {foundPosts.map(post => (
+                      <motion.div
+                        key={post.id}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => onOpenPostDetails?.(post)}
+                        className="bg-neutral-50 dark:bg-neutral-900 overflow-hidden relative"
+                      >
+                        <div className="aspect-[9/16] relative">
+                          {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
+                            <video 
+                              src={`${post.mediaUrls?.[0]}#t=0.1`}
+                              className="w-full h-full object-cover"
+                              preload="metadata"
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <img 
+                              src={post.mediaUrls[0]} 
+                              alt={post.outfitName} 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          )}
+                          <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
+                            <p className="text-[10px] font-black truncate">{post.outfitName}</p>
+                            <p className="text-xs font-black text-accent-light">{post.price}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         )}

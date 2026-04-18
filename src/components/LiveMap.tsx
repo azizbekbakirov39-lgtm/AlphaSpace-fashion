@@ -13,6 +13,7 @@ interface LiveMapProps {
   onSearchActive: (active: boolean) => void;
   isSearchActive: boolean;
   sellers: Seller[];
+  currentUserUid?: string | null;
 }
 
 const FASHION_DISTRICTS = [
@@ -21,7 +22,7 @@ const FASHION_DISTRICTS = [
   { id: 'd3', name: 'Tashkent City Premium', center: [41.3111, 69.2406], radius: 600, color: '#f59e0b' },
 ];
 
-const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearchActive, isSearchActive, sellers }) => {
+const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearchActive, isSearchActive, sellers, currentUserUid }) => {
   const [selectedCategories, setSelectedCategories] = useState<SellerCategory[]>(SELLER_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentZoom, setCurrentZoom] = useState(13);
@@ -104,13 +105,30 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
     }
   };
 
-  const filteredSellers = React.useMemo(() => sellers.filter(s => 
-    s.location && 
-    typeof s.location.lat === 'number' && 
-    typeof s.location.lng === 'number' &&
-    s.categories.some(cat => selectedCategories.includes(cat)) &&
-    (searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  ), [sellers, selectedCategories, searchQuery]);
+  const filteredSellers = React.useMemo(() => sellers.filter(s => {
+    if (!s.location) return false;
+    
+    // Support both string and number coordinates
+    const lat = typeof s.location.lat === 'number' ? s.location.lat : Number(s.location.lat);
+    const lng = typeof s.location.lng === 'number' ? s.location.lng : Number(s.location.lng);
+    
+    if (isNaN(lat) || isNaN(lng)) return false;
+
+    // Always show user's own shop regardless of filters
+    if (currentUserUid && s.ownerUid === currentUserUid) return true;
+
+    // Check search query
+    const matchesSearch = searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    // If no categories are selected (default), show all. If some are selected, filter.
+    const sellerCats = s.categories || [];
+    const hasCategoryMatch = selectedCategories.length === 0 || 
+                             selectedCategories.length === SELLER_CATEGORIES.length ||
+                             sellerCats.some(cat => selectedCategories.includes(cat));
+
+    return hasCategoryMatch;
+  }), [sellers, selectedCategories, searchQuery, currentUserUid]);
 
   useEffect(() => {
     if (mapRef.current && filteredSellers.length > 0) {
@@ -240,10 +258,16 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             const fontSize = Math.max(10, Math.min(16, (zoom - 10) * 1.5 + 10));
             const showName = zoom >= 13;
 
+            // Ensure numeric coordinates for Yandex Maps Placemark
+            const lat = typeof seller.location!.lat === 'number' ? seller.location!.lat : Number(seller.location!.lat);
+            const lng = typeof seller.location!.lng === 'number' ? seller.location!.lng : Number(seller.location!.lng);
+
+            if (isNaN(lat) || isNaN(lng)) return null;
+
             return (
                 <Placemark
                   key={seller.id}
-                  geometry={[seller.location!.lat, seller.location!.lng]}
+                  geometry={[lat, lng]}
                   properties={{
                     iconContent: `
                       <div class="pulsing-marker" style="display: flex; align-items: center; background: white; padding: 4px ${showName ? '12px' : '4px'} 4px 4px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.22); cursor: pointer; white-space: nowrap; border: 2px solid white; position: relative;">
@@ -412,6 +436,13 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
                         <span className="text-[10px] font-bold uppercase tracking-widest">{selectedSeller.region}</span>
                       </div>
                     )}
+                  </div>
+                  {/* Display exact coordinates as requested */}
+                  <div className="mt-1 flex items-center gap-1.5 opacity-40">
+                    < Zap size={10} className="text-accent-blue" />
+                    <span className="text-[9px] font-mono font-bold tracking-tight">
+                      {selectedSeller.location?.lat.toFixed(6)}, {selectedSeller.location?.lng.toFixed(6)}
+                    </span>
                   </div>
                 </div>
               </div>

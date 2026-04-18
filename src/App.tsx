@@ -100,6 +100,13 @@ export default function App() {
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [userSaves, setUserSaves] = useState<Set<string>>(new Set());
   const [userSubscriptions, setUserSubscriptions] = useState<Set<string>>(new Set());
+
+  // Workspace State
+  const [workspace, setWorkspace] = useState<'Marketplace' | 'Shop'>('Marketplace');
+  const [hasShop, setHasShop] = useState(false);
+  const [userShops, setUserShops] = useState<Seller[]>([]);
+  const [userShop, setUserShop] = useState<Seller | null>(null);
+  const [showShopSelector, setShowShopSelector] = useState(false);
   
   // Firestore Real-time Listeners
   React.useEffect(() => {
@@ -372,13 +379,21 @@ export default function App() {
   }, [stories, sellers, userLikes, userSubscriptions]);
 
   const sellersWithUserStatus = React.useMemo(() => {
-    return sellers
+    // Merge user-owned shops into the main list just in case they aren't synced globally yet
+    const allSellers = [...sellers];
+    userShops.forEach(uShop => {
+      if (!allSellers.some(s => s.id === uShop.id)) {
+        allSellers.push(uShop);
+      }
+    });
+
+    return allSellers
       .filter(seller => seller.status !== 'frozen')
       .map(seller => ({
         ...seller,
         isSubscribed: userSubscriptions.has(seller.id)
       }));
-  }, [sellers, userSubscriptions]);
+  }, [sellers, userShops, userSubscriptions]);
 
   // Shop Creation State
   const [isCreatingShop, setIsCreatingShop] = useState(false);
@@ -460,13 +475,6 @@ export default function App() {
       }
     }
   };
-
-  // Workspace State
-  const [workspace, setWorkspace] = useState<'Marketplace' | 'Shop'>('Marketplace');
-  const [hasShop, setHasShop] = useState(false);
-  const [userShops, setUserShops] = useState<Seller[]>([]);
-  const [userShop, setUserShop] = useState<Seller | null>(null);
-  const [showShopSelector, setShowShopSelector] = useState(false);
 
   // Shop Workspace Internal Navigation (Lifted for history management)
   const [shopWorkspaceTab, setShopWorkspaceTab] = React.useState('MyShop');
@@ -1456,8 +1464,12 @@ export default function App() {
                       setMessages={setAiMessages}
                       foundPosts={aiFoundPosts}
                       setFoundPosts={setAiFoundPosts}
+                      foundSellers={aiFoundSellers}
+                      setFoundSellers={setAiFoundSellers}
                       onOpenPostDetails={openPostDetails}
+                      onOpenShopProfile={openShopProfile}
                       allPosts={postsWithUserStatus}
+                      allSellers={sellersWithUserStatus}
                       initialQuery={aiInitialQuery}
                       onClearInitialQuery={() => setAiInitialQuery(undefined)}
                     />
@@ -1476,6 +1488,7 @@ export default function App() {
                       onSearchActive={handleSearchActive}
                       isSearchActive={isSearchActive}
                       sellers={sellersWithUserStatus}
+                      currentUserUid={user?.uid}
                     />
                   </motion.div>
                 ) : activeTab === 'Profile' ? (
