@@ -573,15 +573,18 @@ const Profile: React.FC<ProfileProps> = ({
         chatId: chatId,
         senderUid: user.uid,
         text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
-        audio: audioData || undefined,
-        image: finalImageUrl || undefined,
-        video: finalVideoUrl || undefined,
-        videoMessage: videoMessage || undefined,
-        location: locationData || undefined,
-        post: post || undefined,
+        audio: audioData,
+        image: finalImageUrl,
+        video: finalVideoUrl,
+        videoMessage: videoMessage,
+        location: locationData,
+        post: post,
         timestamp: serverTimestamp(),
         replyTo: replyingTo?.id
       };
+
+      // Firestore doesn't support undefined values, so we delete them
+      Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
 
       await addDoc(collection(db, `chats/${chatId}/messages`), msgData);
       

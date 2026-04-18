@@ -17,7 +17,7 @@ import CreateShopModal from './components/CreateShopModal';
 import ShopConstruction from './components/ShopConstruction';
 import DownloadPage from './components/DownloadPage';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Sparkles, Store, Mail, X, Zap, CheckCircle2, Check, Plus } from 'lucide-react';
+import { Search, Sparkles, Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2 } from 'lucide-react';
 import Logo from './components/Logo';
 import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
@@ -773,7 +773,7 @@ export default function App() {
         workspace,
         activeTab,
         profileSubView
-      }, '');
+      }, '', `?shop=${shopId}`);
     }
   }, [workspace, activeTab, profileSubView]);
 
@@ -791,9 +791,36 @@ export default function App() {
         activeTab,
         profileSubView,
         selectedShopId // Capture if we opened from a shop profile
-      }, '');
+      }, '', `?post=${post.id}`);
     }
   }, [workspace, activeTab, profileSubView, selectedShopId]);
+
+  // Deep linking initial load
+  const initialDeepLinkHandled = React.useRef(false);
+  React.useEffect(() => {
+    if (initialDeepLinkHandled.current) return;
+    if (postsWithUserStatus.length === 0 && sellersWithUserStatus.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('post');
+    const shopId = params.get('shop');
+
+    if (postId && postsWithUserStatus.length > 0) {
+      const post = postsWithUserStatus.find(p => p.id === postId);
+      if (post) {
+        initialDeepLinkHandled.current = true;
+        setTimeout(() => openPostDetails(post), 100);
+      }
+    } else if (shopId && sellersWithUserStatus.length > 0) {
+      const shop = sellersWithUserStatus.find(s => s.id === shopId);
+      if (shop) {
+        initialDeepLinkHandled.current = true;
+        setTimeout(() => openShopProfile(shopId), 100);
+      }
+    } else if (!postId && !shopId) {
+      initialDeepLinkHandled.current = true;
+    }
+  }, [postsWithUserStatus, sellersWithUserStatus, openPostDetails, openShopProfile]);
 
   const openPostComments = React.useCallback((post: any) => {
     setSelectedPostForComments(post);
@@ -1157,7 +1184,46 @@ export default function App() {
                   <X size={24} />
                 </button>
               </div>
-              <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
+
+              {/* Direct Link Share Options */}
+              <div className="p-4 border-b border-border-primary flex flex-col gap-3">
+                <p className="px-2 text-[10px] font-black uppercase tracking-widest text-text-primary/60">Tashqi havolalar</p>
+                <div className="flex gap-4 px-2">
+                  <button 
+                    onClick={() => {
+                      const link = `${window.location.origin}?post=${sharingPost.id}`;
+                      navigator.clipboard.writeText(link);
+                      toast.success("Havola nusxalandi!");
+                      closeShare();
+                    }}
+                    className="flex-1 py-3 bg-text-primary/5 hover:bg-text-primary/10 rounded-xl flex items-center justify-center gap-2 transition-all"
+                  >
+                    <span className="font-bold text-xs">Nusxalash</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const link = `${window.location.origin}?post=${sharingPost.id}`;
+                      if (navigator.share) {
+                        navigator.share({
+                          title: sharingPost.outfitName || 'Mahsulot',
+                          text: sharingPost.description || 'Shu mahsulotni ko\'ring!',
+                          url: link
+                        }).catch(console.error);
+                      } else {
+                        navigator.clipboard.writeText(link);
+                        toast.success("Havola nusxalandi!");
+                      }
+                      closeShare();
+                    }}
+                    className="flex-1 py-3 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 rounded-xl flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Share2 size={16} />
+                    <span className="font-bold text-xs uppercase tracking-widest">Ulashish</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-[50vh] overflow-y-auto p-4 space-y-2">
                 <p className="px-2 text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-blue-500 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-2">Chatlar</p>
                 {sellers.map(seller => (
                   <button

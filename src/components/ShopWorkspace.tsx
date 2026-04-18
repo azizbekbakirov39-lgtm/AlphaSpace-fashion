@@ -843,7 +843,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       const msgData: any = {
         senderUid: shopData.id,
-        text: messageText || undefined,
+        text: messageText,
         type: finalType,
         mediaUrl: finalMedia,
         location: finalLocation,
@@ -851,6 +851,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         timestamp: serverTimestamp(),
         replyTo: replyingTo?.id
       };
+
+      // Ensure no undefined values are written to Firestore
+      Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
 
       const chatRef = doc(db, 'chats', activeChatId);
       await setDoc(chatRef, {
