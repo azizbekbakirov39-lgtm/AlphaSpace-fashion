@@ -1208,7 +1208,11 @@ export default function App() {
                           title: sharingPost.outfitName || 'Mahsulot',
                           text: sharingPost.description || 'Shu mahsulotni ko\'ring!',
                           url: link
-                        }).catch(console.error);
+                        }).catch((err) => {
+                          if (err.name !== 'AbortError' && !err.message?.includes('canceled')) {
+                            console.error('Error sharing:', err);
+                          }
+                        });
                       } else {
                         navigator.clipboard.writeText(link);
                         toast.success("Havola nusxalandi!");

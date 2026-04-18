@@ -12,8 +12,10 @@ export const useShare = () => {
         await navigator.clipboard.writeText(url);
         alert('Havola nusxalandi');
       }
-    } catch (error) {
-      console.error('Error sharing:', error);
+    } catch (error: any) {
+      if (error.name !== 'AbortError' && !error.message?.includes('canceled')) {
+        console.error('Error sharing:', error);
+      }
     }
   };
 
