@@ -112,7 +112,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
               const shareData = {
                 title: seller.name,
                 text: seller.description,
-                url: window.location.href,
+                url: `${window.location.origin}?shop=${seller.id}`,
               };
               await shareContent(shareData.title, shareData.text, shareData.url);
             }}

@@ -214,7 +214,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     const shareData = {
       title: currentStory.seller.name,
       text: "Check out this story on AlphaSpace",
-      url: window.location.href,
+      url: `${window.location.origin}?shop=${currentStory.sellerId}`,
     };
     await shareContent(shareData.title, shareData.text, shareData.url);
   };

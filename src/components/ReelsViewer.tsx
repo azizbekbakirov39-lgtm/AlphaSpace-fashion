@@ -150,7 +150,7 @@ const ReelItem: React.FC<{
     const shareData = {
       title: realPost.seller.name,
       text: realPost.outfitName,
-      url: window.location.href,
+      url: `${window.location.origin}?post=${realPost.id}`,
     };
     await shareContent(shareData.title, shareData.text, shareData.url);
   };

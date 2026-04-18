@@ -252,7 +252,7 @@ const Post: React.FC<PostProps> = ({
     const shareData = {
       title: post.seller.name,
       text: post.outfitName,
-      url: window.location.href,
+      url: `${window.location.origin}?post=${post.id}`,
     };
     await shareContent(shareData.title, shareData.text, shareData.url);
   };

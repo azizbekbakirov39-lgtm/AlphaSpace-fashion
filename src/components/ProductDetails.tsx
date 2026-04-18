@@ -151,7 +151,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
               const shareData = {
                 title: post.seller.name,
                 text: post.outfitName,
-                url: window.location.href,
+                url: `${window.location.origin}?post=${post.id}`,
               };
               await shareContent(shareData.title, shareData.text, shareData.url);
             }}
