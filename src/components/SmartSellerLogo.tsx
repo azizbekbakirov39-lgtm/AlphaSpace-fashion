@@ -17,7 +17,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
   showText = true 
 }) => {
   const blue = "#0095FF";
-  const purple = "#A855F7";
+  const purple = "#22D3EE";
   const lightBlue = "#5AC8FA";
 
   return (
@@ -164,7 +164,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
           className="mt-[-10px] text-center relative z-10"
         >
           <span 
-            className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 font-bold"
+            className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 font-bold"
             style={{ 
               fontFamily: "'Dancing Script', cursive",
               fontSize: typeof width === 'number' ? (width as number) / 4 : '22px',

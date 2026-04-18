@@ -11,7 +11,7 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
     <defs>
       <linearGradient id="bag-gradient" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#A855F7" />
+        <stop offset="100%" stopColor="#22D3EE" />
       </linearGradient>
       <linearGradient id="gold-metallic" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#FFF9C4" />
@@ -86,7 +86,7 @@ export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor"
     <defs>
       <linearGradient id="live-gradient" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#A855F7" />
+        <stop offset="100%" stopColor="#22D3EE" />
       </linearGradient>
       <linearGradient id="gold-metallic" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#FFF9C4" />

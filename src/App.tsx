@@ -1262,6 +1262,14 @@ export default function App() {
             className="relative h-full w-full flex flex-col overflow-hidden"
           >
             {/* Instagram Style Header */}
+            <svg width="0" height="0" className="absolute">
+              <defs>
+                <linearGradient id="header-blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3B82F6" />
+                  <stop offset="100%" stopColor="#22D3EE" />
+                </linearGradient>
+              </defs>
+            </svg>
             <header className="flex items-center justify-between px-4 py-3 border-b border-border-primary bg-header-bg z-50">
               <div className="flex items-center justify-between w-full relative">
                 {/* Left Side */}
@@ -1271,7 +1279,7 @@ export default function App() {
 
                 {/* Middle Branding Text - Instagram Style */}
                 <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
-                  <h1 className="text-[32px] font-cursive font-bold italic bg-gradient-to-r from-blue-500 via-blue-500 to-purple-600 bg-clip-text text-transparent tracking-tight">
+                  <h1 className="text-[32px] font-cursive font-bold italic bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent tracking-tight">
                     AlphaSpace
                   </h1>
                 </div>
@@ -1295,8 +1303,8 @@ export default function App() {
                         }}
                         className="relative flex flex-col items-center gap-0.5 p-1 hover:bg-accent-blue/5 rounded-xl transition-all active:scale-95"
                       >
-                        <Mail size={24} strokeWidth={1.5} className="text-blue-500" />
-                        <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 via-blue-500 to-purple-600 bg-clip-text text-transparent uppercase tracking-widest">Xabarlar</span>
+                        <Mail size={24} strokeWidth={1.5} stroke="url(#header-blue-gradient)" />
+                        <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent uppercase tracking-widest">Xabarlar</span>
                         {unreadMessages > 0 && (
                           <motion.div 
                             initial={{ scale: 0 }}

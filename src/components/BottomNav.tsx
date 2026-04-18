@@ -91,7 +91,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                       opacity: isActive ? 1 : 0.8,
                       scale: isActive ? 1.05 : 1,
                     }}
-                    className={`${['Brands', 'Live'].includes(tab.name) ? 'text-sm font-bold font-cursive' : ['Profile'].includes(tab.name) ? 'text-sm font-medium font-cursive' : 'text-[8px] font-black tracking-[0.1em] uppercase'} transition-all duration-300 text-center px-1 whitespace-nowrap relative bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`}
+                    className={`${['Brands', 'Live'].includes(tab.name) ? 'text-sm font-bold font-cursive' : ['Profile'].includes(tab.name) ? 'text-sm font-medium font-cursive' : 'text-[8px] font-black tracking-[0.1em] uppercase'} transition-all duration-300 text-center px-1 whitespace-nowrap relative bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent`}
                   >
                     {tab.label}
                   </motion.span>

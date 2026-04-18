@@ -13,7 +13,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
   const finalHeight = height || width;
   const accentBlue = "#3B82F6";
   const accentLight = "#FFFFFF";
-  const accentBlueBright = "#9333EA";
+  const accentBlueBright = "#22D3EE";
 
   const pathVariants = {
     hidden: { pathLength: 0, opacity: 0 },
@@ -56,7 +56,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
         <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#3B82F6" />
           <stop offset="60%" stopColor="#3B82F6" />
-          <stop offset="100%" stopColor="#A855F7" />
+          <stop offset="100%" stopColor="#22D3EE" />
         </linearGradient>
       </defs>
 
