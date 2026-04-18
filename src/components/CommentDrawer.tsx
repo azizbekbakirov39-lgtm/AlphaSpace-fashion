@@ -91,7 +91,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ isOpen, onClose, postId, 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[40000]"
           />
           <motion.div
             initial={{ y: '100%' }}
@@ -106,7 +106,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ isOpen, onClose, postId, 
                 onClose();
               }
             }}
-            className="absolute bottom-0 left-0 right-0 h-[80%] bg-white rounded-t-[32px] z-[1001] overflow-hidden flex flex-col shadow-2xl"
+            className="absolute bottom-0 left-0 right-0 h-[80%] bg-white rounded-t-[32px] z-[40001] overflow-hidden flex flex-col shadow-2xl"
           >
             {/* Drag Handle Area */}
             <div className="w-full py-4 cursor-grab active:cursor-grabbing flex-shrink-0 flex items-center justify-center">

@@ -38,7 +38,7 @@ interface ShopProfileProps {
   onClose: () => void;
   onToggleSubscribe: (sellerId: string) => void;
   onOpenChat: (sellerId: string) => void;
-  onOpenPostDetails: (post: PostData) => void;
+  onOpenPostDetails: (posts: PostData[], index: number) => void;
   language: Language;
   allPosts?: PostData[];
 }
@@ -397,15 +397,15 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="px-6 pb-24">
+        <div className="pb-24">
           {activeTab === 'posts' && (
-            <div className="grid grid-cols-3 gap-1.5">
-              {posts.map((post) => (
+            <div className="grid grid-cols-2 gap-0">
+              {posts.map((post, index) => (
                 <motion.div
                   key={post.id}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onOpenPostDetails(post)}
-                  className="aspect-square relative group overflow-hidden bg-neutral-900 rounded-2xl border border-border-primary shadow-sm"
+                  onClick={() => onOpenPostDetails(posts, index)}
+                  className="aspect-[9/16] relative group overflow-hidden bg-neutral-900 shadow-sm"
                 >
                   {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
                     <video 
@@ -422,11 +422,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       referrerPolicy="no-referrer"
                     />
-                  )}
-                  {post.mediaType === 'video' && (
-                    <div className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-lg text-white">
-                      <Play size={10} fill="currentColor" />
-                    </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                 </motion.div>
@@ -470,7 +465,27 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                     height="100%"
                     options={{ suppressMapOpenBlock: true }}
                   >
-                    <Placemark geometry={[seller.location.lat, seller.location.lng]} />
+                    <Placemark 
+                      geometry={[seller.location.lat, seller.location.lng]} 
+                      properties={{
+                        iconContent: `
+                          <div style="position: relative; width: 50px; height: 50px;">
+                            <div class="pulse-ring" style="position: absolute; top: 50%; left: 50%; width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 149, 255, 0.4); z-index: 1;"></div>
+                            <div style="position: relative; z-index: 2; width: 50px; height: 50px; background: white; border-radius: 50%; border: 3px solid #0095FF; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                              <img src="${seller.logo || `https://ui-avatars.com/api/?name=${seller.name}&background=random`}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
+                            </div>
+                            <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #0095FF; z-index: 1;"></div>
+                          </div>
+                        `
+                      }}
+                      options={{
+                        iconLayout: 'default#imageWithContent',
+                        iconImageHref: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                        iconImageSize: [1, 1],
+                        iconImageOffset: [-25, -25],
+                        iconContentOffset: [-25, -25],
+                      }}
+                    />
                   </Map>
                 </YMaps>
               </div>

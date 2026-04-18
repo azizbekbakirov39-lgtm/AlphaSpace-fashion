@@ -94,6 +94,7 @@ interface ShopWorkspaceProps {
   setActiveTab: (tab: string) => void;
   activeChatId: string | null;
   setActiveChatId: (chatId: string | null) => void;
+  onOpenReels?: (posts: PostData[], index: number) => void;
 }
 
 const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({ 
@@ -106,7 +107,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   activeTab,
   setActiveTab,
   activeChatId,
-  setActiveChatId
+  setActiveChatId,
+  onOpenReels
 }) => {
   const { isKeyboardOpen } = useKeyboard();
   const [localShopData, setLocalShopData] = useState<Seller>(shopData);
@@ -1217,11 +1219,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               </div>
             </div>
 
-            <div className="px-6 pb-20">
+            <div className="pb-20">
               {activeProfileTab === 'Postlar' && (
                 <div className="flex flex-col gap-6">
                   {/* Action Buttons */}
-                  <div className="flex flex-col gap-3 w-full">
+                  <div className="px-6 flex flex-col gap-3 w-full">
                     <button 
                       onClick={() => setShowInstagramImportModal(true)}
                       className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -1240,12 +1242,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
                   {/* Post Grid */}
                   {(posts.length > 0 || uploadProgress !== null) ? (
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-2 gap-0">
                       {uploadProgress !== null && (
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="aspect-square rounded-lg overflow-hidden relative flex items-center justify-center border border-border-primary"
+                          className="aspect-[9/16] overflow-hidden relative flex items-center justify-center border border-border-primary"
                         >
                           {/* Animated mixing gradient background with 15% opacity/blur effect */}
                           <div className="absolute inset-0 bg-gradient-to-br from-[#007AFF] to-[#5AC8FA] bg-[length:200%_200%] animate-[gradient_3s_ease_infinite] opacity-85"></div>
@@ -1258,12 +1260,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           </div>
                         </motion.div>
                       )}
-                      {posts.map((post) => (
+                      {posts.map((post, index) => (
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           key={post.id} 
-                          className="aspect-square bg-text-primary/5 rounded-lg overflow-hidden border border-border-primary relative group"
+                          className="aspect-[9/16] bg-text-primary/5 overflow-hidden relative group"
                         >
                           {post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
                             <video 
@@ -1272,7 +1274,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               preload="metadata"
                               muted
                               playsInline
-                              onClick={() => setEditingPost(post)}
+                              onClick={() => onOpenReels ? onOpenReels(posts, index) : setEditingPost(post)}
                             />
                           ) : (
                             <img 
@@ -1280,7 +1282,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               className="w-full h-full object-cover cursor-pointer" 
                               alt={post.outfitName} 
                               referrerPolicy="no-referrer" 
-                              onClick={() => setEditingPost(post)}
+                              onClick={() => onOpenReels ? onOpenReels(posts, index) : setEditingPost(post)}
                             />
                           )}
                           {/* Direct delete button - Top Left, z-index 50 */}
@@ -2554,16 +2556,36 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 onClick={() => window.open(`https://yandex.com/maps/?pt=${localShopData.location!.lng},${localShopData.location!.lat}&z=16&l=map`, '_blank')}
               >
                 <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
-                  <Map 
-                    state={{ center: [localShopData.location.lat, localShopData.location.lng], zoom: 15 }}
-                    width="100%"
-                    height="100%"
-                    options={{
-                      suppressMapOpenBlock: true,
-                    }}
-                  >
-                    <Placemark geometry={[localShopData.location.lat, localShopData.location.lng]} />
-                  </Map>
+                    <Map 
+                      state={{ center: [localShopData.location.lat, localShopData.location.lng], zoom: 15 }}
+                      width="100%"
+                      height="100%"
+                      options={{
+                        suppressMapOpenBlock: true,
+                      }}
+                    >
+                      <Placemark 
+                        geometry={[localShopData.location.lat, localShopData.location.lng]} 
+                        properties={{
+                          iconContent: `
+                            <div style="position: relative; width: 50px; height: 50px;">
+                              <div class="pulse-ring" style="position: absolute; top: 50%; left: 50%; width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 149, 255, 0.4); z-index: 1;"></div>
+                              <div style="position: relative; z-index: 2; width: 50px; height: 50px; background: white; border-radius: 50%; border: 3px solid #0095FF; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                                <img src="${localShopData.logo || `https://ui-avatars.com/api/?name=${localShopData.name}&background=random`}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
+                              </div>
+                              <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #0095FF; z-index: 1;"></div>
+                            </div>
+                          `
+                        }}
+                        options={{
+                          iconLayout: 'default#imageWithContent',
+                          iconImageHref: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                          iconImageSize: [1, 1],
+                          iconImageOffset: [-25, -25],
+                          iconContentOffset: [-25, -25],
+                        }}
+                      />
+                    </Map>
                 </YMaps>
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                   <div className="px-4 py-2 bg-bg-primary/90 backdrop-blur-md rounded-xl border border-border-primary text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
@@ -2758,23 +2780,33 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
             <div className="flex items-center justify-between mb-3 px-2">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Qaysi postni story qilasiz?</h4>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-0">
               {posts.map(post => (
                 <div 
                   key={post.id} 
                   onClick={() => setSelectedPostId(post.id)}
-                  className={`aspect-square rounded-xl overflow-hidden border-2 transition-all relative cursor-pointer ${selectedPostId === post.id ? 'border-orange-500 scale-95' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  className={`aspect-[9/16] overflow-hidden border-2 transition-all relative cursor-pointer ${selectedPostId === post.id ? 'border-orange-500 scale-[0.98] z-10 shadow-xl' : 'border-transparent opacity-80 hover:opacity-100'}`}
                 >
-                  <img src={post.mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
+                    <video 
+                      src={`${post.mediaUrls?.[0]}#t=0.1`}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img src={post.mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  )}
                   {selectedPostId === post.id && (
                     <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
-                      <CheckCircle2 size={24} className="text-white drop-shadow-md" />
+                      <CheckCircle2 size={32} className="text-white drop-shadow-md" />
                     </div>
                   )}
                 </div>
               ))}
               {posts.length === 0 && (
-                <div className="col-span-3 py-10 text-center text-text-primary/40 text-xs font-bold">
+                <div className="col-span-2 py-10 text-center text-text-primary/40 text-xs font-bold">
                   Hali postlar yo'q
                 </div>
               )}

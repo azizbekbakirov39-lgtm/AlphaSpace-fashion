@@ -1381,6 +1381,7 @@ export default function App() {
                       setActiveTab={setShopWorkspaceTab}
                       activeChatId={shopWorkspaceChatId}
                       setActiveChatId={setShopWorkspaceChatId}
+                      onOpenReels={(postsList, index) => openReels(postsList, index)}
                     />
                   </motion.div>
                 ) : activeTab === 'Home' ? (
@@ -1601,7 +1602,7 @@ export default function App() {
                   onClose={closeShopProfile}
                   onToggleSubscribe={toggleSubscribe}
                   onOpenChat={handleOpenChat}
-                  onOpenPostDetails={setSelectedPostForDetails}
+                  onOpenPostDetails={(postsList, index) => openReels(postsList, index)}
                   language={language}
                   allPosts={postsWithUserStatus}
                 />
@@ -1774,6 +1775,13 @@ export default function App() {
         }
         .animate-spin-slow {
           animation: spin-slow 3s linear infinite;
+        }
+        @keyframes pulse-ring {
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
+          100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+        .pulse-ring {
+          animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         body {
           font-family: 'Inter', sans-serif;

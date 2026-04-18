@@ -558,26 +558,34 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
             <div className="flex items-center justify-between mb-6 px-2">
               <h4 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary/40">O'xshash mahsulotlar</h4>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-0 mb-10">
               {relatedPosts.map((relatedPost) => (
                 <motion.div 
                   key={relatedPost.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    // In a real app, this would navigate to the new post
-                    // For now, we'll just show a toast
                     showToast(language === 'uz' ? 'Yangi mahsulot yuklanmoqda...' : 'Loading product...');
                   }}
-                  className="bg-white dark:bg-neutral-900 rounded-3xl overflow-hidden border border-border-primary shadow-sm"
+                  className="bg-white dark:bg-neutral-900 overflow-hidden relative"
                 >
-                  <div className="aspect-[3/4] relative">
-                    <img 
-                      src={relatedPost.mediaUrls[0]} 
-                      alt={relatedPost.outfitName}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute bottom-3 left-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-xl text-white">
+                  <div className="aspect-[9/16] relative">
+                    {relatedPost.mediaType === 'video' || (relatedPost.mediaUrls?.[0] && (relatedPost.mediaUrls[0].includes('.mp4') || relatedPost.mediaUrls[0].includes('video/upload'))) ? (
+                      <video 
+                        src={`${relatedPost.mediaUrls?.[0]}#t=0.1`}
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <img 
+                        src={getProxiedUrl(relatedPost.mediaUrls[0])} 
+                        alt={relatedPost.outfitName}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
                       <p className="text-[10px] font-black truncate">{relatedPost.outfitName}</p>
                       <p className="text-[12px] font-black text-accent-light">{relatedPost.price}</p>
                     </div>
@@ -632,16 +640,36 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                 onClick={() => window.open(`https://yandex.com/maps/?pt=${seller.location!.lng},${seller.location!.lat}&z=16&l=map`, '_blank')}
               >
                 <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
-                  <Map 
-                    state={{ center: [seller.location.lat, seller.location.lng], zoom: 15 }}
-                    width="100%"
-                    height="100%"
-                    options={{
-                      suppressMapOpenBlock: true,
-                    }}
-                  >
-                    <Placemark geometry={[seller.location.lat, seller.location.lng]} />
-                  </Map>
+                    <Map 
+                      state={{ center: [seller.location.lat, seller.location.lng], zoom: 15 }}
+                      width="100%"
+                      height="100%"
+                      options={{
+                        suppressMapOpenBlock: true,
+                      }}
+                    >
+                      <Placemark 
+                        geometry={[seller.location.lat, seller.location.lng]} 
+                        properties={{
+                          iconContent: `
+                            <div style="position: relative; width: 50px; height: 50px;">
+                              <div class="pulse-ring" style="position: absolute; top: 50%; left: 50%; width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 149, 255, 0.4); z-index: 1;"></div>
+                              <div style="position: relative; z-index: 2; width: 50px; height: 50px; background: white; border-radius: 50%; border: 3px solid #0095FF; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                                <img src="${seller.logo || `https://ui-avatars.com/api/?name=${seller.name}&background=random`}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
+                              </div>
+                              <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #0095FF; z-index: 1;"></div>
+                            </div>
+                          `
+                        }}
+                        options={{
+                          iconLayout: 'default#imageWithContent',
+                          iconImageHref: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                          iconImageSize: [1, 1],
+                          iconImageOffset: [-25, -25],
+                          iconContentOffset: [-25, -25],
+                        }}
+                      />
+                    </Map>
                 </YMaps>
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                   <div className="px-4 py-2 bg-bg-primary/90 backdrop-blur-md rounded-xl border border-border-primary text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">

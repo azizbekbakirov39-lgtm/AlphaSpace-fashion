@@ -458,23 +458,33 @@ Foydalanuvchi xabari: ${messageText}`;
               <div className="w-12 h-1 bg-neutral-400 rounded-full" />
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="flex-1 overflow-y-auto pb-safe scrollbar-hide">
+              <div className="grid grid-cols-2 gap-0">
                 {foundPosts.map(post => (
                   <motion.div
                     key={post.id}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onOpenPostDetails?.(post)}
-                    className="bg-neutral-50 dark:bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-100 dark:border-neutral-800 shadow-sm"
+                    className="bg-neutral-50 dark:bg-neutral-900 overflow-hidden relative"
                   >
-                    <div className="aspect-[3/4] relative">
-                      <img 
-                        src={post.mediaUrls[0]} 
-                        alt={post.outfitName} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
+                    <div className="aspect-[9/16] relative">
+                      {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
+                        <video 
+                          src={`${post.mediaUrls?.[0]}#t=0.1`}
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                          muted
+                          playsInline
+                        />
+                      ) : (
+                        <img 
+                          src={post.mediaUrls[0]} 
+                          alt={post.outfitName} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent text-white">
                         <p className="text-[10px] font-black truncate">{post.outfitName}</p>
                         <p className="text-xs font-black text-accent-light">{post.price}</p>
                       </div>

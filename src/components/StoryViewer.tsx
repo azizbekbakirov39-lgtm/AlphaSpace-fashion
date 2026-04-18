@@ -239,7 +239,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       initial={{ opacity: 0, scale: 1.1 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
-      className="fixed inset-0 z-[5000] bg-black flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[30000] bg-black flex items-center justify-center overflow-hidden"
     >
       {isVideoUrl(currentStory.videoUrl) ? (
         <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
