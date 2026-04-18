@@ -245,6 +245,11 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             {filteredSellers.map(seller => {
               const hasDiscount = (seller.followers || 0) > 1000;
               const discountText = hasDiscount ? (seller.followers > 5000 ? "40%" : "20%") : null;
+              
+              // Xarita uzoqlashtirilgan sari (zoom kamayganda) logotiplar kattalashadi
+              const zoom = mapState.zoom || 13;
+              // zoom kamaygani sari (10, 8, 5) o'lcham kattalashadi (50, 60, 70), yaqinlashgani sari kichiklashadi (30-40)
+              const markerSize = Math.max(35, Math.min(85, 100 - (zoom * 4)));
 
               return (
                 <Placemark
@@ -252,19 +257,16 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
                   geometry={[seller.location!.lat, seller.location!.lng]}
                   properties={{
                     iconContent: `
-                      <div class="pulsing-marker" style="position: relative; display: flex; align-items: center; background: white; padding: 4px 14px 4px 4px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.18); cursor: pointer; white-space: nowrap; border: 1px solid rgba(0,0,0,0.08); transform: translate(-50%, -100%);">
+                      <div class="pulsing-marker" style="position: relative; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); transition: all 0.3s ease; cursor: pointer;">
                         ${discountText ? `
-                          <div style="position: absolute; top: -14px; right: 8px; background: #22c55e; color: white; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 20px; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4); border: 1.5px solid white;">
+                          <div style="position: absolute; top: -8px; right: -8px; background: #22c55e; color: white; font-size: ${Math.max(10, markerSize/5)}px; font-weight: 900; padding: 2px 6px; border-radius: 20px; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4); border: 2px solid white; z-index: 10;">
                             ${discountText}
                           </div>
                         ` : ''}
-                        <div style="width: 34px; height: 34px; border-radius: 50%; overflow: hidden; border: 2.5px solid white; background: #f5f5f5; flex-shrink: 0; position: relative; z-index: 2; box-shadow: 0 3px 10px rgba(0,0,0,0.12);">
+                        <div style="width: ${markerSize}px; height: ${markerSize}px; border-radius: 50%; overflow: hidden; border: ${Math.max(2, markerSize/15)}px solid white; background: #f5f5f5; position: relative; z-index: 2; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: width 0.3s ease, height 0.3s ease;">
                           <img src="${seller.logo || `https://ui-avatars.com/api/?name=${seller.name}&background=random`}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
                         </div>
-                        <span style="margin-left: 10px; font-size: 13px; font-weight: 800; color: #000; letter-spacing: -0.025em; font-family: 'Inter', sans-serif; position: relative; z-index: 2; padding-right: 4px;">
-                          ${seller.name}
-                        </span>
-                        <div class="pulse-ring" style="position: absolute; top: 50%; left: 18px; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 149, 255, 0.25); z-index: 1;"></div>
+                        <div class="pulse-ring" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: ${markerSize * 1.5}px; height: ${markerSize * 1.5}px; border-radius: 50%; background: rgba(0, 149, 255, 0.25); z-index: 1; transition: width 0.3s ease, height 0.3s ease;"></div>
                       </div>
                     `,
                   }}
