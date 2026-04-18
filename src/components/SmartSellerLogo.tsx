@@ -112,7 +112,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
 
           {/* Tag Hole */}
           <circle cx="38" cy="38" r="6" fill="white" />
-          <circle cx="38" cy="38" r="3.5" fill="#1a1a1a" />
+          <circle cx="38" cy="38" r="3.5" fill="white" />
 
           {/* Chain - Front of the tag (Smaller, more links) */}
           <g filter="url(#glow)">

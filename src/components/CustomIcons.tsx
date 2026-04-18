@@ -59,12 +59,12 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
       strokeWidth="1"
       fill="none"
     />
-    {/* Letter B (Gold) */}
+    {/* Letter B (White & Centered) */}
     <text 
-      x="12" y="15" 
+      x="12" y="15.5" 
       fontSize="8" 
       fontWeight="bold" 
-      fill="url(#gold-metallic)" 
+      fill="white" 
       textAnchor="middle"
       fontFamily="sans-serif"
     >
@@ -95,19 +95,21 @@ export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor"
       </linearGradient>
     </defs>
     
-    {/* Map Pin Shape */}
-    <path 
-      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-      fill="url(#live-gradient)"
-      stroke="white"
-      strokeWidth={strokeWidth}
-    />
-    {/* Map Pin Center Dot */}
-    <circle cx="12" cy="9" r="2" fill="white" />
-    
-    {/* Pulse effect if active */}
-    {isActive && (
-      <circle cx="12" cy="9" r="6" stroke="white" strokeWidth="1" className="animate-ping" opacity="0.6" />
-    )}
+    <g transform="scale(0.85) translate(2, 2)">
+      {/* Map Pin Shape */}
+      <path 
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+        fill="url(#live-gradient)"
+        stroke="white"
+        strokeWidth={1.5}
+      />
+      {/* Map Pin Center Dot - High contrast white */}
+      <circle cx="12" cy="9" r="2.5" fill="white" stroke="white" strokeWidth="0.5" />
+      
+      {/* Pulse effect if active */}
+      {isActive && (
+        <circle cx="12" cy="9" r="6" stroke="white" strokeWidth="1" className="animate-ping" opacity="0.6" />
+      )}
+    </g>
   </svg>
 );

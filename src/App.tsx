@@ -105,7 +105,50 @@ export default function App() {
   React.useEffect(() => {
     const unsubSellers = onSnapshot(collection(db, 'shops'), (snapshot) => {
       const sellersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
-      setSellers(sellersData);
+      
+      // Agar Firebase o'rnatilgan bo'lsa-yu shops kolleksiyasi bo'sh bo'lsa, xarita oq bo'lib qolmasligi uchun vaqtincha mock ma'lumotlar kiritib turamiz
+      if (sellersData.length === 0) {
+        setSellers([
+          {
+            id: 'mock1',
+            name: 'Brend Krossovkalar',
+            logo: 'https://ui-avatars.com/api/?name=BK&background=random',
+            description: 'Eng yangi sport kiyimlari',
+            followers: 1200,
+            address: 'Amir Temur maydoni',
+            location: { lat: 41.3111, lng: 69.2797 },
+            rating: 4.8,
+            category: 'Kiyimlar',
+            categories: ['Kiyimlar', 'Sport']
+          },
+          {
+            id: 'mock2',
+            name: 'Texnika Olami',
+            logo: 'https://ui-avatars.com/api/?name=TO&background=random',
+            description: 'Smartfonlar va Noutbuklar',
+            followers: 5500,
+            address: 'Chilonzor Oq-tepa',
+            location: { lat: 41.2950, lng: 69.2400 },
+            rating: 4.9,
+            category: 'Elektronika',
+            categories: ['Elektronika']
+          },
+          {
+            id: 'mock3',
+            name: 'Gullar Markazi',
+            logo: 'https://ui-avatars.com/api/?name=GM&background=random',
+            description: 'Yangi uzilgan gullar qulay narxlarda',
+            followers: 800,
+            address: 'Eski jo\'va bozori',
+            location: { lat: 41.3250, lng: 69.2450 },
+            rating: 4.5,
+            category: 'Sovg\'alar',
+            categories: ['So\'vg\'alar']
+          }
+        ]);
+      } else {
+        setSellers(sellersData);
+      }
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'shops');
     });

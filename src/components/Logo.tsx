@@ -243,13 +243,13 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
               cx="28"
               cy="28"
               r="4.5"
-              fill={accentBlueBright}
+              fill="white"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 1.2, type: "spring" }}
             />
           ) : (
-            <circle cx="28" cy="28" r="4.5" fill={accentBlueBright} />
+            <circle cx="28" cy="28" r="4.5" fill="white" />
           )}
 
           {/* Front Strands (Overlapping the hole) */}

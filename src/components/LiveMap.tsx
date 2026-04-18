@@ -22,11 +22,7 @@ const FASHION_DISTRICTS = [
 ];
 
 const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearchActive, isSearchActive, sellers }) => {
-  const [mapState, setMapState] = useState({
-    center: [41.311081, 69.240562],
-    zoom: 13,
-    controls: []
-  });
+  const [currentZoom, setCurrentZoom] = useState(13);
   const [selectedCategories, setSelectedCategories] = useState<SellerCategory[]>(SELLER_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -93,11 +89,10 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation([latitude, longitude]);
-          setMapState(prev => ({
-            ...prev,
-            center: [latitude, longitude],
-            zoom: 15
-          }));
+          if (mapRef.current) {
+            mapRef.current.setCenter([latitude, longitude], 15, { duration: 300 });
+            setCurrentZoom(15);
+          }
           setError(null);
         },
         (err) => {
@@ -150,11 +145,10 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
 
   const handleSellerClick = (seller: Seller) => {
     setSelectedSeller(seller);
-    setMapState(prev => ({
-      ...prev,
-      center: [seller.location!.lat, seller.location!.lng],
-      zoom: 16
-    }));
+    if (mapRef.current) {
+      mapRef.current.setCenter([seller.location!.lat, seller.location!.lng], 16, { duration: 300 });
+      setCurrentZoom(16);
+    }
 
     if (userLocation && seller.location) {
       setRoute([
@@ -165,10 +159,11 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
   };
 
   const handleZoom = (delta: number) => {
-    setMapState(prev => ({
-      ...prev,
-      zoom: Math.max(1, Math.min(19, prev.zoom + delta))
-    }));
+    if (mapRef.current) {
+      const newZoom = Math.max(1, Math.min(19, mapRef.current.getZoom() + delta));
+      mapRef.current.setZoom(newZoom, { duration: 200 });
+      setCurrentZoom(newZoom);
+    }
   };
 
   return (
@@ -190,15 +185,17 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
       <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US', apikey: '40d1643f-98d9-46d3-9814-e2d199910109' }}>
         <Map 
           instanceRef={mapRef}
-          state={mapState}
+          defaultState={{
+            center: [41.311081, 69.240562],
+            zoom: 13,
+            controls: []
+          }}
           width="100%"
           height="100%"
           onBoundsChange={(e: any) => {
-            setMapState(prev => ({
-              ...prev,
-              center: e.get('target').getCenter(),
-              zoom: e.get('target').getZoom()
-            }));
+            const map = e.get('target');
+            const newZoom = map.getZoom();
+            setCurrentZoom(prev => prev === newZoom ? prev : newZoom);
           }}
           options={{
             suppressMapOpenBlock: true,
@@ -246,10 +243,9 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
               const hasDiscount = (seller.followers || 0) > 1000;
               const discountText = hasDiscount ? (seller.followers > 5000 ? "40%" : "20%") : null;
               
-              // Xarita uzoqlashtirilgan sari (zoom kamayganda) logotiplar kattalashadi
-              const zoom = mapState.zoom || 13;
-              // zoom kamaygani sari (10, 8, 5) o'lcham kattalashadi (50, 60, 70), yaqinlashgani sari kichiklashadi (30-40)
-              const markerSize = Math.max(35, Math.min(85, 100 - (zoom * 4)));
+              // Xarita uzoqlashtirilgan sari logotiplar kattalashadi
+              // zoom kamaygani sari o'lcham kattalashadi, yaqinlashgani sari kichiklashadi
+              const markerSize = Math.max(35, Math.min(85, 100 - (currentZoom * 4)));
 
               return (
                 <Placemark
