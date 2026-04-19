@@ -49,6 +49,7 @@ import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orde
 import { uploadImageToImgBB } from '../services/imgbb';
 
 import { InAppBrowserGuide } from './InAppBrowserGuide';
+import Logo from './Logo';
 
 interface ProfileProps {
   language: Language;
@@ -718,40 +719,9 @@ const Profile: React.FC<ProfileProps> = ({
   };
 
   const renderMain = () => {
-    const downloadBanner = !isStandalone ? (
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6 p-4 bg-gradient-to-r from-accent-blue/20 to-accent-light/20 border border-accent-blue/30 rounded-3xl flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent-blue rounded-xl flex items-center justify-center text-white">
-            <Download size={20} />
-          </div>
-          <div>
-            <h3 className="text-white font-bold text-sm">AlphaSpace Ilovasi</h3>
-            <p className="text-white/60 text-xs">Moda va kiyimlarga asoslangan platforma</p>
-          </div>
-        </div>
-        <button 
-          onClick={() => {
-            if (isInAppBrowser) {
-              setShowInAppGuideModal(true);
-            } else {
-              installApp();
-            }
-          }}
-          className="px-4 py-2 bg-accent-blue text-white rounded-full text-xs font-bold uppercase tracking-wider"
-        >
-          O'rnatish
-        </button>
-      </motion.div>
-    ) : null;
-
     if (!user) {
       return (
         <div className="flex flex-col h-full p-4">
-          {downloadBanner}
           <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
             <AnimatePresence mode="wait">
               {!showEmailForm ? (
@@ -959,7 +929,6 @@ const Profile: React.FC<ProfileProps> = ({
 
     return (
       <div className="flex flex-col gap-6 p-4">
-        {downloadBanner}
         {/* Glassmorphic Identity Card */}
         <motion.div 
           whileHover={{ y: -5 }}
@@ -1034,6 +1003,45 @@ const Profile: React.FC<ProfileProps> = ({
             </div>
           </div>
         </motion.div>
+
+        {/* Smart App Download Banner */}
+        {!isStandalone && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full bg-white rounded-[2rem] p-4 shadow-xl shadow-black/5 border border-border-primary flex flex-col gap-4 mt-2 overflow-hidden relative"
+          >
+            {/* Background embellishments */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-accent-blue/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
+                <Logo width={40} height={40} showText={false} />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-black text-lg text-text-primary uppercase tracking-tight">AlphaSpace</span>
+                <span className="text-[11px] uppercase font-bold text-accent-blue tracking-widest leading-tight">
+                  Ilova sifatida yuklash
+                </span>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => {
+                if (isInAppBrowser) {
+                  setShowInAppGuideModal(true);
+                } else {
+                  installApp();
+                }
+              }}
+              className="w-full relative z-10 px-6 py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-accent-blue/30 active:scale-95 transition-transform flex items-center justify-center gap-3"
+            >
+              <Download size={20} strokeWidth={2.5} />
+              O'rnatish
+            </button>
+          </motion.div>
+        )}
 
       {/* New Interactive Sections */}
       <div className="grid grid-cols-2 gap-3">
@@ -1110,26 +1118,6 @@ const Profile: React.FC<ProfileProps> = ({
             {languages.find(l => l.code === language)?.name}
           </p>
         </motion.button>
-
-        {!isStandalone && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              if (isInAppBrowser) {
-                setShowInAppGuideModal(true);
-              } else {
-                installApp();
-              }
-            }}
-            className="p-5 bg-gradient-to-br from-accent-blue/10 to-accent-light/10 border border-accent-blue/20 rounded-[2rem] text-left group"
-          >
-            <div className="w-10 h-10 bg-accent-blue/20 rounded-xl flex items-center justify-center text-accent-blue mb-3 group-hover:scale-110 transition-transform">
-              <Download size={24} />
-            </div>
-            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">Ilovani yuklab olish</h3>
-            <p className="text-[10px] text-text-primary/40 font-bold uppercase tracking-widest">Webview & PWA</p>
-          </motion.button>
-        )}
       </div>
 
       {/* Admin Panel Button */}
