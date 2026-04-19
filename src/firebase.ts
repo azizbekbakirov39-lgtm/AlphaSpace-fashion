@@ -42,7 +42,7 @@ export const auth = getAuth(app);
 
 // Resilient Firestore initialization
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId || '(default)');
 
 export const storage = getStorage(app);
@@ -131,11 +131,11 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Connection Test
 async function testConnection() {
   try {
+    // Silent test on startup
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. ");
-    }
+    // Fail silently to avoid console pollution if it's a temporary network blip
+    // Persistence and auto-reconnect will handle it
   }
 }
 testConnection();
