@@ -9,6 +9,7 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 import { Language } from '../translations';
 import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo } from '../utils/mediaUtils';
+import { formatRelativeTime } from '../utils/timeUtils';
 
 interface ReelsViewerProps {
   posts: PostData[];
@@ -398,6 +399,9 @@ const ReelItem: React.FC<{
                   onClick={handleShopClick}
                 >
                   {realPost.seller.name}
+                </span>
+                <span className="text-white/60 text-[10px] font-black uppercase tracking-widest drop-shadow-lg">
+                  • {formatRelativeTime(realPost.createdAt)}
                 </span>
                 {/* Details Button - Blue, glassmorphism, next to shop name */}
                 <motion.button

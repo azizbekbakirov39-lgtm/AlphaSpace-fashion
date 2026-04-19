@@ -23,6 +23,7 @@ import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
 import { Toaster, toast } from 'sonner';
 import { uploadImageToImgBB } from './services/imgbb';
+import { requestNotificationPermission } from './utils/notifications';
 import { 
   auth, 
   onSnapshot, 
@@ -405,6 +406,8 @@ export default function App() {
   React.useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
+        requestNotificationPermission(); // Muloqot xabarnomalari kelishi uchun so'rash
+        
         // Just set the basic user info first to trigger other effects
         // The real-time profile listener will handle the rest
         if (!user || user.uid !== firebaseUser.uid) {

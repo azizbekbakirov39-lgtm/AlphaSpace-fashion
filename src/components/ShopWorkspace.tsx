@@ -40,12 +40,19 @@ import {
   Mic,
   ExternalLink,
   Info,
-  FileUp
+  FileUp,
+  Package,
+  ChevronRight,
+  Bookmark,
+  Share2,
+  Eye,
+  Heart
 } from 'lucide-react';
 import { isVideoUrl, getProxiedUrl, safePlayVideo } from '../utils/mediaUtils';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
+import { showChatNotification } from '../utils/notifications';
 import { toast } from 'sonner';
 import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, User } from '../types';
 import { uploadImageToImgBB } from '../services/imgbb';
@@ -126,7 +133,28 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     if (!shopData.id) return;
 
     const q = query(collection(db, 'chats'), where('participants', 'array-contains', shopData.id));
+    
+    // Store reference to avoid closure staleness in active state checking
+    let initComplete = false;
+
     const unsubChats = onSnapshot(q, (snapshot) => {
+      // Notification Logic
+      if (initComplete) {
+        snapshot.docChanges().forEach(change => {
+           if (change.type === 'modified') {
+             const data = change.doc.data();
+             // If last sender is NOT the shop, it means customer sent a message
+             if (data.lastSender && data.lastSender !== shopData.id) {
+               // Show notification only if we're not actively conversing in this specific chat
+               if (document.hidden || activeChatId !== change.doc.id) {
+                  showChatNotification("Yangi xabar", data.lastMessage || "Mijoz xabar yubordi");
+               }
+             }
+           }
+        });
+      }
+      initComplete = true;
+
       const chatsData = snapshot.docs.map(chatDoc => {
         const chatId = chatDoc.id;
         const customerUid = chatId.replace(shopData.id, '').replace('_', '');
@@ -228,6 +256,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<{[key: string]: number}>({});
   
+  // Post Details view
+  const [selectedPostDetails, setSelectedPostDetails] = useState<PostData | null>(null);
+  const [postDetailsTab, setPostDetailsTab] = useState<'stats' | 'settings'>('stats');
+
   const dragStartRef = useRef<number | null>(null);
   const dragXRef = useRef(0);
   const isCancelAreaHoveredRef = useRef(false);
@@ -1302,7 +1334,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               preload="metadata"
                               muted
                               playsInline
-                              onClick={() => onOpenReels ? onOpenReels(posts, index) : setEditingPost(post)}
+                              onClick={() => setSelectedPostDetails(post)}
                             />
                           ) : (
                             <img 
@@ -1310,34 +1342,18 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                               className="w-full h-full object-cover cursor-pointer" 
                               alt={post.outfitName} 
                               referrerPolicy="no-referrer" 
-                              onClick={() => onOpenReels ? onOpenReels(posts, index) : setEditingPost(post)}
+                              onClick={() => setSelectedPostDetails(post)}
                             />
                           )}
-                          {/* Direct delete button - Top Left, z-index 50 */}
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeletePost(post.id);
-                            }}
-                            className="absolute top-2 left-2 p-3 bg-red-600 hover:bg-red-700 rounded-full text-white z-[50] shadow-2xl transition-transform hover:scale-110 active:scale-90"
-                          >
-                            <Trash2 size={16} />
-                          </button>
 
-                          {/* Stats/Settings Menu */}
-                          <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-md p-2 flex justify-between items-center z-[40]">
-                            <button 
-                              onClick={() => { /* Open Stats */ }}
-                              className="px-3 py-1.5 flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-black text-white hover:bg-white/20"
-                            >
-                              <Zap size={10} /> Statistika
-                            </button>
-                            <button 
-                              onClick={() => setEditingPost(post)}
-                              className="px-3 py-1.5 flex items-center gap-1 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-black text-white hover:bg-white/20"
-                            >
-                              <Settings size={10} /> Tahrirlash
-                            </button>
+                          {/* Simplified View Button Overlay */}
+                          <div 
+                            onClick={() => setSelectedPostDetails(post)}
+                            className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all cursor-pointer flex justify-center items-center opacity-0 hover:opacity-100 z-[40]"
+                          >
+                             <div className="bg-black/50 backdrop-blur-md rounded-full px-4 py-2 text-white font-bold text-xs">
+                               Batafsil
+                             </div>
                           </div>
                         </motion.div>
                       ))}
@@ -2637,6 +2653,146 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       </AnimatePresence>
 
       {/* Freeze Shop Modal */}
+      {/* Post Details Modal for Seller */}
+      <AnimatePresence>
+        {selectedPostDetails && (
+          <div className="fixed inset-0 z-[20000] flex flex-col bg-bg-primary overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border-primary bg-bg-primary/80 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setSelectedPostDetails(null)}
+                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                >
+                  <ChevronLeft size={24} className="text-text-primary" />
+                </button>
+                <h3 className="font-black uppercase tracking-widest text-text-primary text-sm flex items-center gap-2">
+                  <Package size={16} className="text-accent-blue" /> Maxsulot
+                </h3>
+              </div>
+              
+              {/* Tabs */}
+              <div className="flex bg-white/5 rounded-xl p-1">
+                <button 
+                  onClick={() => setPostDetailsTab('stats')}
+                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${postDetailsTab === 'stats' ? 'bg-white text-black shadow-md' : 'text-text-primary/50 hover:text-text-primary/80'}`}
+                >
+                  Statistika
+                </button>
+                <button 
+                  onClick={() => setPostDetailsTab('settings')}
+                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${postDetailsTab === 'settings' ? 'bg-white text-black shadow-md' : 'text-text-primary/50 hover:text-text-primary/80'}`}
+                >
+                  Sozlamalar
+                </button>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 overflow-y-auto pb-24">
+              {postDetailsTab === 'stats' && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-6 space-y-6"
+                >
+                  {/* Image Preview */}
+                  <div className="aspect-[4/3] rounded-3xl overflow-hidden border border-border-primary/50 shadow-2xl bg-black relative">
+                    {selectedPostDetails.mediaType === 'video' || (selectedPostDetails.mediaUrls?.[0] && selectedPostDetails.mediaUrls[0].includes('.mp4')) ? (
+                      <video 
+                        src={`${selectedPostDetails.mediaUrls?.[0]}#t=0.1`}
+                        className="w-full h-full object-contain"
+                        preload="metadata"
+                        controls
+                        playsInline
+                      />
+                    ) : (
+                      <img 
+                        src={selectedPostDetails.mediaUrls?.[0]} 
+                        className="w-full h-full object-cover" 
+                        alt={selectedPostDetails.outfitName} 
+                      />
+                    )}
+                    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-white font-black text-sm">
+                      {selectedPostDetails.price.toLocaleString('uz-UZ')} UZS
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="bg-white/5 border border-white/10 p-5 rounded-3xl flex flex-col items-center justify-center text-center">
+                        <Eye size={28} className="text-accent-blue mb-2" />
+                        <span className="text-3xl font-black text-text-primary">{selectedPostDetails.views || 0}</span>
+                        <span className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mt-1">Ko'rishlar</span>
+                     </div>
+                     <div className="bg-white/5 border border-white/10 p-5 rounded-3xl flex flex-col items-center justify-center text-center">
+                        <Heart size={28} className="text-rose-500 mb-2 fill-rose-500" />
+                        <span className="text-3xl font-black text-text-primary">{selectedPostDetails.likes}</span>
+                        <span className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mt-1">Yoqtirishlar</span>
+                     </div>
+                     <div className="bg-white/5 border border-white/10 p-5 rounded-3xl flex flex-col items-center justify-center text-center">
+                        <Share2 size={28} className="text-emerald-500 mb-2" />
+                        <span className="text-3xl font-black text-text-primary">{selectedPostDetails.shares || 0}</span>
+                        <span className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mt-1">Ulashishlar</span>
+                     </div>
+                     <div className="bg-white/5 border border-white/10 p-5 rounded-3xl flex flex-col items-center justify-center text-center">
+                        <Bookmark size={28} className="text-amber-500 mb-2" />
+                        <span className="text-3xl font-black text-text-primary">{selectedPostDetails.saves || 0}</span>
+                        <span className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest mt-1">Saqlashlar</span>
+                     </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {postDetailsTab === 'settings' && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-6 space-y-4"
+                >
+                  <button 
+                    onClick={() => {
+                      setEditingPost(selectedPostDetails);
+                      setSelectedPostDetails(null);
+                    }}
+                    className="w-full flex items-center justify-between p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-colors active:scale-95"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-accent-blue/10 flex items-center justify-center hidden sm:flex">
+                         <Settings size={22} className="text-accent-blue" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-black text-text-primary uppercase tracking-tighter">Tahrirlash</h4>
+                        <p className="text-[10px] font-bold text-text-primary/40 mt-1 uppercase tracking-widest">Ma'lumotlarni o'zgartirish</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} className="text-text-primary/40" />
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      handleDeletePost(selectedPostDetails.id);
+                      setSelectedPostDetails(null);
+                    }}
+                    className="w-full flex items-center justify-between p-5 bg-red-500/5 border border-red-500/20 rounded-2xl hover:bg-red-500/10 transition-colors active:scale-95"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center hidden sm:flex">
+                         <Trash2 size={22} className="text-red-500" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-black text-red-500 uppercase tracking-tighter">O'chirish</h4>
+                        <p className="text-[10px] font-bold text-red-500/60 mt-1 uppercase tracking-widest">Maxsulotni butunlay olib tashlash</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} className="text-red-500/40" />
+                  </button>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showFreezeModal && (
           <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

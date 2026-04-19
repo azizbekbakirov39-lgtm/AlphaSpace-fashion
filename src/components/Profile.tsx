@@ -43,6 +43,7 @@ import { isVideoUrl, safePlayVideo } from '../utils/mediaUtils';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
+import { showChatNotification } from '../utils/notifications';
 import { PostData, Seller, User } from '../types';
 import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { uploadImageToImgBB } from '../services/imgbb';
@@ -149,7 +150,28 @@ const Profile: React.FC<ProfileProps> = ({
 
     // Listen for all chats where user is a participant
     const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+    
+    let initComplete = false;
+
     const unsubChats = onSnapshot(q, (snapshot) => {
+      // Notification Logic
+      if (initComplete) {
+        snapshot.docChanges().forEach(change => {
+           if (change.type === 'modified') {
+             const data = change.doc.data();
+             // If last sender is NOT the user, it means shop sent a message
+             if (data.lastSender && data.lastSender !== user.uid) {
+                const msgSellerId = change.doc.id.replace(user.uid, '').replace('_', '');
+               // Show notification only if we're not actively conversing in this specific chat
+               if (document.hidden || activeChatSeller?.id !== msgSellerId || subView !== 'messages') {
+                  showChatNotification("Do'kondan xabar", data.lastMessage || "Yangi xabar keldi");
+               }
+             }
+           }
+        });
+      }
+      initComplete = true;
+
       snapshot.docs.forEach(chatDoc => {
         const chatId = chatDoc.id;
         const sellerId = chatId.replace(user.uid, '').replace('_', '');
@@ -1088,6 +1110,26 @@ const Profile: React.FC<ProfileProps> = ({
             {languages.find(l => l.code === language)?.name}
           </p>
         </motion.button>
+
+        {!isStandalone && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              if (isInAppBrowser) {
+                setShowInAppGuideModal(true);
+              } else {
+                installApp();
+              }
+            }}
+            className="p-5 bg-gradient-to-br from-accent-blue/10 to-accent-light/10 border border-accent-blue/20 rounded-[2rem] text-left group"
+          >
+            <div className="w-10 h-10 bg-accent-blue/20 rounded-xl flex items-center justify-center text-accent-blue mb-3 group-hover:scale-110 transition-transform">
+              <Download size={24} />
+            </div>
+            <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">Ilovani yuklab olish</h3>
+            <p className="text-[10px] text-text-primary/40 font-bold uppercase tracking-widest">Webview & PWA</p>
+          </motion.button>
+        )}
       </div>
 
       {/* Admin Panel Button */}

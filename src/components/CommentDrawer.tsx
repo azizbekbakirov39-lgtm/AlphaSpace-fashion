@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Send } from 'lucide-react';
 import { db, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, increment, updateDoc, doc } from '../firebase';
 import { User } from '../types';
+import { formatRelativeTime } from '../utils/timeUtils';
 
 interface Comment {
   id: string;
@@ -70,18 +71,6 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ isOpen, onClose, postId, 
     }
   };
 
-  const formatTime = (timestamp: any) => {
-    if (!timestamp) return 'hozir';
-    const date = timestamp.toDate();
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diff < 60) return 'hozir';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-    return `${Math.floor(diff / 86400)}d`;
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -145,7 +134,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ isOpen, onClose, postId, 
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-black">{comment.user}</span>
-                        <span className="text-[10px] text-neutral-400">{formatTime(comment.createdAt)}</span>
+                        <span className="text-[10px] text-neutral-400">{formatRelativeTime(comment.createdAt)}</span>
                       </div>
                       <p className="text-sm text-neutral-700">{comment.text}</p>
                     </div>

@@ -282,23 +282,24 @@ Foydalanuvchi xabari: ${messageText}`;
 
       const findProductsTool = {
         name: "find_products",
-        description: "Marketplace-dan mahsulotlarni qidirish. Rang, kategoriya, brend yoki kiyim turi bo'yicha qidirish imkoniyati bor.",
+        description: "Marketplace-dan mahsulotlarni qidirish. Kontekstda bor maxsulotlarni ID raqami orqali yuboring.",
         parameters: {
           type: Type.OBJECT,
           properties: {
-            query: { type: Type.STRING, description: "Qidiruv so'rovi (masalan: 'jigarrang kastyum' yoki 'sport kiyimi')" },
-            ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Aniq mahsulot ID-lari" }
+            query: { type: Type.STRING, description: "Kontekstda mavjud bo'lmagan keng umumiy qidiruv so'rovi (masalan: 'futbolka', 'krossovka')" },
+            ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Kontekstdagi mos mahsulotlarning 'ID' lari massivi. Iloji bo'lsa har doim faqat shundan foydalaning." }
           }
         }
       };
 
       const findShopsTool = {
         name: "find_shops",
-        description: "Marketplace-dan do'konlarni qidirish. Nomi, hududi yoki sotadigan mahsulot turi bo'yicha qidirish imkoniyati bor.",
+        description: "Marketplace-dan do'konlarni qidirish.",
         parameters: {
           type: Type.OBJECT,
           properties: {
-            query: { type: Type.STRING, description: "Qidiruv so'rovi (masalan: 'Chilonzordagi do'konlar' yoki 'sport do'koni')" }
+            query: { type: Type.STRING, description: "Umumiy qidiruv so'rovi" },
+            ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Kontekstdagi mos do'konlarning 'ID' lari massivi." }
           }
         }
       };
@@ -320,9 +321,12 @@ Foydalanuvchi xabari: ${messageText}`;
           if (call.name === 'find_products') {
             const args = call.args as any;
             let results: PostData[] = [];
-            if (args.ids) {
+            
+            if (args.ids && args.ids.length > 0) {
               results = allPosts.filter(p => args.ids.includes(p.id));
-            } else if (args.query) {
+            } 
+            
+            if (results.length === 0 && args.query) {
               const q = args.query.toLowerCase();
               const queryWords = q.split(/\s+/).filter(w => w.length > 1);
               
@@ -343,11 +347,12 @@ Foydalanuvchi xabari: ${messageText}`;
                 }
                 return searchableText.includes(q);
               });
-              
-              if (results.length === 0 && (q.includes('kiyim') || q.includes('kiyimlar') || q.includes('hammasi'))) {
-                results = allPosts;
-              }
             }
+            
+            if (results.length === 0 && (args.query || '').toLowerCase().includes('kiyim')) {
+               results = allPosts; // fallback
+            }
+
             if (results.length > 0) {
               hasResults = true;
               setFoundPosts?.(results);
@@ -355,9 +360,15 @@ Foydalanuvchi xabari: ${messageText}`;
             }
           } else if (call.name === 'find_shops') {
             const args = call.args as any;
-            if (args.query) {
+            let results: any[] = [];
+            
+            if (args.ids && args.ids.length > 0) {
+              results = allSellers.filter(s => args.ids.includes(s.id));
+            }
+
+            if (results.length === 0 && args.query) {
               const q = args.query.toLowerCase();
-              const results = allSellers.filter(s => {
+              results = allSellers.filter(s => {
                 const searchableText = [
                   s.name,
                   s.description || '',
@@ -366,22 +377,23 @@ Foydalanuvchi xabari: ${messageText}`;
                 ].join(' ').toLowerCase();
                 return searchableText.includes(q);
               });
-              
-              if (results.length > 0) {
-                hasResults = true;
-                setFoundSellers?.(results);
-                setTimeout(() => setShowResults(true), 1500);
-              }
+            }
+            
+            if (results.length > 0) {
+              hasResults = true;
+              setFoundSellers?.(results);
+              setTimeout(() => setShowResults(true), 1500);
             }
           }
         }
 
-        if (!aiResponseText) {
-          if (hasResults) {
-            aiResponseText = language === 'uz' ? "Siz so'ragan narsalarni topdim, mana ular:" : "Я нашел то, что вы просили, вот они:";
-          } else {
-            aiResponseText = language === 'uz' ? "Kechirasiz, marketplace-dan siz qidirgan mahsulotlarni topa olmadim." : "Извините, я не нашел в маркетплейсе товары, которые вы искали.";
-          }
+        const successText = language === 'uz' ? "Siz so'ragan narsalarni topdim, mana ular:" : "Я нашел то, что вы просили, вот они:";
+        const failText = language === 'uz' ? "Kechirasiz, marketplace-dan siz qidirgan ma'lumotni topa olmadim." : "Извините, я не нашел в маркетплейсе то, что вы искали.";
+        
+        if (hasResults) {
+          aiResponseText = aiResponseText ? (aiResponseText + "\n\n" + successText) : successText;
+        } else {
+          aiResponseText = failText;
         }
       }
 

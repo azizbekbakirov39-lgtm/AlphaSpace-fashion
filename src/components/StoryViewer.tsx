@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageCircle, Share2, Volume2, VolumeX, Check, ChevronLeft, ChevronRight, ShoppingBag, Send } from 'lucide-react';
 import { Story, PostData, User } from '../types';
 import { isVideoUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
+import { formatRelativeTime } from '../utils/timeUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
 import { Language } from '../translations';
@@ -358,7 +359,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">Live</span>
                 </div>
               )}
-              <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest">Hozir</span>
+              <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest">
+                {formatRelativeTime(currentStory.createdAt)}
+              </span>
             </div>
           </div>
         </div>
@@ -433,68 +436,89 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       )}
 
       {/* Bottom Actions */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-50">
-        <div className="flex items-center gap-3 mb-6">
-          <form 
-            onSubmit={handleReply} 
-            className="flex-1 relative group"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input 
-              type="text"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder={language === 'uz' ? "Javob yozish..." : "Reply..."}
-              className="w-full bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full pl-6 pr-14 py-4 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-white/40 transition-all shadow-2xl"
-            />
-            <button 
-              type="submit"
-              disabled={!replyText.trim()}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${replyText.trim() ? 'bg-accent-blue text-white scale-100 opacity-100' : 'bg-white/10 text-white/20 scale-90 opacity-0 pointer-events-none'}`}
-            >
-              <Send size={18} strokeWidth={2.5} />
-            </button>
-          </form>
-
-          <div className="flex items-center gap-2">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-50">
+        <div className="flex items-end justify-between gap-4">
+          {/* Left side: Functional Icons */}
+          <div className="flex items-center gap-6 mb-1">
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleLike(currentStory.id, 'story');
+                if (!currentStory.isLiked) {
+                  setShowHeartAnimation(true);
+                  setTimeout(() => setShowHeartAnimation(false), 800);
+                }
               }}
-              className={`w-12 h-12 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex items-center justify-center transition-all active:scale-90 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
+              className={`flex flex-col items-center gap-1.5 transition-all active:scale-75 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
             >
-              <Heart size={22} fill={currentStory.isLiked ? 'currentColor' : 'none'} />
+              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
+                <Heart size={24} fill={currentStory.isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">{currentStory.likes || 0}</span>
             </button>
+
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(true);
+              }}
+              className="flex flex-col items-center gap-1.5 text-white transition-all active:scale-75"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
+                <MessageCircle size={24} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">{currentStory.comments || 0}</span>
+            </button>
+
             <button 
               onClick={handleShare}
-              className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 flex items-center justify-center text-white active:scale-90 transition-all"
+              className="flex flex-col items-center gap-1.5 text-white transition-all active:scale-75"
             >
-              <Share2 size={22} />
+              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
+                <Share2 size={24} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">Share</span>
+            </button>
+
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenChat) onOpenChat(currentStory.sellerId, mockPost);
+              }}
+              className="flex flex-col items-center gap-1.5 text-white transition-all active:scale-75"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
+                <Send size={24} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">Chat</span>
             </button>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none">Mahsulot narxi</span>
-            <span className="text-2xl font-black text-white drop-shadow-lg tracking-tight">{currentStory.price}</span>
+          {/* Right side: Price and Detailed Button */}
+          <div className="flex flex-col items-end gap-3">
+             <div className="bg-accent-blue px-4 py-1.5 rounded-xl shadow-[0_0_20px_rgba(0,122,255,0.3)] border border-white/20">
+                <span className="text-white font-black text-sm tracking-tight">
+                  {currentStory.price && currentStory.price.trim() !== "" 
+                    ? currentStory.price 
+                    : (language === 'uz' ? 'Narxi qancha?' : 'How much?')}
+                </span>
+             </div>
+
+            <motion.button 
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProductDetails(true);
+              }}
+              className="flex items-center gap-3 bg-white px-6 py-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] group active:scale-95 transition-all"
+            >
+              <div className="w-8 h-8 rounded-full bg-accent-blue/10 flex items-center justify-center text-accent-blue">
+                <ShoppingBag size={18} strokeWidth={2.5} />
+              </div>
+              <span className="text-neutral-900 font-black uppercase tracking-widest text-[11px]">Batafsil</span>
+              <ChevronRight size={16} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
+            </motion.button>
           </div>
-          
-          <motion.button 
-            whileTap={{ scale: 0.95 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowProductDetails(true);
-            }}
-            className="flex items-center gap-3 bg-white px-6 py-3.5 rounded-2xl shadow-2xl group active:scale-95 transition-all"
-          >
-            <div className="w-8 h-8 rounded-lg bg-accent-blue/10 flex items-center justify-center text-accent-blue">
-              <ShoppingBag size={18} strokeWidth={2.5} />
-            </div>
-            <span className="text-neutral-900 font-black uppercase tracking-widest text-[10px]">Batafsil</span>
-            <ChevronRight size={14} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-          </motion.button>
         </div>
       </div>
 

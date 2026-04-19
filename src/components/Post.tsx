@@ -8,6 +8,7 @@ import ProductDetails from './ProductDetails';
 import { Language, translations } from '../translations';
 import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
+import { formatRelativeTime } from '../utils/timeUtils';
 
 interface PostProps {
   post: PostData;
@@ -291,7 +292,7 @@ const Post: React.FC<PostProps> = ({
               )}
             </div>
             <span className="text-text-secondary text-[9px] font-bold uppercase tracking-wider opacity-50 mt-0.5">
-              {post.seller.categories?.[0] || "Do'kon"} • {(post.seller.followers || 0).toLocaleString()} {language === 'uz' ? 'obunachi' : 'followers'}
+              {post.seller.categories?.[0] || "Do'kon"} • {(post.seller.followers || 0).toLocaleString()} {language === 'uz' ? 'obunachi' : 'followers'} • {formatRelativeTime(post.createdAt)}
             </span>
           </div>
         </div>
