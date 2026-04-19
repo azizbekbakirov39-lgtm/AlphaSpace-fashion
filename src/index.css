@@ -59,3 +59,12 @@ html, body, #root {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Yandex Maps Custom Marker Tweaks to ensure images are always perfectly circular */
+[class*="ymaps-"][class*="-image"] {
+  border-radius: 50% !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+  border: 2px solid #0095FF !important;
+  background-color: #fff !important;
+  overflow: hidden !important;
+}

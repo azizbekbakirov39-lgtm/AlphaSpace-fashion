@@ -569,16 +569,44 @@ const Profile: React.FC<ProfileProps> = ({
         updatedAt: serverTimestamp()
       }, { merge: true });
 
+      let finalType = 'text';
+      let mediaUrl = undefined;
+      
+      if (post) {
+        finalType = 'post';
+      } else if (locationData) {
+        finalType = 'location';
+      } else if (videoMessage) {
+        finalType = 'videoMessage';
+        mediaUrl = videoMessage;
+      } else if (finalVideoUrl) {
+        finalType = 'video';
+        mediaUrl = finalVideoUrl;
+      } else if (finalImageUrl) {
+        finalType = 'image';
+        mediaUrl = finalImageUrl;
+      } else if (audioData) {
+        finalType = 'voice';
+        mediaUrl = audioData;
+      }
+
       const msgData: any = {
         chatId: chatId,
         senderUid: user.uid,
         text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
+        
+        // Profile.tsx compat
         audio: audioData,
         image: finalImageUrl,
         video: finalVideoUrl,
         videoMessage: videoMessage,
         location: locationData,
         post: post,
+        
+        // ShopWorkspace.tsx compat
+        type: finalType,
+        mediaUrl: mediaUrl,
+
         timestamp: serverTimestamp(),
         replyTo: replyingTo?.id
       };

@@ -106,29 +106,17 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
   };
 
   const filteredSellers = React.useMemo(() => sellers.filter(s => {
-    if (!s.location) return false;
+    if (!s || !s.location) return false;
     
     // Support both string and number coordinates
     const lat = typeof s.location.lat === 'number' ? s.location.lat : Number(s.location.lat);
     const lng = typeof s.location.lng === 'number' ? s.location.lng : Number(s.location.lng);
     
-    if (isNaN(lat) || isNaN(lng)) return false;
+    if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return false;
 
-    // Always show user's own shop regardless of filters
-    if (currentUserUid && s.ownerUid === currentUserUid) return true;
-
-    // Check search query
-    const matchesSearch = searchQuery === '' || s.name.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
-
-    // If no categories are selected (default), show all. If some are selected, filter.
-    const sellerCats = s.categories || [];
-    const hasCategoryMatch = selectedCategories.length === 0 || 
-                             selectedCategories.length === SELLER_CATEGORIES.length ||
-                             sellerCats.some(cat => selectedCategories.includes(cat));
-
-    return hasCategoryMatch;
-  }), [sellers, selectedCategories, searchQuery, currentUserUid]);
+    // Barcha cheklovlar olib tashlandi: xuddi maxsulot sahifasidagidek erkin bo'lishi uchun
+    return true;
+  }), [sellers]);
 
   useEffect(() => {
     if (mapRef.current && filteredSellers.length > 0) {
@@ -250,50 +238,34 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
 
           {/* Shop Markers */}
           {filteredSellers.map(seller => {
-            const hasDiscount = (seller.followers || 0) > 1000;
-            const discountText = hasDiscount ? (seller.followers > 5000 ? "40%" : "20%") : null;
-            
-            const zoom = currentZoom;
-            const logoSize = Math.max(24, Math.min(56, (zoom - 10) * 6 + 24));
-            const fontSize = Math.max(10, Math.min(16, (zoom - 10) * 1.5 + 10));
-            const showName = zoom >= 13;
-
             // Ensure numeric coordinates for Yandex Maps Placemark
             const lat = typeof seller.location!.lat === 'number' ? seller.location!.lat : Number(seller.location!.lat);
             const lng = typeof seller.location!.lng === 'number' ? seller.location!.lng : Number(seller.location!.lng);
 
-            if (isNaN(lat) || isNaN(lng)) return null;
+            if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+
+            const markerSize = 28; // Asl hajmga qaytarildi (2x kichiklashtirildi)
+            const offset = -markerSize / 2;
+            const safeName = encodeURIComponent(seller.name || 'Store');
+            // Determine a fallback logo and use ui-avatars with &rounded=true to ensure its circular naturally!
+            const logoUrl = seller.logo || `https://ui-avatars.com/api/?name=${safeName}&background=random&color=fff&bold=true&rounded=true`;
 
             return (
                 <Placemark
                   key={seller.id}
                   geometry={[lat, lng]}
-                  properties={{
-                    iconContent: `
-                      <div class="pulsing-marker" style="display: flex; align-items: center; background: white; padding: 4px ${showName ? '12px' : '4px'} 4px 4px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.22); cursor: pointer; white-space: nowrap; border: 2px solid white; position: relative;">
-                        ${discountText ? `
-                          <div style="position: absolute; top: -14px; right: 0px; background: #22c55e; color: white; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 20px; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4); border: 1.5px solid white; z-index: 10;">
-                            ${discountText}
-                          </div>
-                        ` : ''}
-                        <div style="width: ${logoSize}px; height: ${logoSize}px; border-radius: 50%; overflow: hidden; border: 2px solid #f0f0f0; background: #f5f5f5; flex-shrink: 0; position: relative; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                          <img src="${seller.logo || `https://ui-avatars.com/api/?name=${seller.name}&background=random`}" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" />
-                        </div>
-                        ${showName ? `
-                          <span style="margin-left: 8px; font-size: ${fontSize}px; font-weight: 800; color: #000; letter-spacing: -0.02em; font-family: 'Inter', sans-serif; position: relative; z-index: 2; padding-right: 4px;">
-                            ${seller.name}
-                          </span>
-                        ` : ''}
-                        <div class="pulse-ring" style="position: absolute; top: 50%; left: ${logoSize/2 + 4}px; transform: translate(-50%, -50%); width: ${logoSize + 10}px; height: ${logoSize + 10}px; border-radius: 50%; background: rgba(0, 149, 255, 0.2); z-index: 1;"></div>
-                      </div>
-                    `,
-                  }}
                   options={{
-                    iconLayout: 'default#imageWithContent',
-                    iconImageHref: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-                    iconImageSize: [1, 1],
-                    iconImageOffset: [0, 0],
-                    iconContentOffset: [-(logoSize / 2 + (showName ? 40 : 4)), -(logoSize / 2 + 4)],
+                    iconLayout: 'default#image', 
+                    // Yandex map'ning oddiy imageLayout'idan foydalanamiz, bu hech qanday xatolik bermaydi.
+                    iconImageHref: logoUrl,
+                    iconImageSize: [markerSize, markerSize],
+                    iconImageOffset: [offset, offset],
+                    // marker shaklini yumaloq deb belgilash
+                    iconImageShape: {
+                      type: 'Circle',
+                      coordinates: [0, 0],
+                      radius: markerSize / 2
+                    }
                   }}
                   onClick={() => handleSellerClick(seller)}
                 />

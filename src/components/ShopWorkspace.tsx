@@ -176,12 +176,31 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
     const msgQ = query(collection(db, `chats/${activeChatId}/messages`), orderBy('timestamp', 'asc'));
     const unsubMessages = onSnapshot(msgQ, (msgSnapshot) => {
-      const msgs = msgSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        sender: doc.data().senderUid === shopData.id ? 'shop' : 'customer',
-        timestamp: doc.data().timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      } as any));
+      const msgs = msgSnapshot.docs.map(doc => {
+        const data = doc.data();
+        let finalType = data.type;
+        let finalMediaUrl = data.mediaUrl;
+        
+        // Polyfill for messages sent by older clients or Profile.tsx that lack 'type'
+        if (!finalType) {
+            if (data.post) finalType = 'post';
+            else if (data.location) finalType = 'location';
+            else if (data.videoMessage) { finalType = 'videoMessage'; finalMediaUrl = data.videoMessage; }
+            else if (data.video) { finalType = 'video'; finalMediaUrl = data.video; }
+            else if (data.image) { finalType = 'image'; finalMediaUrl = data.image; }
+            else if (data.audio) { finalType = 'voice'; finalMediaUrl = data.audio; }
+            else finalType = 'text';
+        }
+
+        return {
+          id: doc.id,
+          ...data,
+          type: finalType,
+          mediaUrl: finalMediaUrl,
+          sender: data.senderUid === shopData.id ? 'shop' : 'customer',
+          timestamp: data.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+      }) as Message[];
 
       setChats(prev => prev.map(c => c.id === activeChatId ? { ...c, messages: msgs } : c));
     });
@@ -845,10 +864,19 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const msgData: any = {
         senderUid: shopData.id,
         text: messageText,
+        
+        // ShopWorkspace.tsx compat
         type: finalType,
         mediaUrl: finalMedia,
         location: finalLocation,
         post: postData,
+        
+        // Profile.tsx compat
+        audio: finalType === 'voice' ? finalMedia : undefined,
+        image: finalType === 'image' ? finalMedia : undefined,
+        video: finalType === 'video' ? finalMedia : undefined,
+        videoMessage: finalType === 'videoMessage' ? finalMedia : undefined,
+
         timestamp: serverTimestamp(),
         replyTo: replyingTo?.id
       };
@@ -1561,7 +1589,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
                           className={`${paddingStyle} text-[14px] shadow-sm cursor-pointer transition-all active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
                         >
-                          {msg.type === 'text' && <p className="leading-relaxed">{msg.text}</p>}
+                          {msg.text && <p className={`leading-relaxed whitespace-pre-wrap ${msg.type !== 'text' ? 'mb-2' : ''}`}>{msg.text}</p>}
                           {msg.type === 'image' && (
                             <div className="relative group">
                               <img src={msg.mediaUrl || undefined} className="rounded-xl max-w-full h-auto shadow-lg" alt="sent" referrerPolicy="no-referrer" />
