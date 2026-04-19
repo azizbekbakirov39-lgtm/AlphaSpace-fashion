@@ -130,7 +130,7 @@ const Profile: React.FC<ProfileProps> = ({
   setSentPosts
 }) => {
   const { isKeyboardOpen } = useKeyboard();
-  const { installApp, isStandalone, isInAppBrowser } = usePWA();
+  const { installApp, isStandalone, isInAppBrowser, canInstall } = usePWA();
   const [showInAppGuideModal, setShowInAppGuideModal] = useState(false);
   const [activeChatSeller, setActiveChatSeller] = useState<Seller | null>(null);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -1009,35 +1009,29 @@ const Profile: React.FC<ProfileProps> = ({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full bg-white rounded-[2rem] p-4 shadow-xl shadow-black/5 border border-border-primary flex flex-col gap-4 mt-2 overflow-hidden relative"
+            className="w-full bg-white rounded-[2.5rem] p-6 shadow-2xl shadow-accent-blue/10 border border-border-primary/50 flex flex-col items-center gap-6 mt-2 overflow-hidden relative"
           >
             {/* Background embellishments */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent-blue/5 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -top-10 -right-10 w-48 h-48 bg-accent-blue/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                <Logo width={40} height={40} showText={false} />
-              </div>
-              <div className="flex flex-col text-left">
-                <span className="font-black text-lg text-text-primary uppercase tracking-tight">AlphaSpace</span>
-                <span className="text-[11px] uppercase font-bold text-accent-blue tracking-widest leading-tight">
-                  Ilova sifatida yuklash
-                </span>
-              </div>
+            <div className="flex flex-col items-center justify-center relative z-10 w-full">
+              <Logo width={120} height={120} showText={true} animated={false} />
+              <span className="text-[12px] uppercase font-black text-accent-blue tracking-[0.2em] leading-tight text-center mt-2 bg-accent-blue/10 px-4 py-1.5 rounded-full">
+                Ilova sifatida yuklash
+              </span>
             </div>
             
             <button
-              onClick={() => {
-                if (isInAppBrowser) {
+              onClick={async () => {
+                const promptShown = await installApp();
+                if (!promptShown) {
                   setShowInAppGuideModal(true);
-                } else {
-                  installApp();
                 }
               }}
-              className="w-full relative z-10 px-6 py-4 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-accent-blue/30 active:scale-95 transition-transform flex items-center justify-center gap-3"
+              className="w-full relative z-10 px-6 py-5 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black text-base uppercase tracking-widest shadow-xl shadow-accent-blue/30 active:scale-95 transition-all flex items-center justify-center gap-3 hover:shadow-2xl hover:-translate-y-1"
             >
-              <Download size={20} strokeWidth={2.5} />
+              <Download size={24} strokeWidth={2.5} />
               O'rnatish
             </button>
           </motion.div>

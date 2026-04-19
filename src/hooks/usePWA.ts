@@ -68,26 +68,27 @@ export function usePWA() {
     };
   }, []);
 
-  const installApp = async () => {
+  const installApp = async (): Promise<boolean> => {
     if (isInAppBrowser) {
-      // If we are in an in-app browser, we shouldn't even try to prompt.
-      // The UI should handle this state by showing the InAppBrowserGuide.
-      alert("Iltimos, yuqoridagi 3 ta nuqtani (⋮) bosib, 'Chrome brauzerida ochish' (Open in Chrome) ni tanlang.");
-      return;
+      return false;
     }
 
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        globalDeferredPrompt = null;
-        setDeferredPrompt(null);
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          globalDeferredPrompt = null;
+          setDeferredPrompt(null);
+        }
+        return true;
+      } catch (error) {
+        console.error("Install prompt error", error);
+        return false;
       }
-    } else if (isIOS) {
-      alert("Ilovani o'rnatish uchun pastdagi 📤 (Ulashish) tugmasini bosing va 'Bosh ekranga qo'shish' (Add to Home Screen) ni tanlang.");
-    } else {
-      alert("O'rnatish oynasi avtomatik chiqmadi.\n\nSababi: Siz linkni Telegram yoki Instagram ichida ochgan bo'lishingiz mumkin.\n\nIltimos, yuqoridagi 3 ta nuqtani (⋮) bosib, 'Chrome brauzerida ochish' (Open in Chrome) ni tanlang va u yerdan yuklab oling.");
     }
+    
+    return false;
   };
 
   return { installApp, isIOS, isStandalone, isInAppBrowser, canInstall: !!deferredPrompt || isIOS };
