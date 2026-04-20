@@ -17,7 +17,7 @@ import CreateShopModal from './components/CreateShopModal';
 import ShopConstruction from './components/ShopConstruction';
 import DownloadPage from './components/DownloadPage';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Sparkles, Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2 } from 'lucide-react';
+import { Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2 } from 'lucide-react';
 import Logo from './components/Logo';
 import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
@@ -30,7 +30,6 @@ import {
   doc, 
   db, 
   signInWithGoogle, 
-  loginWithCustomToken,
   logout, 
   registerWithEmail,
   loginWithEmail,
@@ -44,7 +43,6 @@ import {
   query, 
   where, 
   orderBy, 
-  limit, 
   serverTimestamp,
   Timestamp,
   increment,
@@ -61,15 +59,11 @@ export default function App() {
   React.useEffect(() => {
     const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
     if (!apiKey) {
-      console.warn("ImgBB API Key is missing. Image uploads will not work.");
       // Only show toast if user is a seller or tries to upload
-    } else if (apiKey.length < 10) {
-      console.warn("ImgBB API Key looks invalid.");
     }
   }, []);
 
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<PostData[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -95,7 +89,6 @@ export default function App() {
   const [aiFoundPosts, setAiFoundPosts] = useState<any[]>([]);
   const [aiFoundSellers, setAiFoundSellers] = useState<any[]>([]);
   const [aiInitialQuery, setAiInitialQuery] = useState<string | undefined>(undefined);
-  const [pendingTryOn, setPendingTryOn] = useState<PostData | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [globalMuted, setGlobalMuted] = useState(false);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -429,10 +422,8 @@ export default function App() {
             setUser(docSnap.data() as User);
           }
         }
-        setLoading(false);
       } else {
         setUser(null);
-        setLoading(false);
       }
     });
 
@@ -613,9 +604,7 @@ export default function App() {
       finishConstruction();
     }
   }, [constructionProgress, isConstructingShop, newShopData, user]);
-
-  const subscribedSellers = sellers.filter(s => s.isSubscribed);
-  const savedPosts = postsWithUserStatus.filter(p => p.isSaved);
+  
   const [recentlyViewedPosts, setRecentlyViewedPosts] = React.useState<PostData[]>([]);
 
   const filteredPosts = postsWithUserStatus.filter(post => {
