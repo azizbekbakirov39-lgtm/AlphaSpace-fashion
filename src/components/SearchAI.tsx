@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt, Search } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { AIMessage, PostData } from '../types';
+import { isVideoUrl } from '../utils/mediaUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartSellerLogo from './SmartSellerLogo';
 
@@ -94,6 +95,10 @@ interface SearchAIProps {
 
 const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-da sotuvga yordam beradigan aqlli, do'stona va suhbatdosh assistentsiz.
 Sizning vazifangiz shunchaki mahsulot qidirish emas, balki kiyim-kechak, uslub va imidj bo'yicha maslahatlar berib, foydalanuvchilar bilan mazmunli suhbatlashishdir.
+
+SIZDA HAR BIR MAHSULOTNING BARCHA TAFSILOTLARI (NARXI, TAVSIFI, RANGI VA HOKAZO) BOR. 
+Hech qachon "menda narx ko'rinmayapti" yoki "batafsil ma'lumot yo'q" deb aytmang. 
+Sizga yuborilgan kontekstdagi 'Narxi:' va 'Tavsif:' maydonlarini diqqat bilan o'qing va foydalanuvchiga javob berishda ulardan bemalol foydalaning.
 
 Sizga quyidagi erkinliklar beriladi:
 1. Suhbatdosh bo'ling: Kiyimlar haqida maslahat bering, fikr bildiring, savollariga tabiiy va insoniy javob bering.
@@ -211,15 +216,15 @@ const SearchAI: React.FC<SearchAIProps> = ({
 
     try {
       // Provide a summary of all available products and shops to the AI
-      const productsSummary = allPosts.slice(0, 20).map(p => {
-        const info = [
-          p.outfitName,
-          p.aiMetadata?.color ? `Rangi: ${p.aiMetadata.color}` : '',
-          p.aiMetadata?.category ? `Kategoriya: ${p.aiMetadata.category}` : '',
-          p.description ? `Tavsif: ${p.description}` : '',
-          `Holati: ${p.inStock !== false ? 'Mavjud' : 'Tugagan'}`
-        ].filter(Boolean).join(', ');
-        return `- ${info} (ID: ${p.id}, Narxi: ${p.price})`;
+      const productsSummary = allPosts.slice(0, 30).map(p => {
+        return `[MAHSULOT ID: ${p.id}]
+Nomi: ${p.outfitName}
+Narxi: ${p.price}
+Tavsif: ${p.description || 'Yo\'q'}
+Kategoriya: ${p.aiMetadata?.category || 'Noma\'lum'}
+Rangi: ${p.aiMetadata?.color || 'Noma\'lum'}
+Holati: ${p.inStock !== false ? 'Mavjud' : 'Tugagan'}
+---`;
       }).join('\n');
 
       const shopsSummary = allSellers.slice(0, 15).map(s => {
@@ -322,7 +327,7 @@ Foydalanuvchi xabari: ${messageText}`;
             let results: PostData[] = [];
             
             // Helper for all matching
-            const normalize = (val: string | number) => val.toString().replace(/[^0-9]/g, '');
+            const normalize = (val: string | number) => (val || '').toString().replace(/[^0-9]/g, '');
 
             results = allPosts.filter(p => {
               // 1. Explicit ID match
@@ -330,7 +335,8 @@ Foydalanuvchi xabari: ${messageText}`;
                 return args.ids.includes(p.id);
               }
 
-              const pPrice = parseInt(normalize(p.price));
+              const normalizedPrice = normalize(p.price);
+              const pPrice = normalizedPrice ? parseInt(normalizedPrice) : 0;
               
               // 2. Numeric Price Filtering
               if (args.minPrice !== undefined && pPrice < args.minPrice) return false;
@@ -592,14 +598,38 @@ Foydalanuvchi xabari: ${messageText}`;
                         className="bg-neutral-50 dark:bg-neutral-900 overflow-hidden relative"
                       >
                         <div className="aspect-[9/16] relative">
-                          {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
-                            <video 
-                              src={`${post.mediaUrls?.[0]}#t=0.1`}
-                              className="w-full h-full object-cover"
-                              preload="metadata"
-                              muted
-                              playsInline
-                            />
+                          {isVideoUrl(post.mediaUrls?.[0]) ? (
+                            <>
+                              <video 
+                                src={`${post.mediaUrls?.[0]}#t=0.1`}
+                                className="w-full h-full object-cover"
+                                preload="metadata"
+                                muted
+                                playsInline
+                                crossOrigin="anonymous"
+                                onError={(e) => {
+                                  const video = e.currentTarget;
+                                  if (!video.dataset.triedProxy) {
+                                    video.dataset.triedProxy = 'true';
+                                    video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(post.mediaUrls?.[0] || '')}`;
+                                    video.load();
+                                  } else {
+                                    // Final fallback: hide video and show image if possible
+                                    video.style.display = 'none';
+                                    const img = video.nextElementSibling as HTMLImageElement;
+                                    if (img) img.style.display = 'block';
+                                  }
+                                }}
+                              />
+                              {post.thumbnailUrl && (
+                                <img 
+                                  src={post.thumbnailUrl} 
+                                  style={{ display: 'none' }}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              )}
+                            </>
                           ) : (
                             <img 
                               src={post.mediaUrls[0]} 

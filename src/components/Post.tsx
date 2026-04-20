@@ -50,6 +50,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string,
       muted
       playsInline
       preload="metadata"
+      crossOrigin="anonymous"
       onError={async (e) => {
         const video = e.currentTarget;
         if (!video.dataset.triedProxy) {

@@ -55,7 +55,7 @@ export const isVideoUrl = (url: string): boolean => {
   const lowerUrl = url.toLowerCase();
   
   // Typical video extensions
-  if (lowerUrl.match(/\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|wmv)($|\?|&)/)) {
+  if (lowerUrl.match(/\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|wmv|m3u8)($|\?|&)/)) {
     return true;
   }
   
@@ -66,7 +66,10 @@ export const isVideoUrl = (url: string): boolean => {
     lowerUrl.includes('clip') ||
     lowerUrl.includes('stream') ||
     lowerUrl.includes('blob') ||
-    lowerUrl.includes('upload')
+    lowerUrl.includes('upload') ||
+    lowerUrl.includes('fbcdn.net') || // Instagram/Facebook CDN often hosts videos here
+    lowerUrl.includes('instagram.com/reels') ||
+    lowerUrl.includes('instagram.com/reel')
   ) {
     // Ensure it's not an image with these keywords in URL
     const isLikelyImage = lowerUrl.match(/\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)($|\?|&)/);

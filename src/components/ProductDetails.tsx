@@ -28,6 +28,7 @@ const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; in
       loop
       muted={isMuted}
       playsInline
+      crossOrigin="anonymous"
       onError={async (e) => {
         const video = e.currentTarget;
         if (!video.dataset.triedProxy) {

@@ -615,22 +615,22 @@ export default function App() {
   }, [constructionProgress, isConstructingShop, newShopData, user]);
 
   const subscribedSellers = sellers.filter(s => s.isSubscribed);
-  const savedPosts = posts.filter(p => p.isSaved);
+  const savedPosts = postsWithUserStatus.filter(p => p.isSaved);
   const [recentlyViewedPosts, setRecentlyViewedPosts] = React.useState<PostData[]>([]);
 
   const filteredPosts = postsWithUserStatus.filter(post => {
-    const q = searchQuery.toLowerCase().trim();
+    const q = (searchQuery || '').toLowerCase().trim();
     if (!q) return true;
 
     // Direct string matches
-    const matchesName = post.outfitName.toLowerCase().includes(q);
-    const matchesSeller = post.seller.name.toLowerCase().includes(q);
-    const matchesDescription = post.description?.toLowerCase().includes(q);
-    const matchesPrice = post.price.toLowerCase().includes(q);
+    const matchesName = (post.outfitName || '').toLowerCase().includes(q);
+    const matchesSeller = (post.seller?.name || '').toLowerCase().includes(q);
+    const matchesDescription = (post.description || '').toLowerCase().includes(q);
+    const matchesPrice = (post.price || '').toLowerCase().includes(q);
 
     // Semantic Price Matching (e.g., "2M" -> "2000000", "100k" -> "100000")
-    const normalizePrice = (p: string) => p.replace(/[^0-9]/g, '');
-    const numericPrice = normalizePrice(post.price);
+    const normalizePrice = (p: string) => (p || '').replace(/[^0-9]/g, '');
+    const numericPrice = normalizePrice(post.price || '');
     
     // Check if query is a price shorthand
     let isPriceMatch = false;
@@ -648,7 +648,7 @@ export default function App() {
       const queryVal = parseFloat(cleanQuery) * multiplier;
       if (!isNaN(queryVal)) {
         // If the query perfectly matches or the price string contains the interpreted number
-        if (numericPrice === queryVal.toString() || numericPrice.includes(queryVal.toString())) {
+        if (numericPrice === queryVal.toString() || (queryVal >= 1000 && numericPrice.includes(queryVal.toString()))) {
           isPriceMatch = true;
         }
       }

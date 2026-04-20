@@ -8,7 +8,7 @@ import { PostData, User } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 import { Language } from '../translations';
-import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo } from '../utils/mediaUtils';
+import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
 import { formatRelativeTime } from '../utils/timeUtils';
 
 interface ReelsViewerProps {
@@ -216,10 +216,11 @@ const ReelItem: React.FC<{
                   playsInline
                   muted={isMuted}
                   preload="auto"
+                  crossOrigin="anonymous"
                   onLoadedData={() => setIsMediaLoading(false)}
                   onWaiting={() => setIsMediaLoading(true)}
                   onPlaying={() => setIsMediaLoading(false)}
-                  onError={(e) => {
+                  onError={async (e) => {
                     const video = e.currentTarget;
                     if (!video.dataset.triedProxy) {
                       video.dataset.triedProxy = 'true';
@@ -227,6 +228,16 @@ const ReelItem: React.FC<{
                       video.load();
                       if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
                         safePlayVideo(video);
+                      }
+                    } else if (realPost.instagramUrl && !video.dataset.triedRefresh) {
+                      video.dataset.triedRefresh = 'true';
+                      const newUrl = await refreshMediaUrl(realPost.instagramUrl);
+                      if (newUrl) {
+                        video.src = newUrl;
+                        video.load();
+                        if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
+                          safePlayVideo(video);
+                        }
                       }
                     } else {
                       setIsMediaLoading(false);
