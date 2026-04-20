@@ -11,9 +11,9 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animated = false, showText = true }) => {
   const finalHeight = height || width;
-  const accentBlue = "#3B82F6";
+  const accentBlue = "#0066FF";
   const accentLight = "#FFFFFF";
-  const accentBlueBright = "#22D3EE";
+  const accentBlueBright = "#00D2FF";
 
   const pathVariants = {
     hidden: { pathLength: 0, opacity: 0 },
@@ -54,9 +54,9 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
           <stop offset="100%" stopColor="#AA771C" />
         </linearGradient>
         <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#3B82F6" />
-          <stop offset="60%" stopColor="#3B82F6" />
-          <stop offset="100%" stopColor="#22D3EE" />
+          <stop offset="0%" stopColor={accentBlue} />
+          <stop offset="60%" stopColor={accentBlue} />
+          <stop offset="100%" stopColor={accentBlueBright} />
         </linearGradient>
       </defs>
 

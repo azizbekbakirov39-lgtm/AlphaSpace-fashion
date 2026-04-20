@@ -42,7 +42,7 @@ export const auth = getAuth(app);
 
 // Resilient Firestore initialization
 export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
+  experimentalForceLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId || '(default)');
 
 export const storage = getStorage(app);
@@ -127,18 +127,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
-
-// Connection Test
-async function testConnection() {
-  try {
-    // Silent test on startup
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    // Fail silently to avoid console pollution if it's a temporary network blip
-    // Persistence and auto-reconnect will handle it
-  }
-}
-testConnection();
 
 export { 
   collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, orderBy, limit, increment 

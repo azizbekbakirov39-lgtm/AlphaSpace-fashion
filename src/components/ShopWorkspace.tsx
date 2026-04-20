@@ -2313,28 +2313,25 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       {/* Shop Bottom Nav */}
       {!isKeyboardOpen && (
-        <div className="absolute bottom-0 left-0 right-0 z-[100] pb-safe bg-gradient-to-t from-bg-primary via-bg-primary/80 to-transparent pt-10 pointer-events-none">
-          <div className="h-16 mb-6 mx-6 bg-header-bg/80 backdrop-blur-2xl border border-border-primary rounded-[2rem] flex items-center justify-between px-6 shadow-2xl shadow-black/20 pointer-events-auto">
-            <ShopNavButton 
-              active={activeTab === 'Chats'} 
-              onClick={() => handleTabChange('Chats')} 
-              icon={MessageSquare} 
-              label="Chatlar" 
-            />
-            <ShopNavButton 
-              active={activeTab === 'MyShop'} 
-              onClick={() => handleTabChange('MyShop')} 
-              icon={Store} 
-              label="Do'konim"
-              isStore={true}
-            />
-            <ShopNavButton 
-              active={activeTab === 'Telegram'} 
-              onClick={() => handleTabChange('Telegram')} 
-              icon={Instagram} 
-              label="Media" 
-            />
-          </div>
+        <div className="h-20 bg-header-bg border-t border-border-primary flex items-center justify-around px-2 pb-safe">
+          <ShopNavButton 
+            active={activeTab === 'MyShop'} 
+            onClick={() => handleTabChange('MyShop')} 
+            icon={Store} 
+            label="Do'konim" 
+          />
+          <ShopNavButton 
+            active={activeTab === 'Chats'} 
+            onClick={() => handleTabChange('Chats')} 
+            icon={MessageSquare} 
+            label="Chatlar" 
+          />
+          <ShopNavButton 
+            active={activeTab === 'Telegram'} 
+            onClick={() => handleTabChange('Telegram')} 
+            icon={Link2} 
+            label="Telegram" 
+          />
         </div>
       )}
       {/* Instagram Import Modal */}
@@ -2886,35 +2883,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   );
 };
 
-const ShopNavButton = ({ active, onClick, icon: Icon, label, isStore }: any) => {
-  if (isStore) {
-    return (
-      <button 
-        onClick={onClick}
-        className={`relative flex flex-col items-center justify-center transition-all duration-300 w-[72px] h-[72px] -mt-6 ${active ? '-translate-y-1' : 'hover:-translate-y-1'}`}
-      >
-        <div className="absolute inset-0 bg-blue-500 rounded-full blur-[20px] opacity-40 transition-opacity" />
-        <div className={`relative z-10 w-16 h-16 rounded-[24px] flex items-center justify-center shadow-2xl transition-all duration-300 ${active ? 'bg-gradient-to-br from-blue-500 to-cyan-400 shadow-blue-500/50 scale-105' : 'bg-gradient-to-br from-blue-400 to-cyan-300 shadow-blue-500/30'}`}>
-          <Icon size={28} strokeWidth={2.5} className="text-white" />
-        </div>
-      </button>
-    );
-  }
-
-  return (
-    <button 
-      onClick={onClick}
-      className={`relative flex flex-col items-center justify-center gap-1 transition-all duration-300 px-4 h-full ${active ? 'text-text-primary' : 'text-text-primary/40 hover:text-text-primary/70'}`}
-    >
-      <div className={`p-2 rounded-2xl transition-all duration-300 ${active ? 'bg-text-primary/5' : ''}`}>
-        <Icon size={24} strokeWidth={active ? 2.5 : 2} />
-      </div>
-      {active && (
-        <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-text-primary" />
-      )}
-    </button>
-  );
-};
+const ShopNavButton = ({ active, onClick, icon: Icon, label }: any) => (
+  <button 
+    onClick={onClick}
+    className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-accent-blue scale-110' : 'text-text-primary/40'}`}
+  >
+    <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+    <span className="text-[9px] font-black uppercase tracking-tighter">{label}</span>
+  </button>
+);
 
 // Premium features removed
 

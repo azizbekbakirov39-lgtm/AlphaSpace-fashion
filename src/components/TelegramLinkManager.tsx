@@ -115,7 +115,7 @@ export default function TelegramLinkManager() {
   );
 
   return (
-    <div className="p-4 pb-32 max-w-4xl mx-auto h-full overflow-y-auto scrollbar-hide">
+    <div className="p-4 max-w-4xl mx-auto">
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <Link2 className="text-blue-500" />
