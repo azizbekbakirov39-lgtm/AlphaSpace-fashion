@@ -118,9 +118,65 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
   }
 };
 
-export const getProxiedUrl = (url: string): string => {
-  // Proxy serverlar Instagram tomonidan bloklanayotgani uchun (403 Forbidden),
-  // rasmlarni ham xuddi videolar kabi to'g'ridan-to'g'ri qaytaramiz.
-  // HTML dagi referrerPolicy="no-referrer" qoidasi CORS ni chetlab o'tishga yordam beradi.
-  return url;
+// Key used for local caching of successful proxy URLs
+const URL_CACHE_KEY = 'media_url_cache';
+
+// Simple in-memory and localStorage cache
+const getCache = (): Record<string, string> => {
+  try {
+    const cached = localStorage.getItem(URL_CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setCache = (originalUrl: string, proxiedUrl: string) => {
+  try {
+    const cache = getCache();
+    cache[originalUrl] = proxiedUrl;
+    // Limit cache size
+    const keys = Object.keys(cache);
+    if (keys.length > 500) {
+      delete cache[keys[0]];
+    }
+    localStorage.setItem(URL_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.error('Cache write error:', e);
+  }
+};
+
+// Available robust proxies
+const PROXY_POOL = [
+  (url: string) => url, // Direct (often works with no-referrer)
+  (url: string) => `https://wsrv.nl/?url=${encodeURIComponent(url)}`, // WeServ
+  (url: string) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}`, // Variant of WeServ
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, // AllOrigins
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`, // CorsProxy.io
+];
+
+export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
+  if (!url) return url;
+  
+  // Try hit cache first if index 0
+  if (proxyIndex === 0) {
+    const cache = getCache();
+    if (cache[url]) return cache[url];
+  }
+
+  // Use specified proxy
+  const safeIndex = proxyIndex % PROXY_POOL.length;
+  return PROXY_POOL[safeIndex](url);
+};
+
+export const markUrlAsSuccessful = (originalUrl: string, proxiedUrl: string) => {
+  setCache(originalUrl, proxiedUrl);
+};
+
+export const getNextProxyIndex = (currentIndex: number): number => {
+  return currentIndex + 1;
+};
+
+export const isLastProxy = (index: number): boolean => {
+  return index >= PROXY_POOL.length - 1;
 };

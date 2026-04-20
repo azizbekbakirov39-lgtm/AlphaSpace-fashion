@@ -9,7 +9,7 @@ import { PostData, User } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 import { Language } from '../translations';
-import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
+import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { formatRelativeTime } from '../utils/timeUtils';
 
 interface ReelsViewerProps {
@@ -29,6 +29,41 @@ interface ReelsViewerProps {
   user: User | null;
 }
 
+const ReelImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: string }> = ({ url, shouldLoad, outfitName }) => {
+  const [proxyIndex, setProxyIndex] = useState(0);
+  const proxiedUrl = getProxiedUrl(url, proxyIndex);
+
+  return (
+    <img
+      src={shouldLoad ? proxiedUrl : undefined}
+      className="h-full w-full object-cover pointer-events-none"
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      onLoad={() => {
+        if (shouldLoad) markUrlAsSuccessful(url, proxiedUrl);
+      }}
+      onError={(e) => {
+        if (!isLastProxy(proxyIndex)) {
+          setProxyIndex(prev => getNextProxyIndex(prev));
+        } else {
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const parent = target.parentElement;
+          if (parent) {
+            parent.style.backgroundColor = '#171717';
+            if (!parent.querySelector('.error-placeholder')) {
+              const placeholder = document.createElement('div');
+              placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-white/20 text-[10px] font-black uppercase';
+              placeholder.innerText = 'Rasm yuklanmadi';
+              parent.appendChild(placeholder);
+            }
+          }
+        }
+      }}
+    />
+  );
+};
+
 const ReelItem: React.FC<{
   post: PostData;
   isActive: boolean;
@@ -41,9 +76,10 @@ const ReelItem: React.FC<{
   language: Language;
   isMuted: boolean;
   onToggleMute: () => void;
+  shouldLoad?: boolean;
   allPosts?: PostData[];
   user: User | null;
-}> = ({ post, isActive, onToggleLike, onToggleSave, onToggleSubscribe, onOpenShopProfile, onOpenChat, onSharePost, language, isMuted, onToggleMute, allPosts = [], user }) => {
+}> = ({ post, isActive, onToggleLike, onToggleSave, onToggleSubscribe, onOpenShopProfile, onOpenChat, onSharePost, language, isMuted, onToggleMute, shouldLoad = true, allPosts = [], user }) => {
   const realPost = useMemo(() => allPosts.find(p => p.id === post.id) || post, [allPosts, post.id, post]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showComments, setShowComments] = useState(false);
@@ -89,6 +125,7 @@ const ReelItem: React.FC<{
 
   const [isMediaLoading, setIsMediaLoading] = useState(true);
   const [mediaError, setMediaError] = useState(false);
+  const [proxyIndex, setProxyIndex] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -238,22 +275,24 @@ const ReelItem: React.FC<{
 
                 <video
                   ref={videoRef}
-                  src={url}
+                  src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
                   poster={realPost.thumbnailUrl || undefined}
                   className={`h-full w-full object-cover pointer-events-none transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
                   loop
                   playsInline
                   muted={isMuted}
-                  preload="auto"
+                  preload={isActive ? "auto" : "metadata"}
                   crossOrigin="anonymous"
-                  onLoadedData={() => setIsMediaLoading(false)}
+                  onLoadedData={() => {
+                    setIsMediaLoading(false);
+                    if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
+                  }}
                   onWaiting={() => setIsMediaLoading(true)}
                   onPlaying={() => setIsMediaLoading(false)}
                   onError={async (e) => {
                     const video = e.currentTarget;
-                    if (!video.dataset.triedProxy) {
-                      video.dataset.triedProxy = 'true';
-                      video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    if (!isLastProxy(proxyIndex)) {
+                      setProxyIndex(prev => getNextProxyIndex(prev));
                       video.load();
                       if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
                         safePlayVideo(video);
@@ -276,10 +315,10 @@ const ReelItem: React.FC<{
                 />
               </div>
             ) : (
-              <img
-                src={url}
-                className="h-full w-full object-cover pointer-events-none"
-                referrerPolicy="no-referrer"
+              <ReelImage 
+                url={url} 
+                shouldLoad={shouldLoad} 
+                outfitName={realPost.outfitName} 
               />
             )}
           </div>
@@ -386,17 +425,17 @@ const ReelItem: React.FC<{
         {/* Row 1 (Top): Shop Identity & Price */}
         <div className="flex items-center justify-between gap-3 px-1">
           <div 
-            className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity"
+            className="flex items-center gap-2.5 cursor-pointer active:opacity-70 transition-opacity"
             onClick={handleShopClick}
           >
             <img 
               src={realPost.seller.logo} 
-              className="w-8 h-8 rounded-full border border-white/20 object-cover shadow-lg" 
+              className="w-12 h-12 rounded-full border border-white/20 object-cover shadow-lg" 
               referrerPolicy="no-referrer" 
             />
             <div className="flex flex-col">
-              <span className="text-white font-black text-sm drop-shadow-md tracking-tight leading-none">{realPost.seller.name}</span>
-              <span className="text-white/40 text-[8px] font-black uppercase tracking-widest mt-0.5">
+              <span className="text-white font-black text-base drop-shadow-md tracking-tight leading-none">{realPost.seller.name}</span>
+              <span className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-0.5">
                 {formatRelativeTime(realPost.createdAt)}
               </span>
             </div>
@@ -418,8 +457,8 @@ const ReelItem: React.FC<{
             }}
             className="flex-1 flex items-center justify-between bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 h-10 shadow-lg cursor-pointer active:opacity-70 transition-opacity"
           >
-            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}</span>
-            <Send size={14} className="text-white/40" />
+            <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}</span>
+            <Send size={14} className="text-white/60" />
           </div>
 
           <button 
@@ -435,17 +474,17 @@ const ReelItem: React.FC<{
 
         {/* Row 3 (Bottom): Description (Izoh) */}
         {realPost.description && (
-          <div className="px-1">
-            <p className={`text-white/60 text-[11px] font-medium leading-snug drop-shadow-md transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
+          <div className="px-1 mt-1">
+            <p className={`text-white text-[12px] font-medium leading-snug drop-shadow-md transition-all ${isDescriptionExpanded ? '' : 'line-clamp-2'}`}>
               {realPost.description}
             </p>
-            {!isDescriptionExpanded && realPost.description.length > 30 && (
+            {!isDescriptionExpanded && realPost.description.length > 60 && (
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsDescriptionExpanded(true);
                 }}
-                className="text-white/30 text-[10px] font-bold mt-0.5 hover:text-white/50"
+                className="text-white/50 text-[10px] font-bold mt-0.5 hover:text-white"
               >
                 ...davomi
               </button>
@@ -601,6 +640,7 @@ const ReelsViewer: React.FC<ReelsViewerProps> = ({
             key={post.id}
             post={post}
             isActive={idx === activeIndex}
+            shouldLoad={idx >= activeIndex - 1 && idx <= activeIndex + 1}
             onToggleLike={() => onToggleLike(post.id)}
             onToggleSave={() => onToggleSave(post.id)}
             onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}

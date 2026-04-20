@@ -6,13 +6,14 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 
 import { Language, translations } from '../translations';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
 import { formatRelativeTime } from '../utils/timeUtils';
 
 interface PostProps {
   post: PostData;
   isActive: boolean;
+  shouldLoad?: boolean;
   onToggleLike?: () => void;
   onToggleSave?: () => void;
   onOpenReels?: () => void;
@@ -27,8 +28,9 @@ interface PostProps {
   onToggleMute?: () => void;
 }
 
-const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean }> = ({ url, isActive, poster, post, index, isGlobalPaused }) => {
+const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [proxyIndex, setProxyIndex] = useState(0);
   
   useEffect(() => {
     if (videoRef.current) {
@@ -43,19 +45,21 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string,
   return (
     <video 
       ref={videoRef}
-      src={url}
+      src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
       poster={poster}
       className="w-full h-full object-cover"
       loop
       muted
       playsInline
-      preload="metadata"
+      preload={isActive ? "auto" : "metadata"}
       crossOrigin="anonymous"
+      onLoadedData={() => {
+        if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
+      }}
       onError={async (e) => {
         const video = e.currentTarget;
-        if (!video.dataset.triedProxy) {
-          video.dataset.triedProxy = 'true';
-          video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        if (!isLastProxy(proxyIndex)) {
+          setProxyIndex(prev => getNextProxyIndex(prev));
           video.load();
           if (isActive) safePlayVideo(video);
         } else if (post.instagramUrl && !video.dataset.triedRefresh) {
@@ -81,6 +85,42 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string,
   );
 };
 
+const CarouselImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: string, index: number }> = ({ url, shouldLoad, outfitName, index }) => {
+  const [proxyIndex, setProxyIndex] = useState(0);
+  const proxiedUrl = getProxiedUrl(url, proxyIndex);
+
+  return (
+    <img
+      src={shouldLoad ? proxiedUrl : undefined}
+      alt={`${outfitName} - ${index + 1}`}
+      className="w-full h-full object-cover block"
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      onLoad={() => {
+        if (shouldLoad) markUrlAsSuccessful(url, proxiedUrl);
+      }}
+      onError={(e) => {
+        if (!isLastProxy(proxyIndex)) {
+          setProxyIndex(prev => getNextProxyIndex(prev));
+        } else {
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const parent = target.parentElement;
+          if (parent) {
+            parent.style.backgroundColor = '#171717';
+            if (!parent.querySelector('.error-placeholder')) {
+              const placeholder = document.createElement('div');
+              placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-white/20 text-[10px] font-black uppercase';
+              placeholder.innerText = 'Rasm yuklanmadi';
+              parent.appendChild(placeholder);
+            }
+          }
+        }
+      }}
+    />
+  );
+};
+
 const Post: React.FC<PostProps> = ({ 
   post, 
   isActive, 
@@ -94,6 +134,7 @@ const Post: React.FC<PostProps> = ({
   onSharePost,
   onToggleSubscribe,
   language,
+  shouldLoad = true,
   isMuted = true,
   onToggleMute
 }) => {
@@ -104,6 +145,7 @@ const Post: React.FC<PostProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [mainProxyIndex, setMainProxyIndex] = useState(0);
 
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
     isLongPressed.current = false;
@@ -395,23 +437,25 @@ const Post: React.FC<PostProps> = ({
 
             <video
               ref={videoRef}
-              src={post.mediaUrls?.[0]}
+              src={shouldLoad ? getProxiedUrl(post.mediaUrls?.[0], mainProxyIndex) : undefined}
               poster={post.thumbnailUrl || (post.mediaType === 'image' ? post.mediaUrls[0] : undefined)}
               className={`w-full h-full object-cover transition-opacity duration-300 ${videoLoading ? 'opacity-0' : 'opacity-100'}`}
               loop
               muted={isMuted}
               playsInline
-              preload="auto"
-              onLoadedData={() => setVideoLoading(false)}
+              preload={isActive ? "auto" : "metadata"}
+              onLoadedData={() => {
+                setVideoLoading(false);
+                if (shouldLoad) markUrlAsSuccessful(post.mediaUrls[0], videoRef.current?.src || '');
+              }}
               onWaiting={() => setVideoLoading(true)}
               onPlaying={() => setVideoLoading(false)}
               onError={async (e) => {
                 const video = e.currentTarget;
                 const originalUrl = post.mediaUrls[0];
 
-                if (!video.dataset.triedProxy) {
-                  video.dataset.triedProxy = 'true';
-                  video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+                if (!isLastProxy(mainProxyIndex)) {
+                  setMainProxyIndex(prev => getNextProxyIndex(prev));
                   video.load();
                   if (isActive) safePlayVideo(video);
                 } else if (post.instagramUrl && !video.dataset.triedRefresh) {
@@ -460,11 +504,10 @@ const Post: React.FC<PostProps> = ({
             >
               {post.mediaUrls?.map((url, idx) => {
                 const isVideo = isVideoUrl(url);
-                const proxiedUrl = getProxiedUrl(url);
                 return (
                   <div 
                     key={idx} 
-                    className="min-w-full h-full snap-center snap-always flex-shrink-0 bg-neutral-900"
+                    className="min-w-full h-full snap-center snap-always flex-shrink-0 bg-neutral-900 overflow-hidden relative"
                     style={{ scrollSnapStop: 'always' }}
                   >
                     {isVideo ? (
@@ -472,6 +515,7 @@ const Post: React.FC<PostProps> = ({
                         <CarouselVideo 
                           url={url} 
                           isActive={isActive && idx === currentImageIndex}
+                          shouldLoad={shouldLoad}
                           poster={post.thumbnailUrl || (idx === 0 ? url : undefined)}
                           post={post}
                           index={idx}
@@ -479,35 +523,11 @@ const Post: React.FC<PostProps> = ({
                         />
                       </div>
                     ) : (
-                      <img
-                        src={proxiedUrl}
-                        alt={`${post.outfitName} - ${idx + 1}`}
-                        className="w-full h-full object-cover block"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const proxy1 = `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
-                          const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                          
-                          if (!target.dataset.triedProxy1) {
-                            target.dataset.triedProxy1 = 'true';
-                            target.src = proxy1;
-                          } else if (!target.dataset.triedProxy2) {
-                            target.dataset.triedProxy2 = 'true';
-                            target.src = proxy2;
-                          } else {
-                            // If image fails, try to hide the broken icon and show a placeholder
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.style.backgroundColor = '#171717';
-                              const placeholder = document.createElement('div');
-                              placeholder.className = 'absolute inset-0 flex items-center justify-center text-white/20 text-[10px] font-black uppercase';
-                              placeholder.innerText = 'Rasm yuklanmadi';
-                              parent.appendChild(placeholder);
-                            }
-                          }
-                        }}
+                      <CarouselImage 
+                        url={url} 
+                        shouldLoad={shouldLoad} 
+                        outfitName={post.outfitName} 
+                        index={idx} 
                       />
                     )}
                   </div>

@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageCircle, Share2, Volume2, VolumeX, Check, ChevronLeft, ChevronRight, ShoppingBag, Send } from 'lucide-react';
 import { Story, PostData, User } from '../types';
-import { isVideoUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
+import { isVideoUrl, useShare, safePlayVideo, getProxiedUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { formatRelativeTime } from '../utils/timeUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
@@ -71,6 +71,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   const [isMediaLoading, setIsMediaLoading] = useState(true);
   const [mediaError, setMediaError] = useState(false);
+  const [proxyIndex, setProxyIndex] = useState(0);
 
   // Pause/Resume video when details or comments are open
   useEffect(() => {
@@ -93,6 +94,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       setMediaError(false);
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
+        setProxyIndex(0);
         if (!showProductDetails && !showComments) {
           safePlayVideo(videoRef.current);
         }
@@ -270,7 +272,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
           <video
             ref={videoRef}
-            src={currentStory.videoUrl}
+            src={getProxiedUrl(currentStory.videoUrl, proxyIndex)}
             className={`w-full h-full object-cover transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
             onEnded={handleNext}
             playsInline
@@ -282,14 +284,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             onTouchStart={handlePressStart}
             onTouchEnd={handlePressEnd}
             preload="auto"
-            onLoadedData={() => setIsMediaLoading(false)}
+            onLoadedData={() => {
+              setIsMediaLoading(false);
+              markUrlAsSuccessful(currentStory.videoUrl, videoRef.current?.src || '');
+            }}
             onPlaying={() => setIsMediaLoading(false)}
             onWaiting={() => setIsMediaLoading(true)}
             onError={(e) => {
               const video = e.currentTarget;
-              if (!video.dataset.triedProxy) {
-                video.dataset.triedProxy = 'true';
-                video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(currentStory.videoUrl)}`;
+              if (!isLastProxy(proxyIndex)) {
+                setProxyIndex(prev => getNextProxyIndex(prev));
                 video.load();
                 if (videoRef.current && !showProductDetails && !showComments) {
                   safePlayVideo(videoRef.current);
@@ -477,7 +481,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         <div className="flex items-center justify-between gap-3 px-1">
           <div 
             className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity"
-            onClick={handleShopClick}
+            onClick={() => onOpenShopProfile && onOpenShopProfile(currentStory.sellerId)}
           >
             <img 
               src={currentStory.seller.logo} 
