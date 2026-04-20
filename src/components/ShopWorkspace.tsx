@@ -555,26 +555,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         createdAt: serverTimestamp()
       };
 
-      // Comprehensive sanitization for Firestore
-      const sanitize = (obj: any): any => {
-        const result: any = {};
-        Object.keys(obj).forEach(key => {
-          const value = obj[key];
-          if (value === undefined) return;
-          if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-            result[key] = sanitize(value);
-          } else if (Array.isArray(value)) {
-            result[key] = value.map(item => (item !== null && typeof item === 'object') ? sanitize(item) : (item === undefined ? null : item));
-          } else {
-            result[key] = value;
-          }
-        });
-        return result;
-      };
-
-      const sanitizedData = sanitize(postData);
+      // Clean undefined values
+      Object.keys(postData).forEach(key => postData[key] === undefined && delete postData[key]);
       
-      await addDoc(collection(db, 'posts'), sanitizedData);
+      await addDoc(collection(db, 'posts'), postData);
       toast.success("Mahsulot muvaffaqiyatli import qilindi!");
       setShowInstagramImportModal(false);
       setImportPreview(null);
@@ -2971,26 +2955,10 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
         expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
       };
 
-      // Comprehensive sanitization for Firestore
-      const sanitize = (obj: any): any => {
-        const result: any = {};
-        Object.keys(obj).forEach(key => {
-          const value = obj[key];
-          if (value === undefined) return;
-          if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-            result[key] = sanitize(value);
-          } else if (Array.isArray(value)) {
-            result[key] = value.map(item => (item !== null && typeof item === 'object') ? sanitize(item) : (item === undefined ? null : item));
-          } else {
-            result[key] = value;
-          }
-        });
-        return result;
-      };
-
-      const sanitizedData = sanitize(newStoryData);
+      // Clean undefined values
+      Object.keys(newStoryData).forEach(key => newStoryData[key] === undefined && delete newStoryData[key]);
       
-      await addDoc(collection(db, 'stories'), sanitizedData);
+      await addDoc(collection(db, 'stories'), newStoryData);
       toast.success("Story muvaffaqiyatli yaratildi");
       onClose();
     } catch (error: any) {

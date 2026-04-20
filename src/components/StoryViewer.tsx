@@ -227,7 +227,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     seller: currentStory.seller,
     mediaUrls: [currentStory.videoUrl],
     mediaType: 'video',
-    price: currentStory.price,
+    price: currentStory.price || '',
     outfitName: "Story Product",
     likes: currentStory.likes,
     comments: currentStory.comments,
@@ -436,10 +436,36 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       )}
 
       {/* Bottom Actions */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-50">
-        <div className="flex items-end justify-between gap-4">
-          {/* Left side: Functional Icons */}
-          <div className="flex items-center gap-6 mb-1">
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-10 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-50">
+        <div className="flex flex-col gap-6">
+          {/* Price Tag (Text Only) */}
+          <div className="flex px-1">
+            <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
+              {currentStory.price && currentStory.price.trim() !== "" 
+                ? currentStory.price 
+                : (language === 'uz' ? 'Narxi qancha?' : 'How much?')}
+            </span>
+          </div>
+
+          {/* Interaction Row: Message Input + Icons */}
+          <div className="flex items-center gap-4">
+            <form 
+              onSubmit={handleReply}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3 shadow-lg"
+            >
+              <input
+                type="text"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder={language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}
+                className="flex-1 bg-transparent border-none outline-none text-white text-xs font-bold placeholder:text-white/40"
+              />
+              <button type="submit" className="text-white/40 hover:text-white transition-colors">
+                <Send size={16} />
+              </button>
+            </form>
+
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -449,12 +475,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   setTimeout(() => setShowHeartAnimation(false), 800);
                 }
               }}
-              className={`flex flex-col items-center gap-1.5 transition-all active:scale-75 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
+              className={`flex flex-col items-center transition-all active:scale-75 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
             >
-              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
-                <Heart size={24} fill={currentStory.isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">{currentStory.likes || 0}</span>
+              <Heart size={26} fill={currentStory.isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} className="drop-shadow-md" />
+              <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{currentStory.likes || 0}</span>
             </button>
 
             <button 
@@ -462,63 +486,26 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                 e.stopPropagation();
                 setShowComments(true);
               }}
-              className="flex flex-col items-center gap-1.5 text-white transition-all active:scale-75"
+              className="flex flex-col items-center text-white transition-all active:scale-75"
             >
-              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
-                <MessageCircle size={24} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">{currentStory.comments || 0}</span>
-            </button>
-
-            <button 
-              onClick={handleShare}
-              className="flex flex-col items-center gap-1.5 text-white transition-all active:scale-75"
-            >
-              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
-                <Share2 size={24} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">Share</span>
-            </button>
-
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onOpenChat) onOpenChat(currentStory.sellerId, mockPost);
-              }}
-              className="flex flex-col items-center gap-1.5 text-white transition-all active:scale-75"
-            >
-              <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg">
-                <Send size={24} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">Chat</span>
+              <MessageCircle size={26} strokeWidth={2.5} className="drop-shadow-md" />
+              <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{currentStory.comments || 0}</span>
             </button>
           </div>
 
-          {/* Right side: Price and Detailed Button */}
-          <div className="flex flex-col items-end gap-3">
-             <div className="bg-accent-blue px-4 py-1.5 rounded-xl shadow-[0_0_20px_rgba(0,122,255,0.3)] border border-white/20">
-                <span className="text-white font-black text-sm tracking-tight">
-                  {currentStory.price && currentStory.price.trim() !== "" 
-                    ? currentStory.price 
-                    : (language === 'uz' ? 'Narxi qancha?' : 'How much?')}
-                </span>
-             </div>
-
-            <motion.button 
-              whileTap={{ scale: 0.95 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowProductDetails(true);
-              }}
-              className="flex items-center gap-3 bg-white px-6 py-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] group active:scale-95 transition-all"
-            >
-              <div className="w-8 h-8 rounded-full bg-accent-blue/10 flex items-center justify-center text-accent-blue">
-                <ShoppingBag size={18} strokeWidth={2.5} />
-              </div>
-              <span className="text-neutral-900 font-black uppercase tracking-widest text-[11px]">Batafsil</span>
-              <ChevronRight size={16} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-            </motion.button>
-          </div>
+          {/* Long "Batafsil" Button */}
+          <motion.button 
+            whileTap={{ scale: 0.98 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowProductDetails(true);
+            }}
+            className="w-full flex items-center justify-center gap-3 bg-white py-4 rounded-2xl shadow-[0_20px_50px_rgba(255,255,255,0.1)] group active:scale-[0.98] transition-all"
+          >
+            <ShoppingBag size={20} className="text-neutral-900" strokeWidth={2.5} />
+            <span className="text-neutral-900 font-black uppercase tracking-[0.2em] text-xs">Batafsil ma'lumot</span>
+            <ChevronRight size={18} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
+          </motion.button>
         </div>
       </div>
 
