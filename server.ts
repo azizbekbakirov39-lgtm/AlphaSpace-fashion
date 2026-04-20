@@ -33,6 +33,7 @@ try {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc");
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || process.env.VITE_RAPIDAPI_KEY;
 const app = express();
 
 app.use(cors());
@@ -56,6 +57,34 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
     const response = await fetch(embedUrl);
     const html = await response.text();
     res.json({ html });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/refresh-instagram-url", async (req, res) => {
+  try {
+    const { shortcode } = req.body;
+    if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
+    if (!RAPIDAPI_KEY) return res.status(500).json({ error: "API Key missing" });
+
+    const response = await fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+        'x-rapidapi-key': RAPIDAPI_KEY
+      },
+      body: JSON.stringify({ url: `https://www.instagram.com/p/${shortcode}/` })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).json({ error: errorText });
+    }
+
+    const data = await response.json();
+    res.json(data);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -81,24 +81,20 @@ export const isVideoUrl = (url: string): boolean => {
 };
 
 // Instagram vaqtinchalik havolalarini yangilash uchun xizmat
-const RAPIDAPI_KEY = (import.meta as any).env.VITE_RAPIDAPI_KEY;
-
 export const refreshMediaUrl = async (instagramUrl: string): Promise<string | null> => {
-  if (!instagramUrl || !RAPIDAPI_KEY) return null;
+  if (!instagramUrl) return null;
   
   try {
     const shortcodeMatch = instagramUrl.match(/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
     const shortcode = shortcodeMatch ? shortcodeMatch[1] : null;
     if (!shortcode) return null;
 
-    const response = await fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
+    const response = await fetch(`/api/refresh-instagram-url`, {
       method: 'POST',
       headers: {
-        'content-type': 'application/json',
-        'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-        'x-rapidapi-key': RAPIDAPI_KEY
+        'content-type': 'application/json'
       },
-      body: JSON.stringify({ url: `https://www.instagram.com/p/${shortcode}/` })
+      body: JSON.stringify({ shortcode })
     });
 
     if (!response.ok) return null;
