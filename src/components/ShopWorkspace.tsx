@@ -530,14 +530,22 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         finalPriceMessage = "Narxi qancha?";
       }
 
-      const postData = {
+      // Sync price to items and ensure name/outfitName consistency
+      const syncedItems = (importPreview.items || []).map((item: any) => ({
+        ...item,
+        price: importPreview.price || item.price || ''
+      }));
+
+      const postData: any = {
         ...importPreview,
-        priceMessage: finalPriceMessage,
+        name: importPreview.outfitName || '',
+        items: syncedItems,
+        priceMessage: finalPriceMessage || '',
         ownerUid: user.uid,
         seller: {
           id: shopData.id,
           name: shopData.name,
-          logo: shopData.logo,
+          logo: shopData.logo || null,
           region: shopData.region || 'Toshkent'
         },
         likes: 0,
@@ -546,15 +554,37 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         comments: 0,
         createdAt: serverTimestamp()
       };
+
+      // Comprehensive sanitization for Firestore
+      const sanitize = (obj: any): any => {
+        const result: any = {};
+        Object.keys(obj).forEach(key => {
+          const value = obj[key];
+          if (value === undefined) return;
+          if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+            result[key] = sanitize(value);
+          } else if (Array.isArray(value)) {
+            result[key] = value.map(item => (item !== null && typeof item === 'object') ? sanitize(item) : (item === undefined ? null : item));
+          } else {
+            result[key] = value;
+          }
+        });
+        return result;
+      };
+
+      const sanitizedData = sanitize(postData);
       
-      await addDoc(collection(db, 'posts'), postData);
+      await addDoc(collection(db, 'posts'), sanitizedData);
       toast.success("Mahsulot muvaffaqiyatli import qilindi!");
       setShowInstagramImportModal(false);
       setImportPreview(null);
       setInstagramLink('');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save error:", error);
-      toast.error("Saqlashda xatolik yuz berdi");
+      const errorMsg = error.code === 'permission-denied' 
+        ? "Ruxsat etilmadi. Sizda ushbu do'konga maxsulot qo'shish huquqi yo'q." 
+        : (error.message || "Saqlashda xatolik yuz berdi");
+      toast.error(errorMsg);
     } finally {
       setIsUploading(false);
     }
@@ -2416,26 +2446,38 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 ) : (
                   <div className="space-y-6">
                     <div className="flex gap-4 p-4 bg-text-primary/5 rounded-3xl border border-border-primary">
-                      <img 
-                        src={getProxiedUrl(importPreview?.mediaUrls?.[0] || '')} 
-                        className="w-24 h-24 rounded-2xl object-cover border border-white/10" 
-                        alt="Preview"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const originalUrl = importPreview?.mediaUrls?.[0] || '';
-                          const proxy1 = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}`;
-                          const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
-                          
-                          if (!target.dataset.triedProxy1) {
-                            target.dataset.triedProxy1 = 'true';
-                            target.src = proxy1;
-                          } else if (!target.dataset.triedProxy2) {
-                            target.dataset.triedProxy2 = 'true';
-                            target.src = proxy2;
-                          }
-                        }}
-                      />
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                        {importPreview.mediaType === 'video' ? (
+                          <video 
+                            src={getProxiedUrl(importPreview?.mediaUrls?.[0] || '')} 
+                            className="w-full h-full object-cover" 
+                            muted
+                            playsInline
+                            crossOrigin="anonymous"
+                          />
+                        ) : (
+                          <img 
+                            src={getProxiedUrl(importPreview?.mediaUrls?.[0] || '')} 
+                            className="w-full h-full object-cover" 
+                            alt="Preview"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const originalUrl = importPreview?.mediaUrls?.[0] || '';
+                              const proxy1 = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}`;
+                              const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+                              
+                              if (!target.dataset.triedProxy1) {
+                                target.dataset.triedProxy1 = 'true';
+                                target.src = proxy1;
+                              } else if (!target.dataset.triedProxy2) {
+                                target.dataset.triedProxy2 = 'true';
+                                target.src = proxy2;
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
                       <div className="flex-1">
                         <input 
                           type="text"
@@ -2910,17 +2952,17 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
         return;
       }
 
-      const newStoryData = {
+      const newStoryData: any = {
         sellerId,
         ownerUid,
         seller: {
           id: shopData.id,
           name: shopData.name,
-          logo: shopData.logo,
+          logo: shopData.logo || null,
           region: shopData.region || 'Toshkent'
         },
         videoUrl: selectedPost.mediaUrls[0], // Use the first media from the post
-        price: selectedPost.price,
+        price: selectedPost.price || '',
         likes: 0,
         comments: 0,
         isLive: false,
@@ -2928,13 +2970,35 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
         createdAt: serverTimestamp(),
         expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
       };
+
+      // Comprehensive sanitization for Firestore
+      const sanitize = (obj: any): any => {
+        const result: any = {};
+        Object.keys(obj).forEach(key => {
+          const value = obj[key];
+          if (value === undefined) return;
+          if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+            result[key] = sanitize(value);
+          } else if (Array.isArray(value)) {
+            result[key] = value.map(item => (item !== null && typeof item === 'object') ? sanitize(item) : (item === undefined ? null : item));
+          } else {
+            result[key] = value;
+          }
+        });
+        return result;
+      };
+
+      const sanitizedData = sanitize(newStoryData);
       
-      await addDoc(collection(db, 'stories'), newStoryData);
+      await addDoc(collection(db, 'stories'), sanitizedData);
       toast.success("Story muvaffaqiyatli yaratildi");
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating story:", error);
-      toast.error("Story yaratishda xatolik");
+      const errorMsg = error.code === 'permission-denied' 
+        ? "Ruxsat etilmadi. Sizda story qo'shish huquqi yo'q." 
+        : (error.message || "Story yaratishda xatolik");
+      toast.error(errorMsg);
     } finally {
       setIsCreating(false);
     }
