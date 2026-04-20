@@ -63,9 +63,12 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
 });
 
 app.post("/api/refresh-instagram-url", async (req, res) => {
+  console.log("API Proxy Hit: /api/refresh-instagram-url");
   try {
     const { shortcode } = req.body;
+    console.log("Proxy received shortcode:", shortcode);
     if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
+    console.log("Checking RAPIDAPI_KEY presence:", !!RAPIDAPI_KEY);
     if (!RAPIDAPI_KEY) return res.status(500).json({ error: "API Key missing" });
 
     const response = await fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
@@ -80,12 +83,14 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("RapidAPI Error:", response.status, errorText);
       return res.status(response.status).json({ error: errorText });
     }
 
     const data = await response.json();
     res.json(data);
   } catch (error: any) {
+    console.error("Backend Proxy Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
