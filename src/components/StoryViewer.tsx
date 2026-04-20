@@ -346,7 +346,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
       {/* Header */}
       <div className="absolute top-8 left-0 right-0 px-4 flex items-center justify-between z-50">
-        <div className="flex items-center gap-3">
+        <div 
+          className="flex items-center gap-3 cursor-pointer active:opacity-70 transition-opacity"
+          onClick={() => onOpenShopProfile && onOpenShopProfile(currentStory.sellerId)}
+        >
           <div className="p-[2px] rounded-full bg-gradient-to-br from-accent-blue to-accent-light shadow-lg">
             <img src={currentStory.seller.logo} className="w-10 h-10 rounded-full border-2 border-black bg-black object-cover" referrerPolicy="no-referrer" />
           </div>
@@ -437,17 +440,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
       {/* Bottom Actions */}
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-10 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-50">
-        <div className="flex flex-col gap-6">
-          {/* Price Tag (Text Only) */}
-          <div className="flex px-1">
-            <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
-              {currentStory.price && currentStory.price.trim() !== "" 
-                ? currentStory.price 
-                : (language === 'uz' ? 'Narxi qancha?' : 'How much?')}
-            </span>
-          </div>
-
-          {/* Interaction Row: Message Input + Icons */}
+        <div className="flex flex-col gap-5">
+          {/* Top Row: Interaction (Message, Like, Comment) */}
           <div className="flex items-center gap-4">
             <form 
               onSubmit={handleReply}
@@ -477,7 +471,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               }}
               className={`flex flex-col items-center transition-all active:scale-75 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
             >
-              <Heart size={26} fill={currentStory.isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} className="drop-shadow-md" />
+              <Heart size={26} fill={currentStory.isLiked ? '#ef4444' : 'none'} strokeWidth={2.5} className="drop-shadow-md" />
               <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{currentStory.likes || 0}</span>
             </button>
 
@@ -493,19 +487,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             </button>
           </div>
 
-          {/* Long "Batafsil" Button */}
-          <motion.button 
-            whileTap={{ scale: 0.98 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowProductDetails(true);
-            }}
-            className="w-full flex items-center justify-center gap-3 bg-white py-4 rounded-2xl shadow-[0_20px_50px_rgba(255,255,255,0.1)] group active:scale-[0.98] transition-all"
-          >
-            <ShoppingBag size={20} className="text-neutral-900" strokeWidth={2.5} />
-            <span className="text-neutral-900 font-black uppercase tracking-[0.2em] text-xs">Batafsil ma'lumot</span>
-            <ChevronRight size={18} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-          </motion.button>
+          {/* Bottom Row: Price & Smaller Batafsil Button */}
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex-1 px-1">
+              <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
+                {currentStory.price && currentStory.price.trim() !== "" 
+                  ? currentStory.price 
+                  : (language === 'uz' ? 'Narxi qancha?' : 'How much?')}
+              </span>
+            </div>
+
+            <motion.button 
+              whileTap={{ scale: 0.98 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProductDetails(true);
+              }}
+              className="px-6 py-3.5 bg-white rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.1)] group active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <ShoppingBag size={18} className="text-neutral-900" strokeWidth={2.5} />
+              <span className="text-neutral-900 font-black uppercase tracking-[0.1em] text-[10px]">Batafsil</span>
+              <ChevronRight size={16} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
+            </motion.button>
+          </div>
         </div>
       </div>
 

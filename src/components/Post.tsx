@@ -27,18 +27,18 @@ interface PostProps {
   onToggleMute?: () => void;
 }
 
-const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string, post: PostData, index: number }> = ({ url, isActive, poster, post, index }) => {
+const CarouselVideo: React.FC<{ url: string, isActive: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean }> = ({ url, isActive, poster, post, index, isGlobalPaused }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   
   useEffect(() => {
     if (videoRef.current) {
-      if (isActive) {
+      if (isActive && !isGlobalPaused) {
         safePlayVideo(videoRef.current);
       } else {
         videoRef.current.pause();
       }
     }
-  }, [isActive]);
+  }, [isActive, isGlobalPaused]);
 
   return (
     <video 
@@ -101,7 +101,30 @@ const Post: React.FC<PostProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
+    longPressTimeout.current = setTimeout(() => {
+      setIsPaused(true);
+      if (videoRef.current) videoRef.current.pause();
+    }, 200);
+  };
+
+  const handlePressEnd = (e: React.MouseEvent | React.TouchEvent) => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+    
+    if (isPaused) {
+      setIsPaused(false);
+      if (videoRef.current && isActive) {
+        safePlayVideo(videoRef.current);
+      }
+    }
+  };
   const carouselRef = useRef<HTMLDivElement>(null);
   const lastTap = useRef<number>(0);
   const tapTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -208,15 +231,14 @@ const Post: React.FC<PostProps> = ({
 
   useEffect(() => {
     if (videoRef.current) {
-      if (isActive) {
+      if (isActive && !isPaused) {
         setVideoError(false);
         safePlayVideo(videoRef.current);
       } else {
         videoRef.current.pause();
-        // Removed currentTime = 0 to prevent flickering when scrolling slightly
       }
     }
-  }, [isActive]);
+  }, [isActive, isPaused]);
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -323,6 +345,17 @@ const Post: React.FC<PostProps> = ({
 
       <div 
         className="relative w-full aspect-[4/5] bg-neutral-900 flex items-center justify-center overflow-hidden touch-pan-y"
+        onMouseDown={handlePressStart}
+        onMouseUp={handlePressEnd}
+        onMouseLeave={handlePressEnd}
+        onTouchStart={(e) => {
+          handleTouchStart(e);
+          handlePressStart(e);
+        }}
+        onTouchEnd={(e) => {
+          handleTouchEnd(e);
+          handlePressEnd(e);
+        }}
       >
       {/* Heart Animation on Double Tap */}
       <AnimatePresence>
@@ -455,6 +488,7 @@ const Post: React.FC<PostProps> = ({
                           poster={post.thumbnailUrl || (idx === 0 ? url : undefined)}
                           post={post}
                           index={idx}
+                          isGlobalPaused={isPaused}
                         />
                       </div>
                     ) : (
