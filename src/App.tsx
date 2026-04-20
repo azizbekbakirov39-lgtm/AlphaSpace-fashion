@@ -618,11 +618,48 @@ export default function App() {
   const savedPosts = posts.filter(p => p.isSaved);
   const [recentlyViewedPosts, setRecentlyViewedPosts] = React.useState<PostData[]>([]);
 
-  const filteredPosts = postsWithUserStatus.filter(post => 
-    post.seller.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.outfitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.items?.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredPosts = postsWithUserStatus.filter(post => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+
+    // Direct string matches
+    const matchesName = post.outfitName.toLowerCase().includes(q);
+    const matchesSeller = post.seller.name.toLowerCase().includes(q);
+    const matchesDescription = post.description?.toLowerCase().includes(q);
+    const matchesPrice = post.price.toLowerCase().includes(q);
+
+    // Semantic Price Matching (e.g., "2M" -> "2000000", "100k" -> "100000")
+    const normalizePrice = (p: string) => p.replace(/[^0-9]/g, '');
+    const numericPrice = normalizePrice(post.price);
+    
+    // Check if query is a price shorthand
+    let isPriceMatch = false;
+    if (/^\d+(\.\d+)?[mkb]|mln|ming$/i.test(q)) {
+      let multiplier = 1;
+      let cleanQuery = q;
+      if (q.endsWith('m') || q.includes('mln')) {
+        multiplier = 1000000;
+        cleanQuery = q.replace(/m|mln/g, '');
+      } else if (q.endsWith('k') || q.includes('ming')) {
+        multiplier = 1000;
+        cleanQuery = q.replace(/k|ming/g, '');
+      }
+      
+      const queryVal = parseFloat(cleanQuery) * multiplier;
+      if (!isNaN(queryVal)) {
+        // If the query perfectly matches or the price string contains the interpreted number
+        if (numericPrice === queryVal.toString() || numericPrice.includes(queryVal.toString())) {
+          isPriceMatch = true;
+        }
+      }
+    }
+
+    // Also check if numeric parts of query match the numeric price
+    const numericQuery = q.replace(/[^0-9]/g, '');
+    const matchesNumeric = numericQuery.length > 2 && numericPrice.includes(numericQuery);
+
+    return matchesName || matchesSeller || matchesDescription || matchesPrice || matchesNumeric || isPriceMatch;
+  });
 
   const toggleLike = React.useCallback(async (id: string, type: 'post' | 'story' = 'post') => {
     if (!user) {

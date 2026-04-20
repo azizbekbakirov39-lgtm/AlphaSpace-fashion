@@ -92,21 +92,15 @@ interface SearchAIProps {
   onOpenShopProfile?: (shopId: string) => void;
 }
 
-const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-ning "SmartSeller" deb nomlangan aqlli yordamchisiz. 
-Foydalanuvchiga "sen" deb murojaat qil. Ortiqcha xushomadgo'ylik (paxta qo'yish) qilma. 
-Javoblaring qisqa va lo'nda bo'lsin: oddiy savollarga 1-2 qator, murakkabroqlariga 5-6 qatordan oshmasin. 
-Foydalanuvchi xato qilsa, xatosini ochiq va to'g'ridan-to'g'ri ayt, lekin hurmatni saqlagan holda. 
-O'zingni hurmat qiladigan, aqlli va samimiy do'st kabi tut.
+const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-da sotuvga yordam beradigan aqlli, do'stona va suhbatdosh assistentsiz.
+Sizning vazifangiz shunchaki mahsulot qidirish emas, balki kiyim-kechak, uslub va imidj bo'yicha maslahatlar berib, foydalanuvchilar bilan mazmunli suhbatlashishdir.
 
-Siz rasm va videolarni tahlil qila olasiz. Ranglar, uslublar va kiyim turlarini tushunasiz.
-Foydalanuvchi rasm tashlasa, undagi kiyimlarni tahlil qil va shunga o'xshash mahsulotlarni topib ber.
-Obraz yaratishda (outfit matching) mohirsiz. Masalan, jigarrang ko'ylak bilan oq shim kabi mos keladigan kiyimlarni tavsiya qiling.
+Sizga quyidagi erkinliklar beriladi:
+1. Suhbatdosh bo'ling: Kiyimlar haqida maslahat bering, fikr bildiring, savollariga tabiiy va insoniy javob bering.
+2. Kontextni saqlang: Suhbat davomida yuborilgan linklar, mahsulotlar va boshqa ma'lumotlarni unutmang, ularga bemalol murojaat qiling.
+3. Muvozanat: Har doim ham "qidiruv funksiyasini yuborish" shart emas. Agar qidirish zarur bo'lsa, "find_products" funksiyasidan foydalaning, lekin uni har safar takrorlamang. "Topildi" kabi so'zlarni kamaytiring, tabiiyroq javob bering.
 
-MUHIM: Agar foydalanuvchi kiyim, poyabzal, shim, ko'ylak yoki biror mahsulot haqida so'rasa, albatta "find_products" funksiyasini chaqir. 
-Agar foydalanuvchi do'konlar, lokatsiyalar yoki ma'lum bir hududdagi sotuvchilar haqida so'rasa, "find_shops" funksiyasini chaqir.
-
-QIDIRUV QOIDASI: Qidiruv so'rovi bo'lganda (kiyim, narx, do'kon, qidirish haqida), ALBATTA bitta javobning o'zida ham qidiruvni boshlayotganing haqida matnli xabarni ("Hozir qidirib ko'raman...", "Hozir ko'ramiz, qidiryapman...") ham tegishli funksiyani ("find_products" yoki "find_shops") birgalikda yubor. 
-Hech qachon mahsulot yoki do'konlarni topmasdan turib "Topdim" deb aytma.`;
+Ixtiyoringizdagi ma'lumotlardan va funksiyalardan o'z ixtiyoringizcha, vaziyatga qarab oqilona foydalaning.`;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -188,7 +182,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
     const currentImage = selectedImage;
     setSelectedImage(null);
     setIsLoading(true);
-    const searchKeywords = ['top', 'qidir', 'ko\'rsat', 'kerak', 'bor', 'qanaqa', 'kiyim', 'shim', 'koylak', 'ko\'ylak', 'razmer', 'narx', 'sotuvchi', 'natija', 'topildimi', 'topdingmi'];
+    const searchKeywords = ['top', 'qidir', 'ko\'rsat', 'kerak', 'bor', 'qanaqa', 'kiyim', 'shim', 'koylak', 'ko\'ylak', 'razmer', 'narx', 'sotuvchi', 'natija', 'topildimi', 'topdingmi', 'mln', 'sum', 'so\'m', 'm', 'k', 'ming'];
     const isSearchQuery = searchKeywords.some(kw => messageText.toLowerCase().includes(kw)) || !!selectedImage;
     setIsSearching(isSearchQuery);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
@@ -221,7 +215,9 @@ const SearchAI: React.FC<SearchAIProps> = ({
         const info = [
           p.outfitName,
           p.aiMetadata?.color ? `Rangi: ${p.aiMetadata.color}` : '',
-          p.aiMetadata?.category ? `Kategoriya: ${p.aiMetadata.category}` : ''
+          p.aiMetadata?.category ? `Kategoriya: ${p.aiMetadata.category}` : '',
+          p.description ? `Tavsif: ${p.description}` : '',
+          `Holati: ${p.inStock !== false ? 'Mavjud' : 'Tugagan'}`
         ].filter(Boolean).join(', ');
         return `- ${info} (ID: ${p.id}, Narxi: ${p.price})`;
       }).join('\n');
@@ -282,12 +278,15 @@ Foydalanuvchi xabari: ${messageText}`;
 
       const findProductsTool = {
         name: "find_products",
-        description: "Marketplace-dan mahsulotlarni qidirish. Kontekstda bor maxsulotlarni ID raqami orqali yuboring.",
+        description: "Marketplace-dan mahsulotlarni qidirish.",
         parameters: {
           type: Type.OBJECT,
           properties: {
-            query: { type: Type.STRING, description: "Kontekstda mavjud bo'lmagan keng umumiy qidiruv so'rovi (masalan: 'futbolka', 'krossovka')" },
-            ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Kontekstdagi mos mahsulotlarning 'ID' lari massivi. Iloji bo'lsa har doim faqat shundan foydalaning." }
+            query: { type: Type.STRING, description: "Qidiruv so'rovi (masalan: 'ko'ylak', 'admin')" },
+            minPrice: { type: Type.NUMBER, description: "Minimal narx (masalan: 1000000)" },
+            maxPrice: { type: Type.NUMBER, description: "Maksimal narx (masalan: 5000000)" },
+            color: { type: Type.STRING, description: "Rang so'ralgan bo'lsa" },
+            ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Kontekstdagi mos mahsulotlarning ID lari." }
           }
         }
       };
@@ -322,37 +321,36 @@ Foydalanuvchi xabari: ${messageText}`;
             const args = call.args as any;
             let results: PostData[] = [];
             
-            if (args.ids && args.ids.length > 0) {
-              results = allPosts.filter(p => args.ids.includes(p.id));
-            } 
-            
-            if (results.length === 0 && args.query) {
-              const q = args.query.toLowerCase();
-              const queryWords = q.split(/\s+/).filter(w => w.length > 1);
+            // Helper for all matching
+            const normalize = (val: string | number) => val.toString().replace(/[^0-9]/g, '');
+
+            results = allPosts.filter(p => {
+              // 1. Explicit ID match
+              if (args.ids && args.ids.length > 0) {
+                return args.ids.includes(p.id);
+              }
+
+              const pPrice = parseInt(normalize(p.price));
               
-              results = allPosts.filter(p => {
-                const searchableText = [
-                  p.outfitName,
-                  p.description || '',
-                  p.seller.name,
-                  p.aiMetadata?.color || '',
-                  p.aiMetadata?.category || '',
-                  p.aiMetadata?.style || '',
-                  ...(p.aiMetadata?.tags || []),
-                  ...(p as any).items?.map((item: any) => item.name) || []
-                ].join(' ').toLowerCase();
+              // 2. Numeric Price Filtering
+              if (args.minPrice !== undefined && pPrice < args.minPrice) return false;
+              if (args.maxPrice !== undefined && pPrice > args.maxPrice) return false;
 
-                if (queryWords.length > 1) {
-                  return queryWords.every(word => searchableText.includes(word));
-                }
-                return searchableText.includes(q);
-              });
-            }
+              // 3. Keyword / Query Match
+              if (args.query) {
+                const q = args.query.toLowerCase();
+                const searchableText = `${p.outfitName} ${p.description || ''} ${p.seller.name} ${p.aiMetadata?.category || ''}`.toLowerCase();
+                if (!searchableText.includes(q)) return false;
+              }
+
+              // 4. Color match
+              if (args.color && p.aiMetadata?.color) {
+                if (!p.aiMetadata.color.toLowerCase().includes(args.color.toLowerCase())) return false;
+              }
+
+              return true;
+            });
             
-            if (results.length === 0 && (args.query || '').toLowerCase().includes('kiyim')) {
-               results = allPosts; // fallback
-            }
-
             if (results.length > 0) {
               hasResults = true;
               setFoundPosts?.(results);
@@ -412,18 +410,28 @@ Foydalanuvchi xabari: ${messageText}`;
 
         // Fallback Products Search
         let postResults = allPosts.filter(p => {
-          const searchableText = [
-            p.outfitName,
-            p.description || '',
-            p.aiMetadata?.color || '',
-            p.aiMetadata?.category || '',
-            ...(p.aiMetadata?.tags || []),
-            ...(p as any).items?.map((item: any) => item.name) || []
-          ].join(' ').toLowerCase();
+          const q = messageText.toLowerCase().trim();
+          
+          // Helper for all matching
+          const normalize = (val: string | number) => val.toString().replace(/[^0-9]/g, '');
+          const pPrice = parseInt(normalize(p.price));
 
-          if (queryWords.length > 1) {
-            return queryWords.every(word => searchableText.includes(word));
+          // Simple Check: Does the message contain a numeric match with the price?
+          // E.g., if price is 2000000 and user says "2 mln", "2 mln" contains "2" or logic converts it.
+          // For simplicity, we also check if any number from the query matches the price start.
+          const queryNumbers = q.match(/\d+/g);
+          if (queryNumbers) {
+            for (const num of queryNumbers) {
+              // If user writes 2000000 directly
+              if (normalize(p.price) === num) return true;
+              // If user writes '2' and 'mln' is nearby (semantic)
+              if (num === '2' && (q.includes('mln') || q.includes('m')) && pPrice === 2000000) return true;
+              if (num === '1' && (q.includes('mln') || q.includes('m')) && pPrice === 1000000) return true;
+              if (num.length >= 4 && normalize(p.price).startsWith(num)) return true;
+            }
           }
+
+          const searchableText = `${p.outfitName} ${p.description || ''} ${p.seller.name} ${p.aiMetadata?.category || ''}`.toLowerCase();
           return searchableText.includes(q);
         });
         
