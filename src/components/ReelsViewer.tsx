@@ -248,15 +248,26 @@ const ReelItem: React.FC<{
             className="min-w-full w-full h-full snap-center snap-always flex-shrink-0 relative"
           >
             {realPost.mediaType === 'video' && idx === 0 ? (
-              <div className="h-full w-full relative bg-black/10">
+              <div className="h-full w-full relative bg-black">
+                {/* Instagram Trick: HD Poster behind the video */}
+                {realPost.thumbnailUrl && (
+                  <img 
+                    src={getProxiedUrl(realPost.thumbnailUrl, 0)}
+                    alt="Video Thumbnail"
+                    className="absolute inset-0 w-full h-full object-cover z-0"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+
                 {isMediaLoading && !mediaError && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
-                    <div className="w-8 h-8 border-3 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <div className="w-8 h-8 border-3 border-white/20 border-t-white rounded-full animate-spin drop-shadow-md"></div>
                   </div>
                 )}
 
                 {mediaError && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 z-10 p-4 text-center">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/90 z-20 p-4 text-center">
                     <VolumeX size={32} className="text-white/20 mb-2" />
                     <p className="text-white/40 text-[10px] uppercase font-black tracking-widest">Video yuklanmadi</p>
                     <button 
@@ -266,7 +277,7 @@ const ReelItem: React.FC<{
                         setIsMediaLoading(true);
                         if (videoRef.current) videoRef.current.load();
                       }}
-                      className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10"
+                      className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
                     >
                       Qayta yuklash
                     </button>
@@ -276,15 +287,13 @@ const ReelItem: React.FC<{
                 <video
                   ref={videoRef}
                   src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
-                  poster={realPost.thumbnailUrl || undefined}
-                  className={`h-full w-full object-cover pointer-events-none transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+                  className={`absolute inset-0 h-full w-full object-cover pointer-events-none z-10 transition-opacity duration-500 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
                   loop
                   playsInline
                   muted={isMuted}
                   preload={isActive ? "auto" : "metadata"}
                   crossOrigin="anonymous"
                   onLoadedData={() => {
-                    setIsMediaLoading(false);
                     if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
                   }}
                   onWaiting={() => setIsMediaLoading(true)}

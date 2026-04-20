@@ -31,6 +31,7 @@ interface PostProps {
 const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [proxyIndex, setProxyIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   useEffect(() => {
     if (videoRef.current) {
@@ -38,50 +39,64 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         safePlayVideo(videoRef.current);
       } else {
         videoRef.current.pause();
+        setIsPlaying(false);
       }
     }
   }, [isActive, isGlobalPaused]);
 
   return (
-    <video 
-      ref={videoRef}
-      src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
-      poster={poster}
-      className="w-full h-full object-cover"
-      loop
-      muted
-      playsInline
-      preload={isActive ? "auto" : "metadata"}
-      crossOrigin="anonymous"
-      onLoadedData={() => {
-        if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
-      }}
-      onError={async (e) => {
-        const video = e.currentTarget;
-        if (!isLastProxy(proxyIndex)) {
-          setProxyIndex(prev => getNextProxyIndex(prev));
-          video.load();
-          if (isActive) safePlayVideo(video);
-        } else if (post.instagramUrl && !video.dataset.triedRefresh) {
-          video.dataset.triedRefresh = 'true';
-          const newUrl = await refreshMediaUrl(post.instagramUrl);
-          if (newUrl) {
-            const newMediaUrls = [...post.mediaUrls];
-            newMediaUrls[index] = newUrl;
-            try {
-              await updateDoc(doc(db, 'posts', post.id), {
-                mediaUrls: newMediaUrls
-              });
-            } catch (err) {
-              console.error("Firestore update failed during refresh:", err);
-            }
-            video.src = newUrl;
+    <div className="relative w-full h-full bg-black">
+      {/* Instagram Trick: HD Poster behind the video */}
+      {poster && !poster.includes('.mp4') && (
+        <img 
+          src={getProxiedUrl(poster, 0)}
+          alt="Video Thumbnail"
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          referrerPolicy="no-referrer"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+      )}
+      <video 
+        ref={videoRef}
+        src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
+        className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+        loop
+        muted
+        playsInline
+        preload={isActive ? "auto" : "metadata"}
+        crossOrigin="anonymous"
+        onPlaying={() => setIsPlaying(true)}
+        onWaiting={() => setIsPlaying(false)}
+        onLoadedData={() => {
+          if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
+        }}
+        onError={async (e) => {
+          const video = e.currentTarget;
+          if (!isLastProxy(proxyIndex)) {
+            setProxyIndex(prev => getNextProxyIndex(prev));
             video.load();
             if (isActive) safePlayVideo(video);
+          } else if (post.instagramUrl && !video.dataset.triedRefresh) {
+            video.dataset.triedRefresh = 'true';
+            const newUrl = await refreshMediaUrl(post.instagramUrl);
+            if (newUrl) {
+              const newMediaUrls = [...post.mediaUrls];
+              newMediaUrls[index] = newUrl;
+              try {
+                await updateDoc(doc(db, 'posts', post.id), {
+                  mediaUrls: newMediaUrls
+                });
+              } catch (err) {
+                console.error("Firestore update failed during refresh:", err);
+              }
+              video.src = newUrl;
+              video.load();
+              if (isActive) safePlayVideo(video);
+            }
           }
-        }
-      }}
-    />
+        }}
+      />
+    </div>
   );
 };
 
@@ -435,17 +450,26 @@ const Post: React.FC<PostProps> = ({
               </div>
             )}
 
+            {/* Instagram Trick: HD Poster behind the video */}
+            {post.thumbnailUrl && (
+              <img 
+                src={getProxiedUrl(post.thumbnailUrl, 0)}
+                alt="Video Thumbnail"
+                className="absolute inset-0 w-full h-full object-cover z-0"
+                referrerPolicy="no-referrer"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+
             <video
               ref={videoRef}
               src={shouldLoad ? getProxiedUrl(post.mediaUrls?.[0], mainProxyIndex) : undefined}
-              poster={post.thumbnailUrl || (post.mediaType === 'image' ? post.mediaUrls[0] : undefined)}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${videoLoading ? 'opacity-0' : 'opacity-100'}`}
+              className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-500 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
               loop
               muted={isMuted}
               playsInline
               preload={isActive ? "auto" : "metadata"}
               onLoadedData={() => {
-                setVideoLoading(false);
                 if (shouldLoad) markUrlAsSuccessful(post.mediaUrls[0], videoRef.current?.src || '');
               }}
               onWaiting={() => setVideoLoading(true)}

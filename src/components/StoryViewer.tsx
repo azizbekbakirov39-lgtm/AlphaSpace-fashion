@@ -246,14 +246,25 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     >
       {isVideoUrl(currentStory.videoUrl) ? (
         <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
+          {/* Instagram Trick: HD Poster behind the video */}
+          {(currentStory.imageUrl || currentStory.thumbnailUrl) && (
+            <img 
+              src={getProxiedUrl(currentStory.imageUrl || currentStory.thumbnailUrl || '', 0)}
+              alt="Story Thumbnail"
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              referrerPolicy="no-referrer"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
+
           {isMediaLoading && !mediaError && (
-             <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
-               <div className="w-8 h-8 border-3 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin"></div>
+             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+               <div className="w-8 h-8 border-3 border-white/20 border-t-white rounded-full animate-spin drop-shadow-md"></div>
              </div>
           )}
 
           {mediaError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 z-10 p-4 text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/90 z-20 p-4 text-center">
               <VolumeX size={32} className="text-white/20 mb-2" />
               <p className="text-white/40 text-[10px] uppercase font-black tracking-widest">Video yuklanmadi</p>
               <button 
@@ -263,7 +274,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   setIsMediaLoading(true);
                   if (videoRef.current) videoRef.current.load();
                 }}
-                className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10"
+                className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
               >
                 Qayta yuklash
               </button>
@@ -273,7 +284,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           <video
             ref={videoRef}
             src={getProxiedUrl(currentStory.videoUrl, proxyIndex)}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${isMediaLoading ? 'opacity-0' : 'opacity-100'}`}
+            className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-500 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
             onEnded={handleNext}
             playsInline
             muted={isMuted}
@@ -285,7 +296,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             onTouchEnd={handlePressEnd}
             preload="auto"
             onLoadedData={() => {
-              setIsMediaLoading(false);
               markUrlAsSuccessful(currentStory.videoUrl, videoRef.current?.src || '');
             }}
             onPlaying={() => setIsMediaLoading(false)}
