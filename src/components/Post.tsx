@@ -106,10 +106,12 @@ const Post: React.FC<PostProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
+    isLongPressed.current = false;
     longPressTimeout.current = setTimeout(() => {
       setIsPaused(true);
+      isLongPressed.current = true;
       if (videoRef.current) videoRef.current.pause();
-    }, 200);
+    }, 300);
   };
 
   const handlePressEnd = (e: React.MouseEvent | React.TouchEvent) => {
@@ -127,16 +129,26 @@ const Post: React.FC<PostProps> = ({
   };
   const carouselRef = useRef<HTMLDivElement>(null);
   const lastTap = useRef<number>(0);
+  const lastClickTimestamp = useRef<number>(0);
   const tapTimeout = useRef<NodeJS.Timeout | null>(null);
   const touchStartPos = useRef<{ x: number, y: number } | null>(null);
   const touchStartTime = useRef<number>(0);
   const isScrolling = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressed = useRef(false);
 
   const { shareContent } = useShare();
 
   const handleMediaClick = (e: React.MouseEvent | React.TouchEvent) => {
     const now = Date.now();
+    if (now - lastClickTimestamp.current < 100) return;
+    lastClickTimestamp.current = now;
+
+    if (isLongPressed.current) {
+      isLongPressed.current = false;
+      return;
+    }
+
     const DOUBLE_TAP_DELAY = 300;
     
     if (now - lastTap.current < DOUBLE_TAP_DELAY) {
@@ -166,39 +178,23 @@ const Post: React.FC<PostProps> = ({
     }
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStartCustom = (e: React.TouchEvent) => {
     touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     touchStartTime.current = Date.now();
+    handlePressStart(e);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEndCustom = (e: React.TouchEvent) => {
+    handlePressEnd(e);
     if (!touchStartPos.current) return;
     const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartPos.current.x);
     const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartPos.current.y);
     const duration = Date.now() - touchStartTime.current;
     
     // If movement is very small AND it was a quick touch AND we are not scrolling
-    // This ensures that swiping doesn't trigger Reels
-    if (deltaX < 15 && deltaY < 15 && duration < 300 && !isScrolling.current) {
-      const now = Date.now();
-      const DOUBLE_TAP_DELAY = 300;
-      
-      if (now - lastTap.current < DOUBLE_TAP_DELAY) {
-        // Double tap detected
-        if (tapTimeout.current) clearTimeout(tapTimeout.current);
-        if (!post.isLiked && onToggleLike) {
-          onToggleLike();
-          setShowHeart(true);
-          setTimeout(() => setShowHeart(false), 1000);
-        }
-      } else {
-        // Single tap - wait for potential second tap
-        if (tapTimeout.current) clearTimeout(tapTimeout.current);
-        tapTimeout.current = setTimeout(() => {
-          if (onOpenReels) onOpenReels();
-        }, DOUBLE_TAP_DELAY);
-      }
-      lastTap.current = now;
+    // and NOT a long press
+    if (deltaX < 15 && deltaY < 15 && duration < 300 && !isScrolling.current && !isPaused) {
+      handleMediaClick(e);
     }
     touchStartPos.current = null;
   };
@@ -348,14 +344,9 @@ const Post: React.FC<PostProps> = ({
         onMouseDown={handlePressStart}
         onMouseUp={handlePressEnd}
         onMouseLeave={handlePressEnd}
-        onTouchStart={(e) => {
-          handleTouchStart(e);
-          handlePressStart(e);
-        }}
-        onTouchEnd={(e) => {
-          handleTouchEnd(e);
-          handlePressEnd(e);
-        }}
+        onTouchStart={handleTouchStartCustom}
+        onTouchEnd={handleTouchEndCustom}
+        onClick={handleMediaClick}
       >
       {/* Heart Animation on Double Tap */}
       <AnimatePresence>
@@ -375,7 +366,6 @@ const Post: React.FC<PostProps> = ({
         {post.mediaType === 'video' ? (
           <div 
             className="w-full h-full cursor-pointer relative bg-black/10"
-            onClick={handleMediaClick}
           >
             {/* Loading Indicator */}
             {videoLoading && !videoError && (
@@ -465,9 +455,6 @@ const Post: React.FC<PostProps> = ({
             <div 
               ref={carouselRef}
               onScroll={handleScroll}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              onClick={handleMediaClick}
               className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide touch-pan-x touch-pan-y"
               style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
             >

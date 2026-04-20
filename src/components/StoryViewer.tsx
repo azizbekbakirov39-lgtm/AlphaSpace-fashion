@@ -344,44 +344,77 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         ))}
       </div>
 
-      {/* Header */}
-      <div className="absolute top-8 left-0 right-0 px-4 flex items-center justify-between z-50">
-        <div 
-          className="flex items-center gap-3 cursor-pointer active:opacity-70 transition-opacity"
-          onClick={() => onOpenShopProfile && onOpenShopProfile(currentStory.sellerId)}
+      {/* Header Controls */}
+      <div className="absolute top-8 left-0 right-0 px-4 flex items-center justify-end gap-2 z-50">
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMuted(!isMuted);
+          }}
+          className="text-white p-2.5 bg-black/20 backdrop-blur-md rounded-xl border border-white/10 active:scale-90 transition-all shadow-lg"
         >
-          <div className="p-[2px] rounded-full bg-gradient-to-br from-accent-blue to-accent-light shadow-lg">
-            <img src={currentStory.seller.logo} className="w-10 h-10 rounded-full border-2 border-black bg-black object-cover" referrerPolicy="no-referrer" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-white font-black text-sm drop-shadow-md tracking-tight">{currentStory.seller.name}</span>
-            <div className="flex items-center gap-1">
-              {currentStory.isLive && (
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">Live</span>
-                </div>
-              )}
-              <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest">
-                {formatRelativeTime(currentStory.createdAt)}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
+          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        </button>
+        <button onClick={onClose} className="text-white p-2.5 bg-black/20 backdrop-blur-md rounded-xl border border-white/10 active:scale-90 transition-all shadow-lg">
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Vertical Interaction Sidebar */}
+      <div className="absolute right-3 bottom-[260px] flex flex-col gap-6 items-center z-50 px-1">
+        {/* Like */}
+        <div className="flex flex-col items-center gap-1.5">
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.8 }}
             onClick={(e) => {
               e.stopPropagation();
-              setIsMuted(!isMuted);
-            }}
-            className="text-white p-2.5 bg-black/20 backdrop-blur-md rounded-xl border border-white/10 active:scale-90 transition-all"
+              onToggleLike(currentStory.id, 'story');
+              if (!currentStory.isLiked) {
+                setShowHeartAnimation(true);
+                setTimeout(() => setShowHeartAnimation(false), 800);
+              }
+            }} 
+            className={`w-9 h-9 flex items-center justify-center transition-all ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
           >
-            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-          </button>
-          <button onClick={onClose} className="text-white p-2.5 bg-black/20 backdrop-blur-md rounded-xl border border-white/10 active:scale-90 transition-all">
-            <X size={20} />
-          </button>
+            <Heart size={28} fill={currentStory.isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} className="drop-shadow-lg" />
+          </motion.button>
+          <span className="text-white text-[10px] font-black uppercase drop-shadow-md tracking-tight leading-none h-3">{currentStory.likes || 0}</span>
         </div>
+
+        {/* Comments */}
+        <div className="flex flex-col items-center gap-1.5">
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.8 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowComments(true);
+            }} 
+            className="w-9 h-9 flex items-center justify-center text-white"
+          >
+            <MessageCircle size={28} strokeWidth={2.5} className="drop-shadow-lg" />
+          </motion.button>
+          <span className="text-white text-[10px] font-black uppercase drop-shadow-md tracking-tight leading-none h-3">{currentStory.comments || 0}</span>
+        </div>
+
+        {/* Share */}
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.8 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const shareData = {
+              title: currentStory.seller.name,
+              text: 'Ajoyib storyni ko\'ring!',
+              url: `${window.location.origin}?story=${currentStory.id}`,
+            };
+            shareContent(shareData.title, shareData.text, shareData.url);
+          }} 
+          className="w-9 h-9 flex items-center justify-center text-white"
+        >
+          <Share2 size={28} strokeWidth={2.5} className="drop-shadow-lg" />
+        </motion.button>
       </div>
 
       {/* Interactive Poll Sticker */}
@@ -438,79 +471,74 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         </div>
       )}
 
-      {/* Bottom Actions */}
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-10 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-50">
-        <div className="flex flex-col gap-5">
-          {/* Top Row: Interaction (Message, Like, Comment) */}
-          <div className="flex items-center gap-4">
-            <form 
-              onSubmit={handleReply}
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3 shadow-lg"
-            >
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder={language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}
-                className="flex-1 bg-transparent border-none outline-none text-white text-xs font-bold placeholder:text-white/40"
-              />
-              <button type="submit" className="text-white/40 hover:text-white transition-colors">
-                <Send size={16} />
-              </button>
-            </form>
-
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleLike(currentStory.id, 'story');
-                if (!currentStory.isLiked) {
-                  setShowHeartAnimation(true);
-                  setTimeout(() => setShowHeartAnimation(false), 800);
-                }
-              }}
-              className={`flex flex-col items-center transition-all active:scale-75 ${currentStory.isLiked ? 'text-red-500' : 'text-white'}`}
-            >
-              <Heart size={26} fill={currentStory.isLiked ? '#ef4444' : 'none'} strokeWidth={2.5} className="drop-shadow-md" />
-              <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{currentStory.likes || 0}</span>
-            </button>
-
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowComments(true);
-              }}
-              className="flex flex-col items-center text-white transition-all active:scale-75"
-            >
-              <MessageCircle size={26} strokeWidth={2.5} className="drop-shadow-md" />
-              <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{currentStory.comments || 0}</span>
-            </button>
-          </div>
-
-          {/* Bottom Row: Price & Smaller Batafsil Button */}
-          <div className="flex items-end justify-between gap-4">
-            <div className="flex-1 px-1">
-              <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
-                {currentStory.price && currentStory.price.trim() !== "" 
-                  ? currentStory.price 
-                  : (language === 'uz' ? 'Narxi qancha?' : 'How much?')}
+      {/* Bottom Info Section - Consistent with Reels */}
+      <div className="absolute bottom-10 left-4 right-4 z-50 flex flex-col gap-4 pr-14">
+        {/* Row 1 (Top): Shop Identity & Price */}
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div 
+            className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity"
+            onClick={handleShopClick}
+          >
+            <img 
+              src={currentStory.seller.logo} 
+              className="w-8 h-8 rounded-full border border-white/20 object-cover shadow-lg" 
+              referrerPolicy="no-referrer" 
+            />
+            <div className="flex flex-col">
+              <span className="text-white font-black text-sm drop-shadow-md tracking-tight leading-none">{currentStory.seller.name}</span>
+              <span className="text-white/40 text-[8px] font-black uppercase tracking-widest mt-0.5">
+                {currentStory.isLive ? (
+                  <span className="text-accent-blue animate-pulse">● LIVE</span>
+                ) : formatRelativeTime(currentStory.createdAt)}
               </span>
             </div>
-
-            <motion.button 
-              whileTap={{ scale: 0.98 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowProductDetails(true);
-              }}
-              className="px-6 py-3.5 bg-white rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.1)] group active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              <ShoppingBag size={18} className="text-neutral-900" strokeWidth={2.5} />
-              <span className="text-neutral-900 font-black uppercase tracking-[0.1em] text-[10px]">Batafsil</span>
-              <ChevronRight size={16} className="text-neutral-400 group-hover:text-neutral-900 transition-colors" />
-            </motion.button>
           </div>
+          
+          <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
+            {currentStory.price && currentStory.price.trim() !== "" 
+              ? currentStory.price 
+              : (language === 'uz' ? 'Narxi?' : 'Price?')}
+          </span>
         </div>
+
+        {/* Row 2 (Middle): Message & Batafsil */}
+        <div className="flex items-center gap-3">
+          <form 
+            onSubmit={handleReply}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-between bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 h-10 shadow-lg cursor-pointer active:opacity-70 transition-opacity"
+          >
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}
+              className="flex-1 bg-transparent border-none outline-none text-white text-[10px] font-black uppercase tracking-widest placeholder:text-white/40"
+            />
+            <button type="submit" className="text-white/40 hover:text-white transition-colors">
+              <Send size={14} />
+            </button>
+          </form>
+
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowProductDetails(true);
+            }}
+            className="h-10 px-4 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-[0.2em] hover:text-white/80 active:scale-95 transition-all"
+          >
+            Batafsil
+          </button>
+        </div>
+
+        {/* Row 3 (Bottom): Description (if available) */}
+        {currentStory.seller.description && (
+          <div className="px-1 opacity-60">
+            <p className="text-white text-[11px] font-medium leading-snug line-clamp-1 drop-shadow-md">
+              {currentStory.seller.description}
+            </p>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -552,7 +580,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       {/* Heart Animation */}
       <AnimatePresence>
         {showHeartAnimation && (
-          <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1.5, opacity: 1 }} exit={{ scale: 2, opacity: 0 }} className="absolute z-[6000] pointer-events-none">
+          <motion.div 
+            initial={{ scale: 0, opacity: 0 }} 
+            animate={{ scale: [0, 1.2, 1], opacity: [1, 1, 0] }} 
+            exit={{ scale: 1.5, opacity: 0 }} 
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-[6000]"
+          >
             <Heart size={100} fill="#ef4444" className="text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.6)]" />
           </motion.div>
         )}

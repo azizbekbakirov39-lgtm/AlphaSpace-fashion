@@ -681,10 +681,13 @@ export default function App() {
       return newLikes;
     });
     
+    const isCurrentlyLiked = userLikes.has(id);
     if (type === 'story') {
-      setStories(prev => prev.map(s => s.id === id ? { ...s, likes: userLikes.has(id) ? s.likes - 1 : s.likes + 1 } : s));
+      setStories(prev => prev.map(s => s.id === id ? { ...s, likes: isCurrentlyLiked ? Math.max(0, s.likes - 1) : s.likes + 1 } : s));
+      setActiveStoryList(prev => prev.map(s => s.id === id ? { ...s, isLiked: !isCurrentlyLiked, likes: isCurrentlyLiked ? Math.max(0, s.likes - 1) : s.likes + 1 } : s));
     } else {
-      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: userLikes.has(id) ? p.likes - 1 : p.likes + 1 } : p));
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: isCurrentlyLiked ? Math.max(0, p.likes - 1) : p.likes + 1 } : p));
+      setActiveReelList(prev => prev.map(p => p.id === id ? { ...p, isLiked: !isCurrentlyLiked, likes: isCurrentlyLiked ? Math.max(0, p.likes - 1) : p.likes + 1 } : p));
     }
 
     try {

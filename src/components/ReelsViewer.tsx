@@ -382,110 +382,70 @@ const ReelItem: React.FC<{
       )}
 
       {/* Bottom Info Section */}
-      <div className="absolute bottom-6 left-4 right-4 z-20 flex flex-col gap-4">
-        {/* Interaction Row: Message, Like, Comment, Save */}
-        <div className="flex items-center gap-4">
+      <div className="absolute bottom-6 left-4 right-4 z-20 flex flex-col gap-4 pr-14">
+        {/* Row 1 (Top): Shop Identity & Price */}
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div 
+            className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity"
+            onClick={handleShopClick}
+          >
+            <img 
+              src={realPost.seller.logo} 
+              className="w-8 h-8 rounded-full border border-white/20 object-cover shadow-lg" 
+              referrerPolicy="no-referrer" 
+            />
+            <div className="flex flex-col">
+              <span className="text-white font-black text-sm drop-shadow-md tracking-tight leading-none">{realPost.seller.name}</span>
+              <span className="text-white/40 text-[8px] font-black uppercase tracking-widest mt-0.5">
+                {formatRelativeTime(realPost.createdAt)}
+              </span>
+            </div>
+          </div>
+          
+          <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
+            {realPost.price && realPost.price.trim() !== "" 
+              ? realPost.price 
+              : (realPost.priceMessage || (language === 'uz' ? 'Narxi?' : 'Price?'))}
+          </span>
+        </div>
+
+        {/* Row 2 (Middle): Message & Batafsil */}
+        <div className="flex items-center gap-3">
           <div 
             onClick={(e) => {
               e.stopPropagation();
               onOpenChat && onOpenChat(post.seller.id, post);
             }}
-            className="flex-1 flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3 shadow-lg cursor-pointer active:opacity-70 transition-opacity"
+            className="flex-1 flex items-center justify-between bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 h-10 shadow-lg cursor-pointer active:opacity-70 transition-opacity"
           >
-            <span className="flex-1 text-white/40 text-xs font-bold">{language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}</span>
-            <Send size={16} className="text-white/40" />
+            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">{language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}</span>
+            <Send size={14} className="text-white/40" />
           </div>
 
           <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleLike();
-              if (!realPost.isLiked) {
-                setShowHeart(true);
-                setTimeout(() => setShowHeart(false), 1000);
-              }
-            }}
-            className={`flex flex-col items-center transition-all active:scale-75 ${realPost.isLiked ? 'text-red-500' : 'text-white'}`}
-          >
-            <Heart size={26} fill={realPost.isLiked ? '#ef4444' : 'none'} strokeWidth={2.5} className="drop-shadow-md" />
-            <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{realPost.likes}</span>
-          </button>
-
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowComments(true);
-            }}
-            className="flex flex-col items-center text-white transition-all active:scale-75"
-          >
-            <MessageCircle size={26} strokeWidth={2.5} className="drop-shadow-md" />
-            <span className="text-[9px] font-black uppercase mt-1 drop-shadow-md">{realPost.comments}</span>
-          </button>
-
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSave();
-            }}
-            className={`flex flex-col items-center transition-all active:scale-75 ${realPost.isSaved ? 'text-accent-blue' : 'text-white'}`}
-          >
-            <Bookmark size={26} fill={realPost.isSaved ? 'currentColor' : 'none'} strokeWidth={2.5} className="drop-shadow-md" />
-          </button>
-        </div>
-
-        {/* Info Row: Price, Shop Identity, Batafsil */}
-        <div className="flex items-end justify-between gap-4">
-          <div className="flex-1 flex flex-col gap-3">
-            <span className="text-white font-black text-xl drop-shadow-lg tracking-tight px-1">
-              {realPost.price && realPost.price.trim() !== "" 
-                ? realPost.price 
-                : (realPost.priceMessage || (language === 'uz' ? 'Narxi qancha?' : 'How much?'))}
-            </span>
-            
-            <div 
-              className="flex items-center gap-3 cursor-pointer active:opacity-70 transition-opacity"
-              onClick={handleShopClick}
-            >
-              <img 
-                src={realPost.seller.logo} 
-                className="w-10 h-10 rounded-full border border-white/30 object-cover shadow-lg" 
-                referrerPolicy="no-referrer" 
-              />
-              <div className="flex flex-col">
-                <span className="text-white font-black text-sm drop-shadow-md tracking-tight leading-none">{realPost.seller.name}</span>
-                <span className="text-white/60 text-[9px] font-bold uppercase tracking-widest mt-1">
-                  {formatRelativeTime(realPost.createdAt)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <motion.button 
-            whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation();
               setShowDetails(true);
             }}
-            className="px-6 py-3.5 bg-white rounded-2xl shadow-xl flex items-center gap-2 active:scale-95 transition-all"
+            className="h-10 px-4 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-[0.2em] hover:text-white/80 active:scale-95 transition-all"
           >
-            <ShoppingBag size={18} className="text-neutral-900" strokeWidth={2.5} />
-            <span className="text-neutral-900 font-black uppercase tracking-[0.1em] text-[10px]">Batafsil</span>
-          </motion.button>
+            Batafsil
+          </button>
         </div>
 
-        {/* Description */}
+        {/* Row 3 (Bottom): Description (Izoh) */}
         {realPost.description && (
-          <div className="relative px-1">
-            <p className={`text-white/80 text-xs font-medium leading-snug drop-shadow-md transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
+          <div className="px-1">
+            <p className={`text-white/60 text-[11px] font-medium leading-snug drop-shadow-md transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
               {realPost.description}
             </p>
-            {!isDescriptionExpanded && realPost.description.length > 40 && (
+            {!isDescriptionExpanded && realPost.description.length > 30 && (
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsDescriptionExpanded(true);
                 }}
-                className="text-white/40 text-[11px] font-bold mt-0.5 hover:text-white"
+                className="text-white/30 text-[10px] font-bold mt-0.5 hover:text-white/50"
               >
                 ...davomi
               </button>
@@ -531,7 +491,7 @@ const ReelItem: React.FC<{
             }} 
             transition={{ duration: 0.8, ease: "easeOut" }}
             exit={{ scale: 1.5, opacity: 0 }} 
-            className="absolute z-50 pointer-events-none"
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
           >
             <Heart size={100} fill="#ef4444" className="text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.6)]" />
           </motion.div>
