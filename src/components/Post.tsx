@@ -59,7 +59,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
       <video 
         ref={videoRef}
         src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
-        className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-300 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
         loop
         muted
         playsInline
@@ -68,6 +68,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         onPlaying={() => setIsPlaying(true)}
         onWaiting={() => setIsPlaying(false)}
         onLoadedData={() => {
+          setIsPlaying(true); // Trigger faster than onPlaying
           if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
         }}
         onError={async (e) => {
@@ -464,12 +465,13 @@ const Post: React.FC<PostProps> = ({
             <video
               ref={videoRef}
               src={shouldLoad ? getProxiedUrl(post.mediaUrls?.[0], mainProxyIndex) : undefined}
-              className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-500 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
               loop
               muted={isMuted}
               playsInline
               preload={isActive ? "auto" : "metadata"}
               onLoadedData={() => {
+                setVideoLoading(false); // Immediate show when data loaded
                 if (shouldLoad) markUrlAsSuccessful(post.mediaUrls[0], videoRef.current?.src || '');
               }}
               onWaiting={() => setVideoLoading(true)}

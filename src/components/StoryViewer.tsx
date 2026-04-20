@@ -284,7 +284,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           <video
             ref={videoRef}
             src={getProxiedUrl(currentStory.videoUrl, proxyIndex)}
-            className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-500 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
             onEnded={handleNext}
             playsInline
             muted={isMuted}
@@ -296,6 +296,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             onTouchEnd={handlePressEnd}
             preload="auto"
             onLoadedData={() => {
+              setIsMediaLoading(false); // Immediate show when data loaded
               markUrlAsSuccessful(currentStory.videoUrl, videoRef.current?.src || '');
             }}
             onPlaying={() => setIsMediaLoading(false)}

@@ -287,13 +287,14 @@ const ReelItem: React.FC<{
                 <video
                   ref={videoRef}
                   src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
-                  className={`absolute inset-0 h-full w-full object-cover pointer-events-none z-10 transition-opacity duration-500 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute inset-0 h-full w-full object-cover pointer-events-none z-10 transition-opacity duration-200 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
                   loop
                   playsInline
                   muted={isMuted}
                   preload={isActive ? "auto" : "metadata"}
                   crossOrigin="anonymous"
                   onLoadedData={() => {
+                    setIsMediaLoading(false); // Immediate show when data loaded
                     if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
                   }}
                   onWaiting={() => setIsMediaLoading(true)}
