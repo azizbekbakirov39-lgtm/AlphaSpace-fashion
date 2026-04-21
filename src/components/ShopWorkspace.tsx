@@ -289,8 +289,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [migrationProgress, setMigrationProgress] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -397,82 +395,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           console.error("Error detecting location:", error);
         }
       );
-    }
-  };
-
-  const migrateExistingVideos = async () => {
-    // Filter posts that have instagram videos but NOT R2 links
-    const postsToMigrate = posts.filter(post => 
-      post.seller.id === shopData.id && // Only current shop's posts
-      post.mediaUrls?.some(url => 
-        (url.includes('instagram.com') || url.includes('cdninstagram.com')) && 
-        !url.includes('r2.dev')
-      )
-    );
-
-    if (postsToMigrate.length === 0) {
-      toast.info("Barcha videolar allaqachon mustaqil xotiraga o'tkazilgan!");
-      return;
-    }
-
-    const confirmText = `${postsToMigrate.length} ta postdagi videolarni mustaqil xotiraga (Cloudflare R2) ko'chiramizmi? Bu jarayon biroz vaqt olishi mumkin.`;
-    if (!window.confirm(confirmText)) return;
-
-    setMigrationProgress(0);
-    setIsMigrating(true);
-    let successCount = 0;
-    
-    try {
-      toast.loading("Migratsiya boshlandi...", { id: 'migration-toast' });
-      
-      for (let i = 0; i < postsToMigrate.length; i++) {
-        const post = postsToMigrate[i];
-        const updatedUrls = [...post.mediaUrls];
-        let postChanged = false;
-
-        for (let j = 0; j < updatedUrls.length; j++) {
-          const url = updatedUrls[j];
-          // Check if it's an instagram video link that needs migration
-          const isInstagramVideo = (url.includes('instagram.com') || url.includes('cdninstagram.com')) && 
-                                   (url.includes('.mp4') || post.mediaType === 'video');
-
-          if (isInstagramVideo && !url.includes('r2.dev')) {
-            try {
-              const res = await fetch('/api/import-to-r2', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  videoUrl: url,
-                  fileName: `videos/shop-${shopData.id}/${Date.now()}-${successCount}-${j}.mp4`
-                })
-              });
-
-              if (res.ok) {
-                const { publicUrl } = await res.json();
-                updatedUrls[j] = publicUrl;
-                postChanged = true;
-              }
-            } catch (err) {
-              console.error(`Migration failed for ${url}:`, err);
-            }
-          }
-        }
-
-        if (postChanged) {
-          await updateDoc(doc(db, 'posts', post.id), { mediaUrls: updatedUrls });
-          successCount++;
-        }
-        
-        setMigrationProgress(Math.round(((i + 1) / postsToMigrate.length) * 100));
-      }
-      
-      toast.success(`${successCount} ta post muvaffaqiyatli yangilandi!`, { id: 'migration-toast' });
-    } catch (error) {
-      console.error("Migration fatal error:", error);
-      toast.error("Migratsiya jarayonida kutilmagan xato yuz berdi", { id: 'migration-toast' });
-    } finally {
-      setIsMigrating(false);
-      setMigrationProgress(null);
     }
   };
 
@@ -2183,33 +2105,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
               {/* Account Management */}
               <div className="mt-8 pt-8 border-t border-white/10 flex flex-col gap-4">
-                <h3 className="text-sm font-black italic tracking-tighter uppercase text-text-primary/40 mb-2">Tizimni yangilash</h3>
-                
-                {migrationProgress !== null ? (
-                  <div className="w-full bg-white/5 border border-white/10 p-4 rounded-xl">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/60">Videolar ko'chirilmoqda...</span>
-                      <span className="text-[10px] font-black text-accent-blue">{migrationProgress}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${migrationProgress}%` }}
-                        className="h-full bg-accent-blue"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={migrateExistingVideos}
-                    disabled={isMigrating}
-                    className="w-full py-4 bg-accent-blue/10 border border-accent-blue/20 text-accent-blue rounded-xl font-black uppercase tracking-widest active:scale-95 transition-all hover:bg-accent-blue/20 flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw size={18} className={isMigrating ? "animate-spin" : ""} />
-                    Eski videolarni mustaqil xotiraga ko'chirish
-                  </button>
-                )}
-
                 <h3 className="text-sm font-black italic tracking-tighter uppercase text-red-500/80 mt-4 mb-2">Xavfli Hudud</h3>
                 
                 <button 
