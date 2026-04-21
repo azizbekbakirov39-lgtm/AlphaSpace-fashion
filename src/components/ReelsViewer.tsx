@@ -157,6 +157,15 @@ const ReelItem: React.FC<{
     return () => video.removeEventListener('timeupdate', updateProgress);
   }, []);
 
+  // Aggressive cleanup to focus bandwidth on active video
+  useEffect(() => {
+    if (!shouldLoad && videoRef.current) {
+      videoRef.current.src = "";
+      videoRef.current.load(); // Forces browser to drop connections immediately
+      setIsMediaLoading(true);
+    }
+  }, [shouldLoad]);
+
   const handleMediaClick = (e: React.MouseEvent) => {
     const now = Date.now();
     const { clientX, currentTarget } = e;
@@ -291,7 +300,7 @@ const ReelItem: React.FC<{
                   loop
                   playsInline
                   muted={isMuted}
-                  preload={isActive ? "auto" : "metadata"}
+                  preload={isActive ? "auto" : "none"}
                   crossOrigin="anonymous"
                   onLoadedData={() => {
                     setIsMediaLoading(false); // Immediate show when data loaded

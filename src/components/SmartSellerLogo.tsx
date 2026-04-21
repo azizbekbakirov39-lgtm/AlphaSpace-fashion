@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { motion } from 'motion/react';
 
 interface SmartSellerLogoProps {
@@ -16,9 +16,13 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
   animated = true, 
   showText = true 
 }) => {
-  const blue = "#0095FF";
+  const id = useId().replace(/:/g, '');
+  const liquidGradientId = `liquidGradient-${id}`;
+  const chainGradientId = `chainGradient-${id}`;
+  const glowId = `glow-${id}`;
+
+  const blue = "#0066FF";
   const purple = "#22D3EE";
-  const lightBlue = "#5AC8FA";
 
   return (
     <div className={`flex flex-col items-center ${className}`} style={{ width, height: 'auto' }}>
@@ -30,7 +34,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
           className="w-full h-full drop-shadow-xl"
         >
           <defs>
-            <linearGradient id="liquidGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id={liquidGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={blue}>
                 <animate attributeName="stop-color" values={`${blue};${purple};${blue}`} dur="2s" repeatCount="indefinite" />
               </stop>
@@ -39,7 +43,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
               </stop>
             </linearGradient>
             
-            <linearGradient id="chainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id={chainGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#BF953F" />
               <stop offset="25%" stopColor="#FCF6BA" />
               <stop offset="50%" stopColor="#B38728" />
@@ -47,7 +51,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
               <stop offset="100%" stopColor="#AA771C" />
             </linearGradient>
 
-            <filter id="glow">
+            <filter id={glowId}>
               <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
               <feMerge>
                 <feMergeNode in="coloredBlur"/>
@@ -57,7 +61,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
           </defs>
 
           {/* Chain - Behind the tag (Smaller, more links for longer look) */}
-          <g filter="url(#glow)">
+          <g filter={`url(#${glowId})`}>
             {[...Array(10)].map((_, i) => {
               const cx = 38 - (i + 1) * 3;
               const cy = 38 + (i + 1) * 2;
@@ -65,7 +69,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
                 <circle 
                   key={`back-chain-${i}`}
                   cx={cx} cy={cy} r="2" 
-                  stroke="url(#chainGradient)" strokeWidth="1" fill="none"
+                  stroke={`url(#${chainGradientId})`} strokeWidth="1" fill="none"
                   opacity={0.4}
                 />
               );
@@ -89,7 +93,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
             {/* The Liquid Tag */}
             <path
               d="M55 25 L30 25 C27.2 25 25 27.2 25 30 L25 55 L65 95 C67.8 97.8 72.2 97.8 75 95 L95 75 C97.8 72.2 97.8 67.8 95 65 L55 25 Z"
-              fill="url(#liquidGradient)"
+              fill={`url(#${liquidGradientId})`}
             />
 
             {/* Solid White Inner Border */}
@@ -115,7 +119,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
           <circle cx="38" cy="38" r="3.5" fill="white" />
 
           {/* Chain - Front of the tag (Smaller, more links) */}
-          <g filter="url(#glow)">
+          <g filter={`url(#${glowId})`}>
             {[...Array(8)].map((_, i) => {
               const cx = 38 - (i + 1) * 3.5;
               const cy = 38 - (i + 1) * 1;
@@ -123,7 +127,7 @@ const SmartSellerLogo: React.FC<SmartSellerLogoProps> = ({
                 <circle 
                   key={`front-chain-${i}`}
                   cx={cx} cy={cy} r="2.2" 
-                  stroke="url(#chainGradient)" strokeWidth="1.2" fill="none"
+                  stroke={`url(#${chainGradientId})`} strokeWidth="1.2" fill="none"
                 />
               );
             })}

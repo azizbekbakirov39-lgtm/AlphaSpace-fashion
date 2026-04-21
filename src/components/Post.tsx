@@ -44,6 +44,15 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
     }
   }, [isActive, isGlobalPaused]);
 
+  // Aggressive cleanup to focus bandwidth on active video
+  useEffect(() => {
+    if (!shouldLoad && videoRef.current) {
+      videoRef.current.src = "";
+      videoRef.current.load(); // Forces browser to drop connections immediately
+      setIsPlaying(false);
+    }
+  }, [shouldLoad]);
+
   return (
     <div className="relative w-full h-full bg-black">
       {/* Instagram Trick: HD Poster behind the video */}
@@ -63,7 +72,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         loop
         muted
         playsInline
-        preload={isActive ? "auto" : "metadata"}
+        preload={isActive ? "auto" : "none"} // Don't even fetch metadata if not active to save bandwidth
         crossOrigin="anonymous"
         onPlaying={() => setIsPlaying(true)}
         onWaiting={() => setIsPlaying(false)}
@@ -282,6 +291,15 @@ const Post: React.FC<PostProps> = ({
 
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
+
+  // Aggressive cleanup to focus bandwidth on active video
+  useEffect(() => {
+    if (!shouldLoad && videoRef.current) {
+      videoRef.current.src = "";
+      videoRef.current.load(); // Forces browser to drop connections immediately
+      setVideoLoading(true);
+    }
+  }, [shouldLoad]);
 
   useEffect(() => {
     if (videoRef.current) {

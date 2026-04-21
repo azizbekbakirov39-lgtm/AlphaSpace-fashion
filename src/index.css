@@ -11,9 +11,9 @@ html, body, #root {
   --color-text-secondary: var(--text-secondary);
   --color-border-primary: var(--border-primary);
   --color-header-bg: var(--header-bg);
-  --color-accent-blue: #0095FF;
+  --color-accent-blue: #0066FF;
   --color-accent-light: #5AC8FA;
-  --color-accent-blue-bright: #007AFF;
+  --color-accent-blue-bright: #00D2FF;
   --font-cursive: "Dancing Script", cursive;
 }
 

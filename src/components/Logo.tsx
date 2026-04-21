@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { motion } from 'motion/react';
 
 interface LogoProps {
@@ -10,6 +10,14 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animated = false, showText = true }) => {
+  const id = useId().replace(/:/g, '');
+  const logoBgId = `logoBg-${id}`;
+  const dropShadowId = `dropShadow-${id}`;
+  const chainShadowId = `chainShadow-${id}`;
+  const appIconClipId = `appIconClip-${id}`;
+  const chainGradientId = `chainGradient-${id}`;
+  const textGradientId = `textGradient-${id}`;
+
   const finalHeight = height || width;
   const accentBlue = "#0066FF";
   const accentLight = "#FFFFFF";
@@ -32,35 +40,35 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
       className={className}
     >
       <defs>
-        <linearGradient id="logoBg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={logoBgId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={accentBlue} />
           <stop offset="60%" stopColor={accentBlue} />
           <stop offset="100%" stopColor={accentBlueBright} />
         </linearGradient>
-        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+        <filter id={dropShadowId} x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#000000" floodOpacity="0.35" />
         </filter>
-        <filter id="chainShadow" x="-50%" y="-50%" width="200%" height="200%">
+        <filter id={chainShadowId} x="-50%" y="-50%" width="200%" height="200%">
           <feDropShadow dx="0.5" dy="0.5" stdDeviation="0.5" floodColor="black" floodOpacity="0.2" />
         </filter>
-        <clipPath id="appIconClip">
+        <clipPath id={appIconClipId}>
           <rect x="0" y="0" width="120" height="120" rx="28" />
         </clipPath>
-        <linearGradient id="chainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={chainGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#BF953F" />
           <stop offset="25%" stopColor="#FCF6BA" />
           <stop offset="50%" stopColor="#B38728" />
           <stop offset="75%" stopColor="#FBF5B7" />
           <stop offset="100%" stopColor="#AA771C" />
         </linearGradient>
-        <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id={textGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor={accentBlue} />
           <stop offset="60%" stopColor={accentBlue} />
           <stop offset="100%" stopColor={accentBlueBright} />
         </linearGradient>
       </defs>
 
-      <g clipPath="url(#appIconClip)">
+      <g clipPath={`url(#${appIconClipId})`}>
         {/* App Icon Background */}
         {animated ? (
           <motion.rect
@@ -81,7 +89,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
         {/* Tag Group */}
         <g transform={`translate(60, ${showText ? 42 : 60}) scale(${showText ? 0.95 : 1.1}) translate(-50, -50)`}>
           {/* Back Strands (Behind the hole) */}
-          <g strokeWidth="0.8" fill="none" filter="url(#chainShadow)">
+          <g strokeWidth="0.8" fill="none" filter={`url(#${chainShadowId})`}>
             {animated ? (
               <>
                 {[...Array(8)].map((_, i) => {
@@ -100,7 +108,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3"
                         ry="1.2"
-                        stroke="url(#chainGradient)"
+                        stroke={`url(#${chainGradientId})`}
                         strokeWidth="0.8"
                         transform={`rotate(${isEven ? -45 : 45} ${cx} ${cy})`}
                       />
@@ -121,7 +129,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3"
                         ry="1.2"
-                        stroke="url(#chainGradient)"
+                        stroke={`url(#${chainGradientId})`}
                         strokeWidth="0.8"
                         transform={`rotate(${isEven ? -45 : 45} ${cx} ${cy})`}
                       />
@@ -153,7 +161,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke="url(#chainGradient)"
+                        stroke={`url(#${chainGradientId})`}
                         strokeWidth="1.2"
                         transform={`rotate(${isEven ? -20 + curve : 70 + curve} ${cx} ${cy})`}
                       />
@@ -186,7 +194,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke="url(#chainGradient)"
+                        stroke={`url(#${chainGradientId})`}
                         strokeWidth="1.2"
                         transform={`rotate(${isEven ? -20 + curve : 70 + curve} ${cx} ${cy})`}
                       />
@@ -211,14 +219,14 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
           {animated ? (
             <motion.path
               d={tagPath}
-              fill="url(#logoBg)"
-              filter="url(#dropShadow)"
+              fill={`url(#${logoBgId})`}
+              filter={`url(#${dropShadowId})`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
             />
           ) : (
-            <path d={tagPath} fill="url(#logoBg)" filter="url(#dropShadow)" />
+            <path d={tagPath} fill={`url(#${logoBgId})`} filter={`url(#${dropShadowId})`} />
           )}
 
           {/* Tag Inner Border */}
@@ -253,7 +261,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
           )}
 
           {/* Front Strands (Overlapping the hole) */}
-          <g strokeWidth="0.8" fill="none" filter="url(#chainShadow)">
+          <g strokeWidth="0.8" fill="none" filter={`url(#${chainShadowId})`}>
             {/* Upper Strand - Going towards top-left, curved */}
             {animated ? (
               <>
@@ -276,7 +284,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke="url(#chainGradient)"
+                        stroke={`url(#${chainGradientId})`}
                         strokeWidth="1.2"
                         transform={`rotate(${isEven ? -60 + curve : 30 + curve} ${cx} ${cy})`}
                       />
@@ -309,7 +317,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke="url(#chainGradient)"
+                        stroke={`url(#${chainGradientId})`}
                         strokeWidth="1.2"
                         transform={`rotate(${isEven ? -60 + curve : 30 + curve} ${cx} ${cy})`}
                       />
@@ -371,7 +379,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
             fontFamily="'Dancing Script', cursive"
             fontSize="22"
             fontWeight="700"
-            fill="url(#textGradient)"
+            fill={`url(#${textGradientId})`}
             textAnchor="middle"
           >
             AlphaSpace
