@@ -102,6 +102,8 @@ app.get("/api/instagram-fetch", async (req, res) => {
         timeout: 10000
       }
     );
+    
+    console.log("Instagram API Response Structure:", JSON.stringify(response.data).substring(0, 500));
 
     res.json(response.data);
   } catch (error: any) {

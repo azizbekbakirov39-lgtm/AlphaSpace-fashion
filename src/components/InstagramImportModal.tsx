@@ -52,6 +52,7 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
       }
 
       const result = await response.json();
+      console.log("Instagram API Front Result:", result);
       let mediaUrls: string[] = [];
       let mediaType: 'video' | 'carousel' = 'carousel';
       let description = "";
