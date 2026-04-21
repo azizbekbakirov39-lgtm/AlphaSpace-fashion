@@ -8,7 +8,7 @@ import {
 import { PostData } from '../types';
 import { Language, translations } from '../translations';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
 
 const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; index: number }> = ({ url, isMuted, post, index }) => {
@@ -29,30 +29,13 @@ const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; in
       muted={isMuted}
       playsInline
       crossOrigin="anonymous"
-      onError={async (e) => {
+      onError={(e) => {
         const video = e.currentTarget;
         if (!video.dataset.triedProxy) {
           video.dataset.triedProxy = 'true';
           video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
           video.load();
           safePlayVideo(video);
-        } else if (post.instagramUrl && !video.dataset.triedRefresh) {
-          video.dataset.triedRefresh = 'true';
-          const newUrl = await refreshMediaUrl(post.instagramUrl);
-          if (newUrl) {
-             const newMediaUrls = [...post.mediaUrls];
-             newMediaUrls[index] = newUrl;
-             try {
-               await updateDoc(doc(db, 'posts', post.id), {
-                 mediaUrls: newMediaUrls
-               });
-             } catch (err) {
-               console.error("Firestore update failed in ProductDetails:", err);
-             }
-             video.src = getProxiedUrl(newUrl, 0);
-             video.load();
-             safePlayVideo(video);
-          }
         }
       }}
     />

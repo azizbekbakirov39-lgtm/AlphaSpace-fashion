@@ -492,20 +492,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         throw new Error("Noto'g'ri Instagram linki. Iltimos, to'g'ri link kiriting (masalan: https://www.instagram.com/p/...)");
       }
 
-      const apiKey = (import.meta as any).env.VITE_RAPIDAPI_KEY;
-      if (!apiKey) {
-         throw new Error("API kalit topilmadi. Iltimos VITE_RAPIDAPI_KEY ni sozlamalarga qo'shing.");
-      }
-
-      // Clean URL for the API
       const cleanUrl = `https://www.instagram.com/p/${shortcode}/`;
 
-      const response = await fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
+      const response = await fetch(`/api/fetch-instagram-post`, {
         method: 'POST',
         headers: {
-          'content-type': 'application/json',
-          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-          'x-rapidapi-key': apiKey
+          'content-type': 'application/json'
         },
         body: JSON.stringify({ url: cleanUrl })
       });

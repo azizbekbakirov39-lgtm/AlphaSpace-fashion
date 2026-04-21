@@ -81,6 +81,34 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
+app.post("/api/fetch-instagram-post", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "URL required" });
+
+    if (!RAPIDAPI_KEY) {
+      return res.status(500).json({ error: "RapidAPI Key is not configured in environment" });
+    }
+
+    const response = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+      { url },
+      {
+        headers: {
+          'content-type': 'application/json',
+          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+          'x-rapidapi-key': RAPIDAPI_KEY
+        },
+        timeout: 10000
+      }
+    );
+
+    res.json(response.data);
+  } catch (error: any) {
+    console.error("Fetch Instagram Error:", error.response?.data || error.message);
+    res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+  }
+});
+
 app.post("/api/fetch-telegram-html", async (req, res) => {
   try {
     const { url } = req.body;
@@ -89,61 +117,6 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
     const html = await response.text();
     res.json({ html });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/refresh-instagram-url", async (req, res) => {
-  try {
-    const { shortcode, type = 'p' } = req.body;
-    if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
-    
-    if (!RAPIDAPI_KEY) {
-      console.error("RAPIDAPI_KEY missing");
-      return res.status(500).json({ error: "API Key missing" });
-    }
-
-    const tryFetch = async (targetUrl: string) => {
-      return axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
-        { url: targetUrl },
-        {
-          headers: {
-            'content-type': 'application/json',
-            'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-            'x-rapidapi-key': RAPIDAPI_KEY
-          },
-          validateStatus: () => true 
-        }
-      );
-    };
-
-    const isApiError = (res: any) => {
-      const data = res.data || {};
-      return res.status !== 200 || data.response === 4 || JSON.stringify(data).includes('not found');
-    };
-
-    // Try types in order of likelihood
-    const typesToTry = [type];
-    if (type === 'p') typesToTry.push('reel');
-    else if (type === 'reel') typesToTry.push('p');
-    else if (type === 'tv') typesToTry.push('reel', 'p');
-
-    let response: any;
-    for (const currentType of typesToTry) {
-      response = await tryFetch(`https://www.instagram.com/${currentType}/${shortcode}/`);
-      if (!isApiError(response)) {
-        break; // Found valid data
-      }
-    }
-
-    if (isApiError(response)) {
-      console.error("RapidAPI Final Error:", response.status, response.data);
-      return res.status(response.status === 200 ? 500 : response.status).json({ error: response.data || 'Link not found' });
-    }
-
-    res.json(response.data);
-  } catch (error: any) {
-    console.error("Backend Proxy Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -289,5 +262,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
   console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`[${new Date().toISOString()}] RapidAPI Key configured: ${!!RAPIDAPI_KEY}`);
 });
