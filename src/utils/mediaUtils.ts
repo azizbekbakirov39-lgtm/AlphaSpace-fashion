@@ -90,7 +90,8 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
     const shortcode = urlMatch ? urlMatch[2] : null;
     if (!shortcode) return null;
 
-    const response = await fetch(`/api/refresh-instagram-url`, {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+    const response = await fetch(`${API_BASE}/api/refresh-instagram-url`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json'

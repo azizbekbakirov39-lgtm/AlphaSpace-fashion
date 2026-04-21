@@ -178,7 +178,7 @@ const Post: React.FC<PostProps> = ({
       setIsPaused(true);
       isLongPressed.current = true;
       if (videoRef.current) videoRef.current.pause();
-    }, 300);
+    }, 500);
   };
 
   const handlePressEnd = (e: React.MouseEvent | React.TouchEvent) => {
@@ -249,6 +249,26 @@ const Post: React.FC<PostProps> = ({
     touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     touchStartTime.current = Date.now();
     handlePressStart(e);
+  };
+
+  const handleTouchMoveCustom = (e: React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+    const deltaX = Math.abs(e.touches[0].clientX - touchStartPos.current.x);
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartPos.current.y);
+    
+    if (deltaX > 10 || deltaY > 10) {
+      if (longPressTimeout.current) {
+        clearTimeout(longPressTimeout.current);
+        longPressTimeout.current = null;
+      }
+      if (isPaused) {
+        setIsPaused(false);
+        isLongPressed.current = false;
+        if (videoRef.current && isActive && shouldLoad) {
+          safePlayVideo(videoRef.current);
+        }
+      }
+    }
   };
 
   const handleTouchEndCustom = (e: React.TouchEvent) => {
@@ -421,6 +441,7 @@ const Post: React.FC<PostProps> = ({
         onMouseUp={handlePressEnd}
         onMouseLeave={handlePressEnd}
         onTouchStart={handleTouchStartCustom}
+        onTouchMove={handleTouchMoveCustom}
         onTouchEnd={handleTouchEndCustom}
         onClick={handleMediaClick}
       >

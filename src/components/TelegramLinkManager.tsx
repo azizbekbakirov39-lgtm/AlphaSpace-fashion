@@ -47,7 +47,8 @@ export default function TelegramLinkManager() {
     setIsProcessing(true);
     try {
       // 1. Fetch HTML via proxy
-      const htmlResponse = await fetch('/api/fetch-telegram-html', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      const htmlResponse = await fetch(`${API_BASE}/api/fetch-telegram-html`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: newUrl })

@@ -97,11 +97,47 @@ const ReelItem: React.FC<{
   const [isPaused, setIsPaused] = useState(false);
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const touchStartPos = useRef<{x: number, y: number} | null>(null);
+
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('touches' in e) {
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else {
+      touchStartPos.current = { x: e.clientX, y: e.clientY };
+    }
     longPressTimeout.current = setTimeout(() => {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
-    }, 200);
+    }, 500);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!touchStartPos.current) return;
+    
+    let currentX, currentY;
+    if ('touches' in e) {
+      currentX = e.touches[0].clientX;
+      currentY = e.touches[0].clientY;
+    } else {
+      currentX = e.clientX;
+      currentY = e.clientY;
+    }
+
+    const diffX = Math.abs(currentX - touchStartPos.current.x);
+    const diffY = Math.abs(currentY - touchStartPos.current.y);
+
+    if (diffX > 10 || diffY > 10) {
+      if (longPressTimeout.current) {
+        clearTimeout(longPressTimeout.current);
+        longPressTimeout.current = null;
+      }
+      if (isPaused) {
+        setIsPaused(false);
+        if (videoRef.current && !showComments && !showDetails && realPost.mediaType === 'video') {
+          safePlayVideo(videoRef.current);
+        }
+      }
+    }
   };
 
   const handlePressEnd = (e: React.MouseEvent | React.TouchEvent) => {
@@ -247,6 +283,7 @@ const ReelItem: React.FC<{
         onMouseUp={handlePressEnd}
         onMouseLeave={handlePressEnd}
         onTouchStart={handlePressStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handlePressEnd}
         className="h-full w-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide touch-pan-x touch-pan-y"
         style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}

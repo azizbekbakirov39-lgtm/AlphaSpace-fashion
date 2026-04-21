@@ -158,11 +158,47 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     }
   }, [currentIndex, currentStory, isPaused, showProductDetails, showComments, handleNext]);
 
+  const touchStartPos = useRef<{x: number, y: number} | null>(null);
+
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('touches' in e) {
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else {
+      touchStartPos.current = { x: e.clientX, y: e.clientY };
+    }
     longPressTimeout.current = setTimeout(() => {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
-    }, 200);
+    }, 500);
+  };
+
+  const handleTouchMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+    
+    let currentX, currentY;
+    if ('touches' in e) {
+      currentX = e.touches[0].clientX;
+      currentY = e.touches[0].clientY;
+    } else {
+      currentX = e.clientX;
+      currentY = e.clientY;
+    }
+
+    const diffX = Math.abs(currentX - touchStartPos.current.x);
+    const diffY = Math.abs(currentY - touchStartPos.current.y);
+
+    if (diffX > 10 || diffY > 10) {
+      if (longPressTimeout.current) {
+        clearTimeout(longPressTimeout.current);
+        longPressTimeout.current = null;
+      }
+      if (isPaused) {
+        setIsPaused(false);
+        if (videoRef.current && !showProductDetails && !showComments) {
+          safePlayVideo(videoRef.current);
+        }
+      }
+    }
   };
 
   const handlePressEnd = (e: React.MouseEvent | React.TouchEvent) => {
@@ -293,6 +329,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             onMouseUp={handlePressEnd}
             onMouseLeave={handlePressEnd}
             onTouchStart={handlePressStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handlePressEnd}
             preload="auto"
             onLoadedData={() => {
@@ -325,6 +362,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           onMouseUp={handlePressEnd}
           onMouseLeave={handlePressEnd}
           onTouchStart={handlePressStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handlePressEnd}
           alt="Story"
         />
