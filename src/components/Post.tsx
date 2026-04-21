@@ -4,6 +4,9 @@ import { Heart, MessageCircle, Bookmark, Share2, ChevronLeft, ChevronRight, Send
 import { PostData } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
+import PostHeader from './PostHeader';
+import PostInteractions from './PostInteractions';
+import PostInfo from './PostInfo';
 
 import { Language, translations } from '../translations';
 import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
@@ -352,64 +355,12 @@ const Post: React.FC<PostProps> = ({
   return (
     <div className="w-full bg-bg-primary flex flex-col border-b border-border-primary/30 pb-2">
       {/* Top Header - Premium Shop Card Style */}
-      <div className="mx-4 mt-4 mb-3 flex items-center justify-between group">
-        <div 
-          className="flex items-center gap-3 cursor-pointer active:opacity-70 transition-opacity flex-1"
-          onClick={handleShopClick}
-        >
-          <div className={`flex-shrink-0 p-[2px] rounded-full ${post.seller.hasStory ? 'bg-accent-light shadow-sm shadow-accent-light/20' : 'bg-text-primary/10'}`}>
-            <div className="p-[1.5px] bg-bg-primary rounded-full">
-              {post.seller.logo ? (
-                <img 
-                  src={post.seller.logo} 
-                  alt={post.seller.name} 
-                  className="w-9 h-9 rounded-full object-cover aspect-square"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-accent-blue">
-                  <Store size={18} strokeWidth={1.5} />
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="text-text-primary font-black text-[13px] tracking-tight uppercase leading-none">{post.seller.name}</span>
-              {post.seller.followers > 1000 && (
-                <div className="bg-accent-blue/10 text-accent-blue text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-widest">
-                  Top
-                </div>
-              )}
-            </div>
-            <span className="text-text-secondary text-[9px] font-bold uppercase tracking-wider opacity-50 mt-0.5">
-              {post.seller.categories?.[0] || "Do'kon"} • {(post.seller.followers || 0).toLocaleString()} {language === 'uz' ? 'obunachi' : 'followers'} • {formatRelativeTime(post.createdAt)}
-            </span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button 
-            className={`px-5 py-1.5 text-[10px] font-black rounded-full uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center border ${
-              post.seller.isSubscribed 
-                ? 'bg-text-primary/5 text-text-primary/60 border-border-primary' 
-                : 'bg-gradient-to-r from-emerald-500/15 to-teal-500/15 backdrop-blur-xl border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]'
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onToggleSubscribe) onToggleSubscribe();
-            }}
-          >
-            {post.seller.isSubscribed ? (
-              language === 'uz' ? "Kuzatilyapti" : "Following"
-            ) : (
-              <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                {language === 'uz' ? "Kuzatish" : "Follow"}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
+      <PostHeader
+        post={post}
+        language={language}
+        onShopClick={handleShopClick}
+        onToggleSubscribe={onToggleSubscribe}
+      />
 
       <div 
         className="relative w-full aspect-[4/5] bg-neutral-900 flex items-center justify-center overflow-hidden touch-pan-y"
@@ -577,149 +528,37 @@ const Post: React.FC<PostProps> = ({
       </div>
 
       {/* Interaction Buttons - Below Media */}
-      <div className="px-3 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <motion.button 
-            whileTap={{ scale: 0.8 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onToggleLike) onToggleLike();
-            }}
-            className={`transition-colors duration-300 ${post.isLiked ? 'text-[#ef4444]' : 'text-text-primary'}`}
-          >
-            <Heart size={28} fill={post.isLiked ? '#ef4444' : 'none'} strokeWidth={1.5} />
-          </motion.button>
-          <motion.button 
-            whileTap={{ scale: 0.8 }}
-            className="text-text-primary"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onOpenComments) onOpenComments();
-            }}
-          >
-            <MessageCircle size={28} strokeWidth={1.5} />
-          </motion.button>
-          <motion.button 
-            whileTap={{ scale: 0.8 }}
-            className="text-text-primary"
-            onClick={handleInternalShare}
-          >
-            <Send size={28} strokeWidth={1.5} />
-          </motion.button>
-          <motion.button 
-            whileTap={{ scale: 0.8 }}
-            className="text-text-primary"
-            onClick={handleExternalShare}
-          >
-            <Share2 size={28} strokeWidth={1.5} />
-          </motion.button>
-        </div>
-        
-        {/* Glassmorphic Price Tag */}
-        <div className="flex-1 flex items-center justify-center mx-2">
-          {post.price ? (
-            <div className="px-5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/5 to-purple-500/5 backdrop-blur-xl border border-indigo-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center justify-center">
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black text-[15px] tracking-tight">
-                {post.price}
-              </span>
-            </div>
-          ) : (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onOpenChat) onOpenChat();
-              }}
-              className="px-5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/5 to-purple-500/5 backdrop-blur-xl border border-indigo-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all flex items-center justify-center"
-            >
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black text-[11px] uppercase tracking-widest">
-                {post.priceMessage || "Narxi?"}
-              </span>
-            </button>
-          )}
-        </div>
-
-        <motion.button 
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onToggleSave) onToggleSave();
-          }}
-          className={`transition-colors duration-300 ${post.isSaved ? 'text-accent-blue' : 'text-text-primary'}`}
-        >
-          <Bookmark size={28} fill={post.isSaved ? 'currentColor' : 'none'} strokeWidth={1.5} />
-        </motion.button>
-      </div>
+      <PostInteractions
+        post={post}
+        onToggleLike={(e) => {
+          e.stopPropagation();
+          if (onToggleLike) onToggleLike();
+        }}
+        onOpenComments={(e) => {
+          e.stopPropagation();
+          if (onOpenComments) onOpenComments();
+        }}
+        onInternalShare={handleInternalShare}
+        onExternalShare={handleExternalShare}
+        onToggleSave={(e) => {
+          e.stopPropagation();
+          if (onToggleSave) onToggleSave();
+        }}
+        onOpenChat={(e) => {
+          e.stopPropagation();
+          if (onOpenChat) onOpenChat();
+        }}
+      />
 
       {/* Post Info */}
-      <div className="px-4 flex flex-col gap-0.5">
-        <p className="text-text-primary text-xs font-bold">
-          {(post.likes || 0).toLocaleString()} {t.likes}
-        </p>
-        <div className="flex flex-col gap-0.5 mb-0.5">
-          <div className="flex flex-wrap items-baseline gap-1.5">
-            <span className="text-black text-[14px] font-black tracking-tight">{post.seller.name}</span>
-            <span className="text-black/80 text-[13px] font-bold">
-              {!post.outfitName.toLowerCase().includes("instagram") ? post.outfitName : ""}
-            </span>
-          </div>
-          {post.description && (
-            <div className="relative">
-              <p className={`text-black text-[13px] font-bold leading-snug transition-all ${isDescriptionExpanded ? '' : 'line-clamp-1'}`}>
-                {post.description}
-              </p>
-              {!isDescriptionExpanded && post.description.length > 40 && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDescriptionExpanded(true);
-                  }}
-                  className="text-text-secondary text-[12px] font-black mt-0.5 hover:text-accent-blue transition-colors"
-                >
-                  ...davomi
-                </button>
-              )}
-              {isDescriptionExpanded && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDescriptionExpanded(false);
-                  }}
-                  className="text-text-secondary text-[12px] font-black mt-1 hover:text-accent-blue transition-colors"
-                >
-                  yashirish
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onOpenChat) onOpenChat();
-            }}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500/5 to-purple-500/5 backdrop-blur-xl border border-indigo-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all flex items-center justify-center"
-          >
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black text-[11px] uppercase tracking-widest">
-              {language === 'uz' ? "Xabar yuborish" : "Message"}
-            </span>
-          </button>
-          
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onOpenDetails) onOpenDetails();
-            }}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/5 to-blue-500/5 backdrop-blur-xl border border-cyan-500/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] active:scale-95 transition-all flex items-center justify-center"
-          >
-            <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent font-black text-[11px] uppercase tracking-widest">
-              {language === 'uz' ? "Batafsil" : "Details"}
-            </span>
-          </button>
-        </div>
-      </div>
+      <PostInfo
+        post={post}
+        language={language}
+        isDescriptionExpanded={isDescriptionExpanded}
+        setIsDescriptionExpanded={setIsDescriptionExpanded}
+        onOpenChat={() => onOpenChat && onOpenChat()}
+        onOpenDetails={() => onOpenDetails && onOpenDetails()}
+      />
       {/* Comment Drawer and Product Details moved to global level in App.tsx */}
     </div>
   );

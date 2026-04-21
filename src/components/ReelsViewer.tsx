@@ -8,6 +8,8 @@ import {
 import { PostData, User } from '../types';
 import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
+import ReelRightActions from './ReelRightActions';
+import ReelBottomInfo from './ReelBottomInfo';
 import { Language } from '../translations';
 import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { useMediaController } from '../hooks/useMediaController';
@@ -358,72 +360,15 @@ const ReelItem: React.FC<{
       </div>
 
       {/* Right Side Actions - Glassmorphic Sidebar */}
-      <div className="absolute right-3 bottom-24 flex flex-col gap-5 items-center z-20">
-        {/* Like */}
-        <div className="flex flex-col items-center gap-1">
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.8 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleLike();
-            }} 
-            className={`w-9 h-9 flex items-center justify-center transition-all ${realPost.isLiked ? 'text-red-500' : 'text-white drop-shadow-lg'}`}
-          >
-            <Heart size={28} fill={realPost.isLiked ? 'currentColor' : 'none'} strokeWidth={2.5} />
-          </motion.button>
-          <span className="text-white text-[11px] font-bold drop-shadow-lg">{realPost.likes}</span>
-        </div>
-
-        {/* Comments */}
-        <div className="flex flex-col items-center gap-1">
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.8 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowComments(true);
-            }} 
-            className="w-9 h-9 flex items-center justify-center text-white drop-shadow-lg"
-          >
-            <MessageCircle size={28} strokeWidth={2.5} />
-          </motion.button>
-          <span className="text-white text-[11px] font-bold drop-shadow-lg">{realPost.comments}</span>
-        </div>
-
-        {/* Save */}
-        <motion.button 
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.8 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSave();
-          }} 
-          className={`w-9 h-9 flex items-center justify-center transition-all ${realPost.isSaved ? 'text-accent-blue' : 'text-white drop-shadow-lg'}`}
-        >
-          <Bookmark size={28} fill={realPost.isSaved ? 'currentColor' : 'none'} strokeWidth={2.5} />
-        </motion.button>
-
-        {/* Internal Share */}
-        <motion.button 
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.8 }}
-          onClick={handleInternalShare} 
-          className="w-9 h-9 flex items-center justify-center text-white drop-shadow-lg"
-        >
-          <Send size={28} strokeWidth={2.5} />
-        </motion.button>
-
-        {/* External Share */}
-        <motion.button 
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.8 }}
-          onClick={handleExternalShare} 
-          className="w-9 h-9 flex items-center justify-center text-white drop-shadow-lg"
-        >
-          <Share2 size={28} strokeWidth={2.5} />
-        </motion.button>
-      </div>
+      <ReelRightActions
+        realPost={realPost}
+        onToggleLike={onToggleLike}
+        onToggleSharedLike={onToggleLike}
+        onToggleSave={onToggleSave}
+        onToggleComment={() => setShowComments(true)}
+        onInternalShare={handleInternalShare}
+        onExternalShare={handleExternalShare}
+      />
 
       {/* Right Side Controls Layer */}
       <div className="absolute top-6 right-4 z-50 flex flex-col gap-3">
@@ -453,77 +398,21 @@ const ReelItem: React.FC<{
       )}
 
       {/* Bottom Info Section */}
-      <div className="absolute bottom-6 left-4 right-4 z-20 flex flex-col gap-4 pr-14">
-        {/* Row 1 (Top): Shop Identity & Price */}
-        <div className="flex items-center justify-between gap-3 px-1">
-          <div 
-            className="flex items-center gap-2.5 cursor-pointer active:opacity-70 transition-opacity"
-            onClick={handleShopClick}
-          >
-            <img 
-              src={realPost.seller.logo} 
-              className="w-12 h-12 rounded-full border border-white/20 object-cover shadow-lg" 
-              referrerPolicy="no-referrer" 
-            />
-            <div className="flex flex-col">
-              <span className="text-white font-black text-base drop-shadow-md tracking-tight leading-none">{realPost.seller.name}</span>
-              <span className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-0.5">
-                {formatRelativeTime(realPost.createdAt)}
-              </span>
-            </div>
-          </div>
-          
-          <span className="text-white font-black text-lg drop-shadow-lg tracking-tight">
-            {realPost.price && realPost.price.trim() !== "" 
-              ? realPost.price 
-              : (realPost.priceMessage || (language === 'uz' ? 'Narxi?' : 'Price?'))}
-          </span>
-        </div>
-
-        {/* Row 2 (Middle): Message & Batafsil */}
-        <div className="flex items-center gap-3">
-          <div 
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenChat && onOpenChat(post.seller.id, post);
-            }}
-            className="flex-1 flex items-center justify-between bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 h-10 shadow-lg cursor-pointer active:opacity-70 transition-opacity"
-          >
-            <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{language === 'uz' ? 'Xabar yuborish...' : 'Send message...'}</span>
-            <Send size={14} className="text-white/60" />
-          </div>
-
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDetails(true);
-            }}
-            className="h-10 px-4 flex items-center justify-center text-white text-[10px] font-black uppercase tracking-[0.2em] hover:text-white/80 active:scale-95 transition-all"
-          >
-            Batafsil
-          </button>
-        </div>
-
-        {/* Row 3 (Bottom): Description (Izoh) */}
-        {realPost.description && (
-          <div className="px-1 mt-1">
-            <p className={`text-white text-[12px] font-medium leading-snug drop-shadow-md transition-all ${isDescriptionExpanded ? '' : 'line-clamp-2'}`}>
-              {realPost.description}
-            </p>
-            {!isDescriptionExpanded && realPost.description.length > 60 && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsDescriptionExpanded(true);
-                }}
-                className="text-white/50 text-[10px] font-bold mt-0.5 hover:text-white"
-              >
-                ...davomi
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <ReelBottomInfo
+        realPost={realPost}
+        language={language}
+        isDescriptionExpanded={isDescriptionExpanded}
+        setIsDescriptionExpanded={setIsDescriptionExpanded}
+        onShopClick={handleShopClick}
+        onChatOpen={(e) => {
+          e.stopPropagation();
+          onOpenChat && onOpenChat(post.seller.id, post);
+        }}
+        onDetailsOpen={(e) => {
+          e.stopPropagation();
+          setShowDetails(true);
+        }}
+      />
 
       {/* Neon Progress Bar */}
       {post.mediaType === 'video' && currentMediaIndex === 0 && (
