@@ -76,7 +76,6 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     }
 
     const tryFetch = async (targetUrl: string) => {
-      console.log(`Attempting RapidAPI fetch for: ${targetUrl}`);
       return axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
         { url: targetUrl },
         {
@@ -85,31 +84,33 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
             'x-rapidapi-host': 'instagram120.p.rapidapi.com',
             'x-rapidapi-key': RAPIDAPI_KEY
           },
-          validateStatus: () => true // Handle errors manually to implement fallbacks
+          validateStatus: () => true 
         }
       );
     };
 
-    // Primary attempt using the original type
-    let response = await tryFetch(`https://www.instagram.com/${type}/${shortcode}/`);
+    const isApiError = (res: any) => {
+      const data = res.data || {};
+      return res.status !== 200 || data.response === 4 || JSON.stringify(data).includes('not found');
+    };
 
-    // If "link not found" (response: 4), or 500/404, try fallbacks
-    if (response.status !== 200) {
-      const errorData = response.data || {};
+    // Try types in order of likelihood
+    const typesToTry = [type];
+    if (type === 'p') typesToTry.push('reel');
+    else if (type === 'reel') typesToTry.push('p');
+    else if (type === 'tv') typesToTry.push('reel', 'p');
 
-      // response: 4 is a common internal error for "not found" in this API
-      if (response.status === 500 || errorData.response === 4 || JSON.stringify(errorData).includes('not found')) {
-        console.log("Primary attempt failed with search error, trying fallback formats...");
-        
-        // Strategy: if 'p' failed, try 'reel' and vice-versa
-        const fallbackType = type === 'reel' ? 'p' : 'reel';
-        response = await tryFetch(`https://www.instagram.com/${fallbackType}/${shortcode}/`);
+    let response: any;
+    for (const currentType of typesToTry) {
+      response = await tryFetch(`https://www.instagram.com/${currentType}/${shortcode}/`);
+      if (!isApiError(response)) {
+        break; // Found valid data
       }
     }
 
-    if (response.status !== 200) {
+    if (isApiError(response)) {
       console.error("RapidAPI Final Error:", response.status, response.data);
-      return res.status(response.status).json({ error: response.data });
+      return res.status(response.status === 200 ? 500 : response.status).json({ error: response.data || 'Link not found' });
     }
 
     res.json(response.data);
