@@ -46,6 +46,8 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
   useEffect(() => {
     if (videoRef.current) {
       if (isActive && !isGlobalPaused) {
+        // Force mute to allow autoplay if browser is being strict
+        videoRef.current.muted = true;
         safePlayVideo(videoRef.current);
       } else {
         videoRef.current.pause();
@@ -82,6 +84,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         loop
         muted
         playsInline
+        onContextMenu={(e) => e.preventDefault()}
         preload={isActive ? "auto" : "none"} // Don't even fetch metadata if not active to save bandwidth
         crossOrigin="anonymous"
         onPlaying={() => setIsPlaying(true)}
@@ -431,11 +434,16 @@ const Post: React.FC<PostProps> = ({
               src={shouldLoad ? proxiedUrl : undefined}
               className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
               loop
-              muted={isMuted}
+              muted={isMuted || !isActive} // Force mute if not active to prevent sound overlap
               playsInline
+              onContextMenu={(e) => e.preventDefault()}
               preload={isActive ? "auto" : "metadata"}
               onLoadedData={(e) => {
-                if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                if (shouldLoad) {
+                  handleMediaSuccess(e.currentTarget);
+                  // Double check playback on load
+                  if (isActive && !isPaused) safePlayVideo(e.currentTarget);
+                }
               }}
               onError={(e) => handleMediaError(e.currentTarget)}
             />
