@@ -65,25 +65,54 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
 app.post("/api/refresh-instagram-url", async (req, res) => {
   console.log("API Proxy Hit: /api/refresh-instagram-url");
   try {
-    const { shortcode } = req.body;
-    console.log("Proxy received shortcode:", shortcode);
+    const { shortcode, type = 'p' } = req.body;
+    console.log("Proxy received shortcode:", shortcode, "type:", type);
     if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
-    console.log("Checking RAPIDAPI_KEY presence:", !!RAPIDAPI_KEY);
-    if (!RAPIDAPI_KEY) return res.status(500).json({ error: "API Key missing" });
+    
+    if (!RAPIDAPI_KEY) {
+      console.error("RAPIDAPI_KEY missing");
+      return res.status(500).json({ error: "API Key missing" });
+    }
 
-    const response = await fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-        'x-rapidapi-key': RAPIDAPI_KEY
-      },
-      body: JSON.stringify({ url: `https://www.instagram.com/p/${shortcode}/` })
-    });
+    const tryFetch = async (targetUrl: string) => {
+      console.log(`Attempting RapidAPI fetch for: ${targetUrl}`);
+      return fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+          'x-rapidapi-key': RAPIDAPI_KEY
+        },
+        body: JSON.stringify({ url: targetUrl })
+      });
+    };
+
+    // Primary attempt using the original type
+    let response = await tryFetch(`https://www.instagram.com/${type}/${shortcode}/`);
+
+    // If "link not found" (response: 4), or 500/404, try fallbacks
+    if (!response.ok) {
+      const clonedResponse = response.clone();
+      const errorText = await clonedResponse.text();
+      let errorData = {};
+      try { errorData = JSON.parse(errorText); } catch (e) {}
+
+      // response: 4 is a common internal error for "not found" in this API
+      if (response.status === 500 || (errorData as any).response === 4 || errorText.includes('not found')) {
+        console.log("Primary attempt failed with search error, trying fallback formats...");
+        
+        // Strategy: if 'p' failed, try 'reel' and vice-versa
+        const fallbackType = type === 'reel' ? 'p' : 'reel';
+        response = await tryFetch(`https://www.instagram.com/${fallbackType}/${shortcode}/`);
+        
+        // If still failing, try without trailing slash or different known patterns if we wanted, 
+        // but 2 attempts is usually enough to cover the p vs reel issue.
+      }
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("RapidAPI Error:", response.status, errorText);
+      console.error("RapidAPI Final Error:", response.status, errorText);
       return res.status(response.status).json({ error: errorText });
     }
 

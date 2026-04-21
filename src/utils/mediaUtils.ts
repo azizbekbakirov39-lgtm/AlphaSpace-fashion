@@ -85,8 +85,9 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
   if (!instagramUrl) return null;
   
   try {
-    const shortcodeMatch = instagramUrl.match(/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-    const shortcode = shortcodeMatch ? shortcodeMatch[1] : null;
+    const urlMatch = instagramUrl.match(/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+    const type = urlMatch ? urlMatch[1] : 'p';
+    const shortcode = urlMatch ? urlMatch[2] : null;
     if (!shortcode) return null;
 
     const response = await fetch(`/api/refresh-instagram-url`, {
@@ -94,7 +95,7 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
       headers: {
         'content-type': 'application/json'
       },
-      body: JSON.stringify({ shortcode })
+      body: JSON.stringify({ shortcode, type })
     });
 
     if (!response.ok) return null;
