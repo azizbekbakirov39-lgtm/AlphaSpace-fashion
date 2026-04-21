@@ -1558,7 +1558,10 @@ export default function App() {
                   onClose={closeStories}
                   onMarkViewed={markStoryViewed}
                   onToggleLike={toggleLike}
-                  onOpenShopProfile={openShopProfile}
+                  onOpenShopProfile={(shopId) => {
+                    setActiveStoryIndex(null);
+                    openShopProfile(shopId);
+                  }}
                   onOpenChat={handleOpenChat}
                   language={language}
                   allPosts={postsWithUserStatus}
@@ -1578,7 +1581,10 @@ export default function App() {
                   onToggleLike={toggleLike}
                   onToggleSave={toggleSave}
                   onToggleSubscribe={toggleSubscribe}
-                  onOpenShopProfile={openShopProfile}
+                  onOpenShopProfile={(shopId) => {
+                    setActiveReelIndex(null);
+                    openShopProfile(shopId);
+                  }}
                   onOpenChat={handleOpenChat}
                   onSharePost={handleSharePost}
                   language={language}

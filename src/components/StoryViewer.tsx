@@ -492,7 +492,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         <div className="flex items-center justify-between gap-3 px-1">
           <div 
             className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity"
-            onClick={() => onOpenShopProfile && onOpenShopProfile(currentStory.sellerId)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenShopProfile && onOpenShopProfile(currentStory.sellerId);
+            }}
           >
             <img 
               src={currentStory.seller.logo} 

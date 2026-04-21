@@ -120,7 +120,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-      className="fixed inset-0 z-[10000] bg-bg-primary overflow-y-auto scrollbar-hide"
+      className="fixed inset-0 z-[70000] bg-bg-primary overflow-y-auto scrollbar-hide"
     >
       {/* Floating Glassmorphic Header */}
       <div className="fixed top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-none">

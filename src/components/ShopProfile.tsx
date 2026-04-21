@@ -96,7 +96,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="fixed inset-0 z-[10000] bg-bg-primary flex flex-col"
+      className="fixed inset-0 z-[60000] bg-bg-primary flex flex-col"
     >
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between pointer-events-none">
