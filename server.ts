@@ -5,6 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
 import crypto from "crypto";
+import axios from "axios";
 
 dotenv.config();
 
@@ -76,48 +77,42 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
 
     const tryFetch = async (targetUrl: string) => {
       console.log(`Attempting RapidAPI fetch for: ${targetUrl}`);
-      return fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-          'x-rapidapi-key': RAPIDAPI_KEY
-        },
-        body: JSON.stringify({ url: targetUrl })
-      });
+      return axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+        { url: targetUrl },
+        {
+          headers: {
+            'content-type': 'application/json',
+            'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+            'x-rapidapi-key': RAPIDAPI_KEY
+          },
+          validateStatus: () => true // Handle errors manually to implement fallbacks
+        }
+      );
     };
 
     // Primary attempt using the original type
     let response = await tryFetch(`https://www.instagram.com/${type}/${shortcode}/`);
 
     // If "link not found" (response: 4), or 500/404, try fallbacks
-    if (!response.ok) {
-      const clonedResponse = response.clone();
-      const errorText = await clonedResponse.text();
-      let errorData = {};
-      try { errorData = JSON.parse(errorText); } catch (e) {}
+    if (response.status !== 200) {
+      const errorData = response.data || {};
 
       // response: 4 is a common internal error for "not found" in this API
-      if (response.status === 500 || (errorData as any).response === 4 || errorText.includes('not found')) {
+      if (response.status === 500 || errorData.response === 4 || JSON.stringify(errorData).includes('not found')) {
         console.log("Primary attempt failed with search error, trying fallback formats...");
         
         // Strategy: if 'p' failed, try 'reel' and vice-versa
         const fallbackType = type === 'reel' ? 'p' : 'reel';
         response = await tryFetch(`https://www.instagram.com/${fallbackType}/${shortcode}/`);
-        
-        // If still failing, try without trailing slash or different known patterns if we wanted, 
-        // but 2 attempts is usually enough to cover the p vs reel issue.
       }
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("RapidAPI Final Error:", response.status, errorText);
-      return res.status(response.status).json({ error: errorText });
+    if (response.status !== 200) {
+      console.error("RapidAPI Final Error:", response.status, response.data);
+      return res.status(response.status).json({ error: response.data });
     }
 
-    const data = await response.json();
-    res.json(data);
+    res.json(response.data);
   } catch (error: any) {
     console.error("Backend Proxy Error:", error);
     res.status(500).json({ error: error.message });
@@ -171,11 +166,10 @@ setupVite();
 // Export for Vercel
 export default app;
 
-// Listen only if not on Vercel
-const isVercel = process.env.VERCEL === '1' || !!process.env.NOW_REGION;
-if (!isVercel) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+// Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
+  console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[${new Date().toISOString()}] RapidAPI Key configured: ${!!RAPIDAPI_KEY}`);
+});

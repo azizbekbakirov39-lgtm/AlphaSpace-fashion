@@ -98,7 +98,11 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
       body: JSON.stringify({ shortcode, type })
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "No error body");
+      console.error(`API Error (${response.status}):`, errorText);
+      return null;
+    }
     const result = await response.json();
     
     if (Array.isArray(result) && result.length > 0) {
@@ -109,8 +113,8 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
       return result.pictureUrl || result.display_url || result.thumbnail_url;
     }
     return null;
-  } catch (error) {
-    console.error("Link refresh error:", error);
+  } catch (error: any) {
+    console.error("Link refresh network error:", error.message, error);
     return null;
   }
 };
