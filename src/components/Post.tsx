@@ -35,6 +35,22 @@ interface PostProps {
 const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean, isMuted: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused, isMuted }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+
+  // Global audio unlocker for Carousel
+  useEffect(() => {
+    const unlock = () => {
+      setIsAudioUnlocked(true);
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+    window.addEventListener('click', unlock);
+    window.addEventListener('touchstart', unlock);
+    return () => {
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+  }, []);
   
   const { proxiedUrl, handleMediaSuccess, handleMediaError } = useMediaController({
     url,
@@ -63,7 +79,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         setIsPlaying(false);
       }
     }
-  }, [isActive, isGlobalPaused, isMuted]);
+  }, [isActive, isGlobalPaused, isMuted, isAudioUnlocked]);
 
   // Aggressive cleanup to focus bandwidth on active video
   useEffect(() => {
@@ -204,6 +220,22 @@ const Post: React.FC<PostProps> = ({
   const isScrolling = useRef(false);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const isLongPressed = useRef(false);
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+
+  // Global audio unlocker
+  useEffect(() => {
+    const unlock = () => {
+      setIsAudioUnlocked(true);
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+    window.addEventListener('click', unlock);
+    window.addEventListener('touchstart', unlock);
+    return () => {
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+  }, []);
 
   const { shareContent } = useShare();
   
@@ -339,12 +371,15 @@ const Post: React.FC<PostProps> = ({
     if (post.mediaType === 'video' && videoRef.current) {
       const video = videoRef.current;
       if (isActive && !isPaused) {
+        // If audio is unlocked and we want sound, try unmuted
+        // Otherwise, if first play, try unmuted but catch it
         video.muted = isMuted || !isActive;
+        
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise.catch((error) => {
             if (error.name === 'NotAllowedError') {
-              // Try muted play if unmuted failed
+              // Try muted play as fallback
               video.muted = true;
               video.play().catch(() => {});
             }
@@ -354,7 +389,7 @@ const Post: React.FC<PostProps> = ({
         video.pause();
       }
     }
-  }, [isActive, isPaused, isMuted, post.mediaType]);
+  }, [isActive, isPaused, isMuted, post.mediaType, isAudioUnlocked]);
 
   // Removed old manual video Loading/Error and useEffect cleanup for shouldLoad/isActive here
   // handled gracefully inside `useMediaController`
