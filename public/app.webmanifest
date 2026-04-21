@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/pwa-icon-solid-v1.svg",
+      "src": "/pwa-icon-v2.svg",
       "sizes": "any 192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
