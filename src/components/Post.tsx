@@ -99,6 +99,8 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
               } catch (err) {
                 console.error("Firestore update failed during refresh:", err);
               }
+              setProxyIndex(0);
+              delete video.dataset.triedRefresh;
               video.src = getProxiedUrl(newUrl, 0);
               video.load();
               if (isActive) safePlayVideo(video);
@@ -481,9 +483,15 @@ const Post: React.FC<PostProps> = ({
                     e.stopPropagation();
                     setVideoError(false);
                     setVideoLoading(true);
-                    if (videoRef.current) videoRef.current.load();
+                    setMainProxyIndex(0);
+                    if (videoRef.current) {
+                      delete videoRef.current.dataset.triedRefresh;
+                      videoRef.current.src = getProxiedUrl(post.mediaUrls[0], 0);
+                      videoRef.current.load();
+                      if (isActive) safePlayVideo(videoRef.current);
+                    }
                   }}
-                  className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10"
+                  className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
                 >
                   Qayta yuklash
                 </button>
@@ -534,6 +542,8 @@ const Post: React.FC<PostProps> = ({
                       } catch (err) {
                         console.error("Firestore update failed during refresh:", err);
                       }
+                      setMainProxyIndex(0);
+                      setVideoError(false);
                       video.src = getProxiedUrl(newUrl, 0);
                       video.load();
                       if (isActive) safePlayVideo(video);

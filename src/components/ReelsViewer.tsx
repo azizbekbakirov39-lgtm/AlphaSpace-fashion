@@ -321,7 +321,15 @@ const ReelItem: React.FC<{
                         e.stopPropagation();
                         setMediaError(false);
                         setIsMediaLoading(true);
-                        if (videoRef.current) videoRef.current.load();
+                        setProxyIndex(0);
+                        if (videoRef.current) {
+                          delete videoRef.current.dataset.triedRefresh;
+                          videoRef.current.src = getProxiedUrl(url, 0);
+                          videoRef.current.load();
+                          if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
+                            safePlayVideo(videoRef.current);
+                          }
+                        }
                       }}
                       className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
                     >
@@ -357,6 +365,8 @@ const ReelItem: React.FC<{
                       video.dataset.triedRefresh = 'true';
                       const newUrl = await refreshMediaUrl(realPost.instagramUrl);
                       if (newUrl) {
+                        setProxyIndex(0);
+                        setMediaError(false);
                         video.src = getProxiedUrl(newUrl, 0);
                         video.load();
                         if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {

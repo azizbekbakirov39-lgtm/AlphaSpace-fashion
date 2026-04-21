@@ -308,7 +308,12 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   e.stopPropagation();
                   setMediaError(false);
                   setIsMediaLoading(true);
-                  if (videoRef.current) videoRef.current.load();
+                  setProxyIndex(0);
+                  if (videoRef.current) {
+                    delete videoRef.current.dataset.triedRefresh;
+                    videoRef.current.src = getProxiedUrl(currentStory.videoUrl, 0);
+                    videoRef.current.load();
+                  }
                 }}
                 className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
               >
