@@ -32,7 +32,7 @@ interface PostProps {
   onToggleMute?: () => void;
 }
 
-const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused }) => {
+const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean, isMuted: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused, isMuted }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
@@ -45,16 +45,25 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
 
   useEffect(() => {
     if (videoRef.current) {
+      const video = videoRef.current;
       if (isActive && !isGlobalPaused) {
-        // Force mute to allow autoplay if browser is being strict
-        videoRef.current.muted = true;
-        safePlayVideo(videoRef.current);
+        // Respect the isMuted prop
+        video.muted = isMuted;
+        
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // Browser blocked autoplay with sound, fall back to muted
+            video.muted = true;
+            video.play().catch(() => {});
+          });
+        }
       } else {
-        videoRef.current.pause();
+        video.pause();
         setIsPlaying(false);
       }
     }
-  }, [isActive, isGlobalPaused]);
+  }, [isActive, isGlobalPaused, isMuted]);
 
   // Aggressive cleanup to focus bandwidth on active video
   useEffect(() => {
@@ -82,7 +91,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         src={shouldLoad ? proxiedUrl : undefined}
         className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
         loop
-        muted
+        muted={isMuted}
         autoPlay={isActive && !isGlobalPaused}
         playsInline
         onContextMenu={(e) => e.preventDefault()}
@@ -92,7 +101,10 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         onWaiting={() => setIsPlaying(false)}
         onLoadedData={(e) => {
           setIsPlaying(true); // Trigger faster than onPlaying
-          if (shouldLoad) handleMediaSuccess(e.currentTarget);
+          if (shouldLoad) {
+            handleMediaSuccess(e.currentTarget);
+            // Playback logic moved to useEffect for consistency
+          }
         }}
         onError={(e) => handleMediaError(e.currentTarget)}
       />
@@ -252,6 +264,12 @@ const Post: React.FC<PostProps> = ({
     touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     touchStartTime.current = Date.now();
     handlePressStart(e);
+    
+    // "Wake up" audio on user interaction
+    if (videoRef.current && isActive && !isMuted && !isPaused) {
+      videoRef.current.muted = false;
+      videoRef.current.play().catch(() => {});
+    }
   };
 
   const handleTouchMoveCustom = (e: React.TouchEvent) => {
@@ -284,6 +302,10 @@ const Post: React.FC<PostProps> = ({
     // If movement is very small AND it was a quick touch AND we are not scrolling
     // and NOT a long press
     if (deltaX < 15 && deltaY < 15 && duration < 300 && !isScrolling.current && !isPaused) {
+      // Don't trigger media click if touching a button
+      const target = e.target as HTMLElement;
+      if (target.closest('button')) return;
+      
       handleMediaClick(e);
     }
     touchStartPos.current = null;
@@ -315,12 +337,21 @@ const Post: React.FC<PostProps> = ({
   // Handle active state changes for main video
   useEffect(() => {
     if (post.mediaType === 'video' && videoRef.current) {
+      const video = videoRef.current;
       if (isActive && !isPaused) {
-        // Force mute to ensure autoplay works initially
-        videoRef.current.muted = isMuted || !isActive;
-        safePlayVideo(videoRef.current);
+        video.muted = isMuted || !isActive;
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            if (error.name === 'NotAllowedError') {
+              // Try muted play if unmuted failed
+              video.muted = true;
+              video.play().catch(() => {});
+            }
+          });
+        }
       } else {
-        videoRef.current.pause();
+        video.pause();
       }
     }
   }, [isActive, isPaused, isMuted, post.mediaType]);
@@ -456,11 +487,7 @@ const Post: React.FC<PostProps> = ({
               onLoadedData={(e) => {
                 if (shouldLoad) {
                   handleMediaSuccess(e.currentTarget);
-                  // Double check playback on load
-                  if (isActive && !isPaused) {
-                    e.currentTarget.muted = isMuted || !isActive;
-                    safePlayVideo(e.currentTarget);
-                  }
+                  // Playback logic moved to useEffect for consistency
                 }
               }}
               onError={(e) => handleMediaError(e.currentTarget)}
@@ -468,13 +495,15 @@ const Post: React.FC<PostProps> = ({
             
             {/* Mute/Unmute Toggle */}
             <button 
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onToggleMute) onToggleMute();
               }}
-              className="absolute bottom-4 right-4 p-2 bg-black/40 backdrop-blur-md rounded-full text-white z-10 hover:bg-black/60 transition-all active:scale-90"
+              className="absolute bottom-4 right-4 p-2 bg-black/40 backdrop-blur-md rounded-full text-white z-10 hover:bg-black/60 transition-all active:scale-95 shadow-lg border border-white/10"
             >
-              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              {isMuted ? <VolumeX size={18} strokeWidth={2.5} /> : <Volume2 size={18} strokeWidth={2.5} />}
             </button>
           </div>
         ) : (
@@ -503,6 +532,7 @@ const Post: React.FC<PostProps> = ({
                           post={post}
                           index={idx}
                           isGlobalPaused={isPaused}
+                          isMuted={isMuted}
                         />
                       </div>
                     ) : (
