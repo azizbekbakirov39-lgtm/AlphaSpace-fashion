@@ -106,55 +106,7 @@ export default function App() {
   React.useEffect(() => {
     const unsubSellers = onSnapshot(collection(db, 'shops'), (snapshot) => {
       const sellersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
-      
-      // Agar Firebase o'rnatilgan bo'lsa-yu shops kolleksiyasi bo'sh bo'lsa yoki juda kam bo'lsa, xarita oq bo'lib qolmasligi uchun mock ma'lumotlar qo'shamiz
-      const mockSellers: Seller[] = [
-        {
-          id: 'mock1',
-          name: 'Brend Krossovkalar',
-          logo: 'https://ui-avatars.com/api/?name=BK&background=random',
-          description: 'Eng yangi sport kiyimlari',
-          followers: 1200,
-          region: 'Toshkent',
-          location: { lat: 41.3111, lng: 69.2797 },
-          rating: 4.8,
-          categories: ['Erkaklar kiyinishi', 'Aksessuarlar'],
-          hasStory: false
-        },
-        {
-          id: 'mock2',
-          name: 'Texnika Olami',
-          logo: 'https://ui-avatars.com/api/?name=TO&background=random',
-          description: 'Smartfonlar va Noutbuklar',
-          followers: 5500,
-          region: 'Toshkent',
-          location: { lat: 41.2950, lng: 69.2400 },
-          rating: 4.9,
-          categories: ['Texnika'],
-          hasStory: false
-        },
-        {
-          id: 'mock3',
-          name: 'Gullar Markazi',
-          logo: 'https://ui-avatars.com/api/?name=GM&background=random',
-          description: 'Yangi uzilgan gullar qulay narxlarda',
-          followers: 800,
-          region: 'Toshkent',
-          location: { lat: 41.3250, lng: 69.2450 },
-          rating: 4.5,
-          categories: ['Boshqa'],
-          hasStory: false
-        }
-      ];
-
-      if (sellersData.length === 0) {
-        setSellers(mockSellers);
-      } else if (sellersData.length < 3) {
-        // Agar real do'konlar kam bo'lsa, mock do'konlarni ham ko'rsatib turamiz (faqat id-lari bir xil bo'lmasa)
-        setSellers([...sellersData, ...mockSellers.filter(m => !sellersData.some(s => s.id === m.id))]);
-      } else {
-        setSellers(sellersData);
-      }
+      setSellers(sellersData);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'shops');
     });
