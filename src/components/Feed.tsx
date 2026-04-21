@@ -142,14 +142,23 @@ const Feed: React.FC<FeedProps> = ({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        // Find the entry with the highest intersection ratio
+        let bestEntry = entries[0];
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = Number(entry.target.getAttribute('data-index'));
-            setActiveIndex(index);
+          if (entry.intersectionRatio > bestEntry.intersectionRatio) {
+            bestEntry = entry;
           }
         });
+
+        if (bestEntry.isIntersecting && bestEntry.intersectionRatio > 0.3) {
+          const index = Number(bestEntry.target.getAttribute('data-index'));
+          setActiveIndex(index);
+        }
       },
-      { threshold: 0.7 }
+      { 
+        threshold: [0.1, 0.3, 0.5, 0.7, 0.9], // Multi-threshold for smoother detection
+        rootMargin: '-10% 0px -10% 0px' // Focus on the center 80% of the screen
+      }
     );
 
     const postElements = document.querySelectorAll('.post-item');

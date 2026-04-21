@@ -83,6 +83,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
         loop
         muted
+        autoPlay={isActive && !isGlobalPaused}
         playsInline
         onContextMenu={(e) => e.preventDefault()}
         preload={isActive ? "auto" : "none"} // Don't even fetch metadata if not active to save bandwidth
@@ -435,6 +436,7 @@ const Post: React.FC<PostProps> = ({
               className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
               loop
               muted={isMuted || !isActive} // Force mute if not active to prevent sound overlap
+              autoPlay={isActive && !isPaused}
               playsInline
               onContextMenu={(e) => e.preventDefault()}
               preload={isActive ? "auto" : "metadata"}
@@ -442,7 +444,10 @@ const Post: React.FC<PostProps> = ({
                 if (shouldLoad) {
                   handleMediaSuccess(e.currentTarget);
                   // Double check playback on load
-                  if (isActive && !isPaused) safePlayVideo(e.currentTarget);
+                  if (isActive && !isPaused) {
+                    e.currentTarget.muted = isMuted || !isActive;
+                    safePlayVideo(e.currentTarget);
+                  }
                 }
               }}
               onError={(e) => handleMediaError(e.currentTarget)}
