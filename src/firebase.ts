@@ -40,10 +40,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Resilient Firestore initialization
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId || '(default)');
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
 
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
@@ -105,9 +102,21 @@ export interface FirestoreErrorInfo {
   }
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Ignore offline/unavailable network errors safely without throwing
+  if (
+    error?.code === 'unavailable' || 
+    errorMessage.toLowerCase().includes('offline') || 
+    errorMessage.toLowerCase().includes('could not reach cloud firestore')
+  ) {
+    console.warn(`[Firebase] Client is temporarily offline or cannot reach backend. Client will cache and retry. Path: ${path}`);
+    return;
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,

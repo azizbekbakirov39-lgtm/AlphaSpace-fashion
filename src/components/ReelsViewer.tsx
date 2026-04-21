@@ -10,6 +10,7 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 import { Language } from '../translations';
 import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
+import { useMediaController } from '../hooks/useMediaController';
 import { formatRelativeTime } from '../utils/timeUtils';
 
 interface ReelsViewerProps {
@@ -99,6 +100,20 @@ const ReelItem: React.FC<{
 
   const touchStartPos = useRef<{x: number, y: number} | null>(null);
 
+  const { 
+    proxiedUrl, 
+    isLoading: isMediaLoading, 
+    hasError: mediaError, 
+    handleMediaSuccess, 
+    handleMediaError, 
+    handleRetry 
+  } = useMediaController({
+    url: realPost.mediaUrls?.[0] || '',
+    post: realPost,
+    mediaIndex: 0,
+    isActive: isActive && !showComments && !showDetails && !isPaused && realPost.mediaType === 'video'
+  });
+
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
     if ('touches' in e) {
       touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -159,26 +174,20 @@ const ReelItem: React.FC<{
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const [isMediaLoading, setIsMediaLoading] = useState(true);
-  const [mediaError, setMediaError] = useState(false);
-  const [proxyIndex, setProxyIndex] = useState(0);
-
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
-      setMediaError(false);
+    if (isActive && !showComments && !showDetails && realPost.mediaType === 'video' && !isPaused) {
       safePlayVideo(video);
     } else {
       video.pause();
-      // Removed automatic currentTime = 0 to prevent flickering
     }
 
     return () => {
       video.pause();
     };
-  }, [isActive, showComments, showDetails, realPost.mediaType]);
+  }, [isActive, showComments, showDetails, realPost.mediaType, isPaused]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -193,14 +202,8 @@ const ReelItem: React.FC<{
     return () => video.removeEventListener('timeupdate', updateProgress);
   }, []);
 
-  // Aggressive cleanup to focus bandwidth on active video
-  useEffect(() => {
-    if (!shouldLoad && videoRef.current) {
-      videoRef.current.src = "";
-      videoRef.current.load(); // Forces browser to drop connections immediately
-      setIsMediaLoading(true);
-    }
-  }, [shouldLoad]);
+  // Removed old aggressive cleanup `useEffect(() => { ... videoRef.current.src = "" ... })`
+  // as it is handled by `useMediaController` now
 
   const handleMediaClick = (e: React.MouseEvent) => {
     const now = Date.now();
@@ -319,17 +322,7 @@ const ReelItem: React.FC<{
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMediaError(false);
-                        setIsMediaLoading(true);
-                        setProxyIndex(0);
-                        if (videoRef.current) {
-                          delete videoRef.current.dataset.triedRefresh;
-                          videoRef.current.src = getProxiedUrl(url, 0);
-                          videoRef.current.load();
-                          if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
-                            safePlayVideo(videoRef.current);
-                          }
-                        }
+                        handleRetry(videoRef.current);
                       }}
                       className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
                     >
@@ -340,44 +333,17 @@ const ReelItem: React.FC<{
 
                 <video
                   ref={videoRef}
-                  src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
+                  src={shouldLoad ? proxiedUrl : undefined}
                   className={`absolute inset-0 h-full w-full object-cover pointer-events-none z-10 transition-opacity duration-200 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
                   loop
                   playsInline
                   muted={isMuted}
                   preload={isActive ? "auto" : "none"}
                   crossOrigin="anonymous"
-                  onLoadedData={() => {
-                    setIsMediaLoading(false); // Immediate show when data loaded
-                    if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
+                  onLoadedData={(e) => {
+                    if (shouldLoad) handleMediaSuccess(e.currentTarget);
                   }}
-                  onWaiting={() => setIsMediaLoading(true)}
-                  onPlaying={() => setIsMediaLoading(false)}
-                  onError={async (e) => {
-                    const video = e.currentTarget;
-                    if (!isLastProxy(proxyIndex)) {
-                      setProxyIndex(prev => getNextProxyIndex(prev));
-                      video.load();
-                      if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
-                        safePlayVideo(video);
-                      }
-                    } else if (realPost.instagramUrl && !video.dataset.triedRefresh) {
-                      video.dataset.triedRefresh = 'true';
-                      const newUrl = await refreshMediaUrl(realPost.instagramUrl);
-                      if (newUrl) {
-                        setProxyIndex(0);
-                        setMediaError(false);
-                        video.src = getProxiedUrl(newUrl, 0);
-                        video.load();
-                        if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
-                          safePlayVideo(video);
-                        }
-                      }
-                    } else {
-                      setIsMediaLoading(false);
-                      setMediaError(true);
-                    }
-                  }}
+                  onError={(e) => handleMediaError(e.currentTarget)}
                 />
               </div>
             ) : (

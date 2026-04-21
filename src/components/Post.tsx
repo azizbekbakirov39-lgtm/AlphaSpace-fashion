@@ -6,9 +6,10 @@ import CommentDrawer from './CommentDrawer';
 import ProductDetails from './ProductDetails';
 
 import { Language, translations } from '../translations';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
 import { formatRelativeTime } from '../utils/timeUtils';
+import { useMediaController } from '../hooks/useMediaController';
 
 interface PostProps {
   post: PostData;
@@ -30,9 +31,15 @@ interface PostProps {
 
 const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [proxyIndex, setProxyIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   
+  const { proxiedUrl, handleMediaSuccess, handleMediaError } = useMediaController({
+    url,
+    post,
+    mediaIndex: index,
+    isActive: isActive && !isGlobalPaused
+  });
+
   useEffect(() => {
     if (videoRef.current) {
       if (isActive && !isGlobalPaused) {
@@ -67,7 +74,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
       )}
       <video 
         ref={videoRef}
-        src={shouldLoad ? getProxiedUrl(url, proxyIndex) : undefined}
+        src={shouldLoad ? proxiedUrl : undefined}
         className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
         loop
         muted
@@ -76,37 +83,11 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         crossOrigin="anonymous"
         onPlaying={() => setIsPlaying(true)}
         onWaiting={() => setIsPlaying(false)}
-        onLoadedData={() => {
+        onLoadedData={(e) => {
           setIsPlaying(true); // Trigger faster than onPlaying
-          if (shouldLoad) markUrlAsSuccessful(url, videoRef.current?.src || '');
+          if (shouldLoad) handleMediaSuccess(e.currentTarget);
         }}
-        onError={async (e) => {
-          const video = e.currentTarget;
-          if (!isLastProxy(proxyIndex)) {
-            setProxyIndex(prev => getNextProxyIndex(prev));
-            video.load();
-            if (isActive) safePlayVideo(video);
-          } else if (post.instagramUrl && !video.dataset.triedRefresh) {
-            video.dataset.triedRefresh = 'true';
-            const newUrl = await refreshMediaUrl(post.instagramUrl);
-            if (newUrl) {
-              const newMediaUrls = [...post.mediaUrls];
-              newMediaUrls[index] = newUrl;
-              try {
-                await updateDoc(doc(db, 'posts', post.id), {
-                  mediaUrls: newMediaUrls
-                });
-              } catch (err) {
-                console.error("Firestore update failed during refresh:", err);
-              }
-              setProxyIndex(0);
-              delete video.dataset.triedRefresh;
-              video.src = getProxiedUrl(newUrl, 0);
-              video.load();
-              if (isActive) safePlayVideo(video);
-            }
-          }
-        }}
+        onError={(e) => handleMediaError(e.currentTarget)}
       />
     </div>
   );
@@ -172,7 +153,6 @@ const Post: React.FC<PostProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const longPressTimeout = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [mainProxyIndex, setMainProxyIndex] = useState(0);
 
   const handlePressStart = (e: React.MouseEvent | React.TouchEvent) => {
     isLongPressed.current = false;
@@ -207,6 +187,20 @@ const Post: React.FC<PostProps> = ({
   const isLongPressed = useRef(false);
 
   const { shareContent } = useShare();
+  
+  const { 
+    proxiedUrl, 
+    isLoading: videoLoading, 
+    hasError: videoError, 
+    handleMediaSuccess, 
+    handleMediaError, 
+    handleRetry 
+  } = useMediaController({
+    url: post.mediaUrls?.[0] || '',
+    post,
+    mediaIndex: 0,
+    isActive: isActive && !isPaused
+  });
 
   const handleMediaClick = (e: React.MouseEvent | React.TouchEvent) => {
     const now = Date.now();
@@ -311,28 +305,8 @@ const Post: React.FC<PostProps> = ({
     };
   }, []);
 
-  const [videoLoading, setVideoLoading] = useState(true);
-  const [videoError, setVideoError] = useState(false);
-
-  // Aggressive cleanup to focus bandwidth on active video
-  useEffect(() => {
-    if (!shouldLoad && videoRef.current) {
-      videoRef.current.src = "";
-      videoRef.current.load(); // Forces browser to drop connections immediately
-      setVideoLoading(true);
-    }
-  }, [shouldLoad]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      if (isActive && !isPaused) {
-        setVideoError(false);
-        safePlayVideo(videoRef.current);
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  }, [isActive, isPaused]);
+  // Removed old manual video Loading/Error and useEffect cleanup for shouldLoad/isActive here
+  // handled gracefully inside `useMediaController`
 
   const handleNext = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -481,15 +455,7 @@ const Post: React.FC<PostProps> = ({
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    setVideoError(false);
-                    setVideoLoading(true);
-                    setMainProxyIndex(0);
-                    if (videoRef.current) {
-                      delete videoRef.current.dataset.triedRefresh;
-                      videoRef.current.src = getProxiedUrl(post.mediaUrls[0], 0);
-                      videoRef.current.load();
-                      if (isActive) safePlayVideo(videoRef.current);
-                    }
+                    handleRetry(videoRef.current);
                   }}
                   className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
                 >
@@ -511,51 +477,16 @@ const Post: React.FC<PostProps> = ({
 
             <video
               ref={videoRef}
-              src={shouldLoad ? getProxiedUrl(post.mediaUrls?.[0], mainProxyIndex) : undefined}
+              src={shouldLoad ? proxiedUrl : undefined}
               className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
               loop
               muted={isMuted}
               playsInline
               preload={isActive ? "auto" : "metadata"}
-              onLoadedData={() => {
-                setVideoLoading(false); // Immediate show when data loaded
-                if (shouldLoad) markUrlAsSuccessful(post.mediaUrls[0], videoRef.current?.src || '');
+              onLoadedData={(e) => {
+                if (shouldLoad) handleMediaSuccess(e.currentTarget);
               }}
-              onWaiting={() => setVideoLoading(true)}
-              onPlaying={() => setVideoLoading(false)}
-              onError={async (e) => {
-                const video = e.currentTarget;
-                const originalUrl = post.mediaUrls[0];
-
-                if (!isLastProxy(mainProxyIndex)) {
-                  setMainProxyIndex(prev => getNextProxyIndex(prev));
-                  video.load();
-                  if (isActive) safePlayVideo(video);
-                } else if (post.instagramUrl && !video.dataset.triedRefresh) {
-                   video.dataset.triedRefresh = 'true';
-                   const newUrl = await refreshMediaUrl(post.instagramUrl);
-                   if (newUrl) {
-                      try {
-                        await updateDoc(doc(db, 'posts', post.id), {
-                          mediaUrls: [newUrl]
-                        });
-                      } catch (err) {
-                        console.error("Firestore update failed during refresh:", err);
-                      }
-                      setMainProxyIndex(0);
-                      setVideoError(false);
-                      video.src = getProxiedUrl(newUrl, 0);
-                      video.load();
-                      if (isActive) safePlayVideo(video);
-                   } else {
-                      setVideoLoading(false);
-                      setVideoError(true);
-                   }
-                } else {
-                  setVideoLoading(false);
-                  setVideoError(true);
-                }
-              }}
+              onError={(e) => handleMediaError(e.currentTarget)}
             />
             
             {/* Mute/Unmute Toggle */}
