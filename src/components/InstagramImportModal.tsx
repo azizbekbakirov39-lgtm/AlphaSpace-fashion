@@ -37,7 +37,7 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
 
       const response = await fetch(`/api/instagram-fetch?url=${encodeURIComponent(cleanUrl)}`, {
         method: 'GET',
-        headers: { 'content-type': 'application/json' }
+        headers: { 'Accept': 'application/json' }
       });
 
       if (!response.ok) {
@@ -51,21 +51,29 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
         throw new Error(errorMsg);
       }
 
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server noto'g'ri formatda javob qaytardi (JSON kutilgan edi)");
+      }
+
       const result = await response.json();
-      console.log("Instagram API Front Result:", result);
+      
       let mediaUrls: string[] = [];
       let mediaType: 'video' | 'carousel' = 'carousel';
       let description = "";
 
-      if (Array.isArray(result) && result.length > 0) {
+      // Logic to handle Instagram120 API response format
+      if (result && result.data) {
+        const data = result.data;
+        mediaUrls = data.video_url ? [data.video_url] : (data.images || []).map((i: any) => i.url);
+        description = data.caption || "";
+        mediaType = data.video_url ? 'video' : 'carousel';
+      } else if (Array.isArray(result) && result.length > 0) {
+        // Fallback for previous response structure
         mediaUrls = result.map((item: any) => item.urls?.[0]?.url || item.pictureUrl || item.display_url).filter(Boolean);
         description = result[0].caption || result[0].text || "";
         const hasVideo = result.some((item: any) => item.urls?.some((u: any) => u.extension === 'mp4' || u.url?.includes('.mp4')));
         mediaType = (hasVideo && mediaUrls.length === 1) ? 'video' : 'carousel';
-      } else if (result.urls && Array.isArray(result.urls)) {
-        mediaUrls = [result.urls[0].url].filter(Boolean);
-        description = result.caption || result.text || "";
-        mediaType = result.urls.some((u: any) => u.extension === 'mp4') ? 'video' : 'carousel';
       }
 
       if (mediaUrls.length === 0) throw new Error("Media topilmadi");
