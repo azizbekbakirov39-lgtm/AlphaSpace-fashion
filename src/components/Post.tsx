@@ -17,6 +17,8 @@ import { useMediaController } from '../hooks/useMediaController';
 interface PostProps {
   post: PostData;
   isActive: boolean;
+  isNext?: boolean;
+  isUpcoming?: boolean;
   shouldLoad?: boolean;
   onToggleLike?: () => void;
   onToggleSave?: () => void;
@@ -32,7 +34,7 @@ interface PostProps {
   onToggleMute?: () => void;
 }
 
-const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean, isMuted: boolean }> = ({ url, isActive, shouldLoad = true, poster, post, index, isGlobalPaused, isMuted }) => {
+const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean, isUpcoming?: boolean, shouldLoad?: boolean, poster?: string, post: PostData, index: number, isGlobalPaused: boolean, isMuted: boolean }> = ({ url, isActive, isNext, isUpcoming, shouldLoad = true, poster, post, index, isGlobalPaused, isMuted }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
@@ -111,7 +113,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
         autoPlay={isActive && !isGlobalPaused}
         playsInline
         onContextMenu={(e) => e.preventDefault()}
-        preload={isActive ? "auto" : "none"} // Don't even fetch metadata if not active to save bandwidth
+        preload={isActive ? "auto" : (isNext || isUpcoming ? "metadata" : "none")}
         crossOrigin="anonymous"
         onPlaying={() => setIsPlaying(true)}
         onWaiting={() => setIsPlaying(false)}
@@ -167,6 +169,8 @@ const CarouselImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: st
 const Post: React.FC<PostProps> = ({ 
   post, 
   isActive, 
+  isNext = false,
+  isUpcoming = false,
   onToggleLike, 
   onToggleSave, 
   onOpenReels, 
@@ -518,7 +522,7 @@ const Post: React.FC<PostProps> = ({
               autoPlay={isActive && !isPaused}
               playsInline
               onContextMenu={(e) => e.preventDefault()}
-              preload={isActive ? "auto" : "metadata"}
+              preload={isActive ? "auto" : (isNext || isUpcoming ? "metadata" : "none")}
               onLoadedData={(e) => {
                 if (shouldLoad) {
                   handleMediaSuccess(e.currentTarget);
@@ -562,6 +566,8 @@ const Post: React.FC<PostProps> = ({
                         <CarouselVideo 
                           url={url} 
                           isActive={isActive && idx === currentImageIndex}
+                          isNext={isActive && idx === currentImageIndex + 1}
+                          isUpcoming={isActive && idx === currentImageIndex + 2}
                           shouldLoad={shouldLoad}
                           poster={post.thumbnailUrl || (idx === 0 ? url : undefined)}
                           post={post}
