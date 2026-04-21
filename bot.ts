@@ -109,7 +109,6 @@ export const startBot = async () => {
       const messageKey = `${chatId}:${messageId}`;
       
       if (processedMessages.has(messageKey)) {
-        console.log(`SmartSeller: Skipping duplicate message ${messageKey}`);
         return;
       }
       
@@ -124,7 +123,6 @@ export const startBot = async () => {
       }
 
       const userMessage = ctx.message.text;
-      console.log(`SmartSeller: Processing message from ${ctx.from.first_name}.`);
 
       try {
         await ctx.sendChatAction('typing');
@@ -204,11 +202,10 @@ export const startBot = async () => {
             }
           }
         } catch (e) {
-          console.log("Not a JSON response or parsing failed, continuing normally.");
+          // Ignore parse errors as it might just be a normal text response
         }
         
         await ctx.reply(aiResponse || "Kechirasiz, SmartSeller hozirda javob bera olmayapti.");
-        console.log(`SmartSeller: AI successfully responded`);
       } catch (error: any) {
         const errorMsg = error.message || '';
         console.error(`SmartSeller: Error:`, errorMsg.slice(0, 150));
@@ -245,7 +242,6 @@ export const startBot = async () => {
               status: 'pending',
               createdAt: serverTimestamp()
             });
-            console.log(`SmartBot: Auto-saved Telegram link: ${link}`);
           }
         }
       } catch (error) {

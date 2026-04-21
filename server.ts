@@ -40,11 +40,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Request Logger
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
+// Request Logger - Disabled to keep terminal clean
+// app.use((req, res, next) => {
+//   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+//   next();
+// });
 
 // API Routes
 app.get("/api/health", (req, res) => {
@@ -64,10 +64,8 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
 });
 
 app.post("/api/refresh-instagram-url", async (req, res) => {
-  console.log("API Proxy Hit: /api/refresh-instagram-url");
   try {
     const { shortcode, type = 'p' } = req.body;
-    console.log("Proxy received shortcode:", shortcode, "type:", type);
     if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
     
     if (!RAPIDAPI_KEY) {
