@@ -81,28 +81,36 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-app.post("/api/fetch-instagram-post", async (req, res) => {
+app.get("/api/instagram-fetch", async (req, res) => {
   try {
-    const { url } = req.body;
+    const url = req.query.url as string;
     if (!url) return res.status(400).json({ error: "URL required" });
 
     if (!RAPIDAPI_KEY) {
       return res.status(500).json({ error: "RapidAPI Key is not configured in environment" });
     }
 
-    const response = await axios.get(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
-      params: { url },
-      headers: {
-        'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-        'x-rapidapi-key': RAPIDAPI_KEY
-      },
-      timeout: 10000
-    });
+    // Instagram120 RapidAPI explicitly requires POST
+    const response = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+      { url },
+      {
+        headers: {
+          'content-type': 'application/json',
+          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+          'x-rapidapi-key': RAPIDAPI_KEY
+        },
+        timeout: 10000
+      }
+    );
 
     res.json(response.data);
   } catch (error: any) {
-    console.error("Fetch Instagram Error:", error.response?.data || error.message);
-    res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    const status = error.response?.status || 500;
+    const details = error.response?.data || error.message;
+    console.error("Fetch Instagram Error:", details);
+    
+    // If RapidAPI returns 500, we forward it to the client clearly
+    res.status(status).json(typeof details === 'object' ? details : { error: details });
   }
 });
 

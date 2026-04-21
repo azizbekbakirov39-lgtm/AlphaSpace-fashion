@@ -35,13 +35,21 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
 
       const cleanUrl = `https://www.instagram.com/p/${shortcode}/`;
 
-      const response = await fetch(`/api/fetch-instagram-post`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: cleanUrl })
+      const response = await fetch(`/api/instagram-fetch?url=${encodeURIComponent(cleanUrl)}`, {
+        method: 'GET',
+        headers: { 'content-type': 'application/json' }
       });
 
-      if (!response.ok) throw new Error(`API Xatosi (${response.status})`);
+      if (!response.ok) {
+        let errorMsg = `API Xatosi (${response.status})`;
+        try {
+          const errData = await response.json();
+          if (errData.message || errData.error) {
+            errorMsg = errData.message || errData.error;
+          }
+        } catch(e) {}
+        throw new Error(errorMsg);
+      }
 
       const result = await response.json();
       let mediaUrls: string[] = [];
