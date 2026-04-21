@@ -6,8 +6,19 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import crypto from "crypto";
 import axios from "axios";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 dotenv.config();
+
+// Cloudflare R2 Client Initialization
+const r2Client = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+  },
+});
 
 // Initialize Firebase Admin safely
 try {
@@ -114,6 +125,49 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     res.json(response.data);
   } catch (error: any) {
     console.error("Backend Proxy Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// New endpoint to import video to Cloudflare R2
+app.post("/api/import-to-r2", async (req, res) => {
+  try {
+    const { videoUrl, fileName } = req.body;
+    if (!videoUrl) return res.status(400).json({ error: "videoUrl required" });
+
+    // 1. Download the video
+    console.log(`Downloading video from: ${videoUrl}`);
+    const response = await axios({
+      url: videoUrl,
+      method: 'GET',
+      responseType: 'arraybuffer',
+      timeout: 30000, // 30 seconds
+    });
+
+    const buffer = Buffer.from(response.data);
+    const contentType = response.headers['content-type'] || 'video/mp4';
+    
+    // Generate a unique filename if not provided
+    const key = fileName || `videos/${crypto.randomBytes(8).toString('hex')}.mp4`;
+
+    // 2. Upload to Cloudflare R2
+    console.log(`Uploading to R2: ${key}`);
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    });
+
+    await r2Client.send(command);
+
+    // 3. Return the public URL
+    const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
+    console.log(`Upload complete: ${publicUrl}`);
+    
+    res.json({ publicUrl, key });
+  } catch (error: any) {
+    console.error("R2 Upload Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
