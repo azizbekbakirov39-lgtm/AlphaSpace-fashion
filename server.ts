@@ -90,17 +90,14 @@ app.post("/api/fetch-instagram-post", async (req, res) => {
       return res.status(500).json({ error: "RapidAPI Key is not configured in environment" });
     }
 
-    const response = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
-      { url },
-      {
-        headers: {
-          'content-type': 'application/json',
-          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-          'x-rapidapi-key': RAPIDAPI_KEY
-        },
-        timeout: 10000
-      }
-    );
+    const response = await axios.get(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
+      params: { url },
+      headers: {
+        'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+        'x-rapidapi-key': RAPIDAPI_KEY
+      },
+      timeout: 10000
+    });
 
     res.json(response.data);
   } catch (error: any) {
