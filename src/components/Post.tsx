@@ -99,7 +99,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, shouldLoad?: boo
               } catch (err) {
                 console.error("Firestore update failed during refresh:", err);
               }
-              video.src = newUrl;
+              video.src = getProxiedUrl(newUrl, 0);
               video.load();
               if (isActive) safePlayVideo(video);
             }
@@ -534,7 +534,7 @@ const Post: React.FC<PostProps> = ({
                       } catch (err) {
                         console.error("Firestore update failed during refresh:", err);
                       }
-                      video.src = newUrl;
+                      video.src = getProxiedUrl(newUrl, 0);
                       video.load();
                       if (isActive) safePlayVideo(video);
                    } else {

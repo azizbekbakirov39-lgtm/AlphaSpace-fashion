@@ -49,7 +49,7 @@ const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; in
              } catch (err) {
                console.error("Firestore update failed in ProductDetails:", err);
              }
-             video.src = newUrl;
+             video.src = getProxiedUrl(newUrl, 0);
              video.load();
              safePlayVideo(video);
           }

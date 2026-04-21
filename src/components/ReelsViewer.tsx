@@ -357,7 +357,7 @@ const ReelItem: React.FC<{
                       video.dataset.triedRefresh = 'true';
                       const newUrl = await refreshMediaUrl(realPost.instagramUrl);
                       if (newUrl) {
-                        video.src = newUrl;
+                        video.src = getProxiedUrl(newUrl, 0);
                         video.load();
                         if (isActive && !showComments && !showDetails && realPost.mediaType === 'video') {
                           safePlayVideo(video);
