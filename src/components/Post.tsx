@@ -312,6 +312,19 @@ const Post: React.FC<PostProps> = ({
     };
   }, []);
 
+  // Handle active state changes for main video
+  useEffect(() => {
+    if (post.mediaType === 'video' && videoRef.current) {
+      if (isActive && !isPaused) {
+        // Force mute to ensure autoplay works initially
+        videoRef.current.muted = isMuted || !isActive;
+        safePlayVideo(videoRef.current);
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isActive, isPaused, isMuted, post.mediaType]);
+
   // Removed old manual video Loading/Error and useEffect cleanup for shouldLoad/isActive here
   // handled gracefully inside `useMediaController`
 

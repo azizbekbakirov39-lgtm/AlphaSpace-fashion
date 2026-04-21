@@ -31,6 +31,7 @@ interface FeedProps {
   isSearchActive: boolean;
   globalMuted: boolean;
   setGlobalMuted: (muted: boolean) => void;
+  isGlobalPaused?: boolean;
 }
 
 const Feed: React.FC<FeedProps> = ({ 
@@ -55,7 +56,8 @@ const Feed: React.FC<FeedProps> = ({
   onSearchActive,
   isSearchActive,
   globalMuted,
-  setGlobalMuted
+  setGlobalMuted,
+  isGlobalPaused = false
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -244,7 +246,7 @@ const Feed: React.FC<FeedProps> = ({
         <div key={post.id} className="post-item" data-index={index}>
           <Post 
             post={post} 
-            isActive={index === activeIndex} 
+            isActive={index === activeIndex && !isGlobalPaused} 
             shouldLoad={index >= activeIndex - 1 && index <= activeIndex + 1}
             onToggleLike={() => onToggleLike(post.id)}
             onToggleSave={() => onToggleSave(post.id)}

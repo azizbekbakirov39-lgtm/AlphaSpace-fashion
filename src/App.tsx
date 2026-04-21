@@ -1407,6 +1407,15 @@ export default function App() {
                       isSearchActive={isSearchActive}
                       globalMuted={globalMuted}
                       setGlobalMuted={setGlobalMuted}
+                      isGlobalPaused={
+                        activeReelIndex !== null || 
+                        activeStoryIndex !== null || 
+                        activeLiveStream !== null || 
+                        selectedPostForDetails !== null || 
+                        selectedShopId !== null ||
+                        selectedPostForComments !== null ||
+                        (activeTab === 'Profile' && profileSubView !== 'main')
+                      }
                     />
                   </motion.div>
                 ) : activeTab === 'Brands' ? (
