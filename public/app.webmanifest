@@ -9,8 +9,8 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/app-logo.svg",
-      "sizes": "192x192 512x512",
+      "src": "/pwa-icon-solid-v1.svg",
+      "sizes": "any 192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
