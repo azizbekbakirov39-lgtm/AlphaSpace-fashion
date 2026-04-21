@@ -157,7 +157,7 @@ app.post("/api/import-to-r2", async (req, res) => {
         ffmpeg(inputPath)
           .outputOptions([
             "-c:v libx264",
-            "-crf 20", // Higher quality (lower is better, 20 is very high quality/low compression)
+            "-crf 18", // Higher quality (lower is better, 18 is visually lossless)
             "-preset medium",
             "-pix_fmt yuv420p",
             "-c:a aac",

@@ -506,11 +506,18 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const handleLocationShare = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
-        setStagedLocation({
+        const loc = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        });
+        };
+        setStagedLocation(loc);
+        toast.success("Joylashuv aniqlandi! Yuborish uchun xabar tugmasini bosing.");
+      }, (error) => {
+        console.error("Geolocation error:", error);
+        toast.error("Joylashuvni aniqlab bo'lmadi. Geolokatsiya ruxsatini tekshiring.");
       });
+    } else {
+      toast.error("Brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi.");
     }
   };
 
@@ -531,14 +538,23 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const recorder = new MediaRecorder(stream);
       recordingChunksRef.current = [];
       recorder.ondataavailable = (e) => recordingChunksRef.current.push(e.data);
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
           const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            handleSendMessage('videoMessage', reader.result as string);
-          };
-          reader.readAsDataURL(blob);
+          
+          setIsUploading(true);
+          try {
+            const fileName = `vmsg_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
+            const storageRef = ref(storage, `chat_media/${shopData.id}/${fileName}`);
+            await uploadBytes(storageRef, blob);
+            const downloadUrl = await getDownloadURL(storageRef);
+            handleSendMessage('videoMessage', downloadUrl);
+          } catch (error) {
+            console.error("Video message upload error:", error);
+            toast.error("Video xabarni yuklashda xatolik");
+          } finally {
+            setIsUploading(false);
+          }
         }
         stream.getTracks().forEach(t => t.stop());
         setDragX(0);
@@ -577,12 +593,20 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
           const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
-          const reader = new FileReader();
-          reader.readAsDataURL(blob);
-          reader.onloadend = () => {
-            const base64Audio = reader.result as string;
-            handleSendMessage('voice', base64Audio);
-          };
+          
+          setIsUploading(true);
+          try {
+            const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
+            const storageRef = ref(storage, `chat_media/${shopData.id}/${fileName}`);
+            await uploadBytes(storageRef, blob);
+            const downloadUrl = await getDownloadURL(storageRef);
+            handleSendMessage('voice', downloadUrl);
+          } catch (error) {
+            console.error("Voice message upload error:", error);
+            toast.error("Ovozli xabarni yuklashda xatolik");
+          } finally {
+            setIsUploading(false);
+          }
         }
         stream.getTracks().forEach(track => track.stop());
         setDragX(0);
@@ -656,12 +680,29 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     audio.play();
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!activeChatId) return;
+    try {
+      // Direct deletion for "no longer seen" behavior
+      const msgRef = doc(db, `chats/${activeChatId}/messages`, messageId);
+      await deleteDoc(msgRef);
+      
+      setSelectedMessageId(null);
+      toast.success("Xabar o'chirildi");
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Xabarni o'chirishda xatolik");
+    }
+  };
+
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      // In a real app, we might just hide it for the user, 
-      // but for "full integration" we'll delete the doc
-      await deleteDoc(doc(db, 'chats', chatId));
+      const chatRef = doc(db, 'chats', chatId);
+      await updateDoc(chatRef, {
+        [`hiddenFor.${shopData.id}`]: true
+      });
+      
       if (activeChatId === chatId) handleCloseChat();
       toast.success("Chat o'chirildi");
     } catch (error) {
@@ -734,30 +775,30 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const msgData: any = {
         senderUid: shopData.id,
         text: messageText,
-        
-        // ShopWorkspace.tsx compat
         type: finalType,
         mediaUrl: finalMedia,
         location: finalLocation,
         post: postData,
         
-        // Profile.tsx compat
+        // Compat fields
         audio: finalType === 'voice' ? finalMedia : undefined,
         image: finalType === 'image' ? finalMedia : undefined,
         video: finalType === 'video' ? finalMedia : undefined,
         videoMessage: finalType === 'videoMessage' ? finalMedia : undefined,
 
         timestamp: serverTimestamp(),
-        replyTo: replyingTo?.id
+        replyTo: replyingTo?.id,
+        hiddenFor: {} // Initialize hidden status
       };
 
-      // Ensure no undefined values are written to Firestore
       Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
 
       const chatRef = doc(db, 'chats', activeChatId);
       await setDoc(chatRef, {
         lastMessage: messageText || `[${finalType}]`,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        // When sending a new message, unhide the chat for both participants
+        hiddenFor: {} 
       }, { merge: true });
 
       await addDoc(collection(db, `chats/${activeChatId}/messages`), msgData);
@@ -776,19 +817,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       setIsUploading(false);
     }
   };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!activeChatId) return;
-    try {
-      await deleteDoc(doc(db, `chats/${activeChatId}/messages`, messageId));
-      setSelectedMessageId(null);
-      toast.success("Xabar o'chirildi");
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      toast.error("Xabarni o'chirishda xatolik");
-    }
-  };
-
   const handleReaction = async (messageId: string, emoji: string) => {
     if (!activeChatId) return;
     const msgRef = doc(db, `chats/${activeChatId}/messages`, messageId);
@@ -1210,10 +1238,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         );
       case 'Chats':
         const filteredChats = chats.filter(chat => {
+          if (chat.hiddenFor?.[shopData.id]) return false;
           const matchesSearch = chat.customerName.toLowerCase().includes(chatSearchQuery.toLowerCase()) || 
                                chat.lastMessage.toLowerCase().includes(chatSearchQuery.toLowerCase());
           if (chatFilter === 'unread') return matchesSearch && chat.status === 'new';
           if (chatFilter === 'pending') return matchesSearch && chat.status === 'in-progress';
+          if (chatFilter === 'completed') return matchesSearch && chat.status === 'completed';
           return matchesSearch;
         });
 
@@ -1394,7 +1424,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
                   {/* Messages Area */}
                   <div className="flex-1 overflow-y-auto p-4 pb-8 flex flex-col gap-4 scrollbar-hide bg-slate-50/50 dark:bg-transparent min-h-0">
-                    {activeChat?.messages.length === 0 ? (
+                    {!activeChat || activeChat.messages.filter(m => !m.hiddenFor?.[shopData.id]).length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-text-primary/40 pt-20">
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center mb-4">
                           <MessageSquare size={40} className="text-accent-blue opacity-50" />
@@ -1410,7 +1440,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           <span className="px-3 py-1 bg-text-primary/5 rounded-full text-[9px] font-black uppercase tracking-widest text-text-primary/30 border border-text-primary/5">Bugun</span>
                         </div>
                         
-                        {activeChat?.messages.map((msg, idx) => {
+                        {activeChat?.messages.filter(m => !m.hiddenFor?.[shopData.id]).map((msg, idx) => {
                       const isNextSame = idx < activeChat.messages.length - 1 && activeChat.messages[idx + 1].sender === msg.sender;
                       const isPrevSame = idx > 0 && activeChat.messages[idx - 1].sender === msg.sender;
                       
