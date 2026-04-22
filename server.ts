@@ -7,6 +7,20 @@ import admin from "firebase-admin";
 import crypto from "crypto";
 import axios from "axios";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import fs from "fs";
+import { promisify } from "util";
+import os from "os";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegInstaller from "ffmpeg-static";
+
+// Set ffmpeg path
+if (ffmpegInstaller) {
+  ffmpeg.setFfmpegPath(ffmpegInstaller);
+}
+
+const writeFile = promisify(fs.writeFile);
+const unlink = promisify(fs.unlink);
+const readFile = promisify(fs.readFile);
 
 dotenv.config();
 
@@ -129,46 +143,82 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
   }
 });
 
-// New endpoint to import video to Cloudflare R2
+// New endpoint to import video to Cloudflare R2 with compression
 app.post("/api/import-to-r2", async (req, res) => {
+  const tempFiles: string[] = [];
   try {
     const { videoUrl, fileName } = req.body;
     if (!videoUrl) return res.status(400).json({ error: "videoUrl required" });
 
-    // 1. Download the video
+    // 1. Download the video to a temporary file
     console.log(`Downloading video from: ${videoUrl}`);
     const response = await axios({
       url: videoUrl,
-      method: 'GET',
-      responseType: 'arraybuffer',
-      timeout: 30000, // 30 seconds
+      method: "GET",
+      responseType: "arraybuffer",
+      timeout: 60000, // 60 seconds for larger videos
     });
 
-    const buffer = Buffer.from(response.data);
-    const contentType = response.headers['content-type'] || 'video/mp4';
+    const inputBuffer = Buffer.from(response.data);
+    const tempDir = os.tmpdir();
+    const inputPath = path.join(tempDir, `input-${crypto.randomBytes(8).toString("hex")}.mp4`);
+    const outputPath = path.join(tempDir, `output-${crypto.randomBytes(8).toString("hex")}.mp4`);
     
-    // Generate a unique filename if not provided
-    const key = fileName || `videos/${crypto.randomBytes(8).toString('hex')}.mp4`;
+    await writeFile(inputPath, inputBuffer);
+    tempFiles.push(inputPath);
 
-    // 2. Upload to Cloudflare R2
-    console.log(`Uploading to R2: ${key}`);
+    // 2. Compress the video using FFmpeg
+    // Using CRF 20 for high quality, and preset slow for better compression efficiency
+    // This preserves high quality (effectively visually lossless) while reducing file size
+    console.log(`Compressing video...`);
+    await new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .outputOptions([
+          "-c:v libx264",
+          "-crf 20",
+          "-preset slow",
+          "-c:a copy", // Copy audio without re-encoding to save time and quality
+          "-movflags +faststart", // Optimize for web streaming
+        ])
+        .on("end", resolve)
+        .on("error", reject)
+        .save(outputPath);
+    });
+    tempFiles.push(outputPath);
+
+    // 3. Read compressed video
+    const compressedBuffer = await readFile(outputPath);
+    const contentType = "video/mp4";
+    
+    const key = fileName || `videos/${crypto.randomBytes(8).toString("hex")}.mp4`;
+
+    // 4. Upload to Cloudflare R2
+    console.log(`Uploading compressed video to R2: ${key}`);
     const command = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: key,
-      Body: buffer,
+      Body: compressedBuffer,
       ContentType: contentType,
     });
 
     await r2Client.send(command);
 
-    // 3. Return the public URL
+    // 5. Return the public URL
     const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
     console.log(`Upload complete: ${publicUrl}`);
     
-    res.json({ publicUrl, key });
+    res.json({ publicUrl, key, originalSize: inputBuffer.length, compressedSize: compressedBuffer.length });
+
   } catch (error: any) {
-    console.error("R2 Upload Error:", error);
+    console.error("R2 Upload/Compression Error:", error);
     res.status(500).json({ error: error.message });
+  } finally {
+    // Cleanup temporary files
+    for (const file of tempFiles) {
+      if (fs.existsSync(file)) {
+        await unlink(file).catch(err => console.error(`Cleanup error for ${file}:`, err));
+      }
+    }
   }
 });
 
