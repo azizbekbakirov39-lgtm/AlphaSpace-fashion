@@ -184,6 +184,47 @@ app.post("/api/import-to-r2", async (req, res) => {
   }
 });
 
+const RAPIDAPI_KEY = "24a016b72dmshab921371a8604f3p1bf7dbjsn6483e63bf0dd";
+const RAPIDAPI_HOST = "social-media-video-downloader.p.rapidapi.com";
+
+app.post("/api/social-fetch", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "URL talab qilinadi" });
+
+    let endpoint = "";
+    let params: any = { url };
+
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+      endpoint = "/youtube/v3/video/details";
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v\/|.*u\/\w\/|embed\/|watch\?v=))([^#\&\?]*)/);
+      params = { videoId: match ? match[1] : url };
+    } else if (url.includes("tiktok.com")) {
+      endpoint = "/tiktok/v3/post/details";
+    } else if (url.includes("facebook.com")) {
+      endpoint = "/facebook/v3/post/details";
+    } else if (url.includes("instagram.com")) {
+      endpoint = "/instagram/v3/post/details"; // Back to v3 as the screenshot suggests
+    } else {
+      return res.status(400).json({ error: "Qo'llab-quvvatlanmaydigan platforma" });
+    }
+
+    const response = await axios.get(`https://${RAPIDAPI_HOST}${endpoint}`, {
+      params,
+      headers: {
+        'x-rapidapi-key': RAPIDAPI_KEY,
+        'x-rapidapi-host': RAPIDAPI_HOST
+      },
+      timeout: 20000
+    });
+
+    return res.json(response.data);
+  } catch (error: any) {
+    console.error("Social API Error:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Xizmatda xatolik yuz berdi" });
+  }
+});
+
 app.post("/api/create-checkout-session", async (req, res) => {
   try {
     const { price, title } = req.body;

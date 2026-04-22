@@ -60,6 +60,7 @@ import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, ad
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
 import CreateStoryModal from './CreateStoryModal';
+import SocialImportModal from './SocialImportModal';
 
 interface Message {
   id: string;
@@ -287,6 +288,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
+  const [showSocialImportModal, setShowSocialImportModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1148,6 +1150,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 <div className="flex flex-col gap-6">
                   {/* Action Buttons */}
                   <div className="px-6 flex flex-col gap-3 w-full">
+                    <button 
+                      onClick={() => setShowSocialImportModal(true)}
+                      className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <Share2 size={18} />
+                      Ijtimoiy tarmoqdan import
+                    </button>
                     <button 
                       onClick={() => setShowCreateStoryModal(true)}
                       className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -2195,6 +2204,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       )}
 
       {/* Modals with internal AnimatePresence */}
+      <SocialImportModal 
+        isOpen={showSocialImportModal}
+        onClose={() => setShowSocialImportModal(false)}
+        shopData={localShopData}
+        user={user}
+      />
+
       <AnimatePresence>
         {showCreateStoryModal && (
           <CreateStoryModal 
