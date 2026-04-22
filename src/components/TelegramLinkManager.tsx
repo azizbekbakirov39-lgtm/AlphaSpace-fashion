@@ -110,9 +110,9 @@ export default function TelegramLinkManager() {
   };
 
   const filteredLinks = links.filter(link => 
-    link.productName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    link.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    link.url.toLowerCase().includes(searchQuery.toLowerCase())
+    (link.productName || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+    (link.description || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+    (link.url || '').toLowerCase().includes((searchQuery || '').toLowerCase())
   );
 
   return (

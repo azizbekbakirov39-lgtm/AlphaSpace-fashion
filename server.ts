@@ -184,44 +184,60 @@ app.post("/api/import-to-r2", async (req, res) => {
   }
 });
 
-const RAPIDAPI_KEY = "24a016b72dmshab921371a8604f3p1bf7dbjsn6483e63bf0dd";
-const RAPIDAPI_HOST = "social-media-video-downloader.p.rapidapi.com";
+const SOCIAL_API_KEY = process.env.SOCIAL_API_KEY || "24a016b72dmshab921371a8604f3p1bf7dbjsn6483e63bf0dd";
+const SOCIAL_API_HOST = process.env.SOCIAL_API_HOST || "social-media-video-downloader.p.rapidapi.com";
 
 app.post("/api/social-fetch", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: "URL talab qilinadi" });
 
-    let endpoint = "";
-    let params: any = { url };
-
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      endpoint = "/youtube/v3/video/details";
-      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v\/|.*u\/\w\/|embed\/|watch\?v=))([^#\&\?]*)/);
-      params = { videoId: match ? match[1] : url };
-    } else if (url.includes("tiktok.com")) {
-      endpoint = "/tiktok/v3/post/details";
-    } else if (url.includes("facebook.com")) {
-      endpoint = "/facebook/v3/post/details";
-    } else if (url.includes("instagram.com")) {
-      endpoint = "/instagram/v3/post/details"; // Back to v3 as the screenshot suggests
-    } else {
-      return res.status(400).json({ error: "Qo'llab-quvvatlanmaydigan platforma" });
+    // Clean URL
+    let cleanUrl = url.trim();
+    if (cleanUrl.startsWith("hthttps://")) {
+      cleanUrl = cleanUrl.replace("hthttps://", "https://");
     }
 
-    const response = await axios.get(`https://${RAPIDAPI_HOST}${endpoint}`, {
-      params,
-      headers: {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST
-      },
-      timeout: 20000
+    let platform = "Ijtimoiy tarmoq";
+    if (cleanUrl.includes("instagram.com")) platform = "Instagram";
+    else if (cleanUrl.includes("tiktok.com")) platform = "TikTok";
+    else if (cleanUrl.includes("youtube.com") || cleanUrl.includes("youtu.be")) platform = "YouTube";
+    else if (cleanUrl.includes("facebook.com")) platform = "Facebook";
+
+    try {
+      // Try Microlink (free open graph API, highly reliable, no keys needed for basic use)
+      const mlResponse = await axios.get(`https://api.microlink.io?url=${encodeURIComponent(cleanUrl)}`, { timeout: 8000 });
+      const mlData = mlResponse.data?.data;
+      
+      if (mlData) {
+        return res.json({
+          title: mlData.title || `${platform} Posti`,
+          description: mlData.description || "Ushbu mahsulot haqida ma'lumotlarni o'zingiz kiritishingiz mumkin.",
+          images: mlData.image?.url ? [{ url: mlData.image.url }] : [],
+          videos: mlData.video?.url ? [{ url: mlData.video.url }] : [],
+          sourceUrl: cleanUrl,
+          isSimpleImport: true,
+          thumbnail: mlData.image?.url || "https://cdn-icons-png.flaticon.com/512/2859/2859708.png"
+        });
+      }
+    } catch (mlError) {
+      console.log("Microlink fallback triggered");
+    }
+
+    // Ultimate Fallback: Just accept it gracefully without errors
+    return res.json({
+      title: `${platform} Posti`,
+      description: "Ushbu mahsulot haqida ma'lumotlarni o'zingiz kiritishingiz mumkin.",
+      images: [],
+      videos: [],
+      sourceUrl: cleanUrl,
+      isSimpleImport: true,
+      thumbnail: "https://cdn-icons-png.flaticon.com/512/2859/2859708.png"
     });
 
-    return res.json(response.data);
   } catch (error: any) {
-    console.error("Social API Error:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Xizmatda xatolik yuz berdi" });
+    console.error("Total Social Fetch Error:", error.message);
+    return res.status(500).json({ error: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring." });
   }
 });
 

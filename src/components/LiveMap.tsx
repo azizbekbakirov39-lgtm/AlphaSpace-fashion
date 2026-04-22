@@ -138,7 +138,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
   }, [filteredSellers, userLocation]);
 
   const searchResults = searchQuery.length > 1 
-    ? sellers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
+    ? sellers.filter(s => (s.name || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
     : [];
 
   const handleSearchSelect = (seller: Seller) => {

@@ -110,7 +110,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   language, 
   shopData, 
   user,
-  posts,
+  posts = [],
   onBackToMarketplace, 
   onUpdateShop,
   activeTab,

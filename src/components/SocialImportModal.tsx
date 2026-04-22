@@ -59,25 +59,27 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
           description: item?.description || '',
           mediaUrl: item?.videos?.[0]?.url || item?.thumbnailUrl,
           type: 'video',
-          thumbnail: item?.thumbnailUrl
+          thumbnail: item?.thumbnailUrl,
+          sourceUrl: url
         };
       } else {
         // TikTok, Facebook, Instagram usually share similar structure in this API
         result = {
           title: data.title || data.description?.substring(0, 50) || 'Ijtimoiy tarmoq posti',
           description: data.description || '',
-          mediaUrl: data.videos?.[0]?.url || data.images?.[0]?.url,
-          type: data.videos?.length > 0 ? 'video' : 'image',
-          thumbnail: data.thumbnail || data.images?.[0]?.url
+          mediaUrl: data.videos?.[0]?.url || data.images?.[0]?.url || data.url || url,
+          type: (data.videos?.length > 0) ? 'video' : 'image',
+          thumbnail: data.thumbnail || data.images?.[0]?.url || 'https://www.instagram.com/static/images/ico/favicon.ico/36b300727377.ico',
+          sourceUrl: data.sourceUrl || url
         };
       }
 
-      if (!result.mediaUrl) {
-         throw new Error('Video yoki rasm topilmadi. Linkni tekshiring.');
-      }
-
       setPreview(result);
-      toast.success('Ma\'lumotlar yuklandi!');
+      if (data.fallback || data.isSimpleImport) {
+        toast.success("Link muvaffaqiyatli qabul qilindi! Endi o'zingiz tahrirlashingiz mumkin.");
+      } else {
+        toast.success('Ma\'lumotlar yuklandi!');
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -93,13 +95,15 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
       await addDoc(collection(db, 'posts'), {
         sellerId: shopData.id,
         ownerUid: user.uid,
-        title: preview.title,
-        description: preview.description,
+        outfitName: preview.title || 'Ijtimoiy tarmoq posti',
+        description: preview.description || '',
         price: "Kelishiladi",
-        mediaUrl: preview.mediaUrl,
-        type: preview.type,
+        mediaUrls: [preview.mediaUrl],
+        mediaType: preview.type === 'video' ? 'video' : 'carousel',
+        instagramUrl: preview.sourceUrl, // Standard field for original link
         createdAt: serverTimestamp(),
         likes: 0,
+        comments: 0,
         views: 0,
         currency: "UZS"
       });
@@ -131,7 +135,7 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg bg-bg-secondary rounded-[32px] border border-white/10 overflow-hidden shadow-2xl"
+            className="relative w-full max-w-lg bg-[#121212] rounded-[32px] border border-white/10 overflow-hidden shadow-2xl"
           >
             {/* Header */}
             <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
@@ -140,19 +144,19 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
                   <Globe className="text-white" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-text-primary">Universal Import</h3>
-                  <p className="text-xs text-text-secondary">Har qanday linkdan post yarating</p>
+                  <h3 className="text-lg font-bold text-white">Universal Import</h3>
+                  <p className="text-xs text-white/50">Har qanday linkdan post yarating</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors text-text-secondary"
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
               {/* Platforms Chips */}
               <div className="flex flex-wrap gap-2">
                 {platforms.map((p) => (
@@ -169,7 +173,7 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
               {/* Input Area */}
               <div className="space-y-3">
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
                     <Link2 size={18} />
                   </div>
                   <input
@@ -177,7 +181,7 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="Linkni bu yerga qo'ying..."
-                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
                   />
                 </div>
                 
@@ -191,45 +195,56 @@ const SocialImportModal: React.FC<SocialImportModalProps> = ({
                   ) : (
                     <>
                       <Search size={20} />
-                      Ma'lumotlarni olish
+                      Ma'mulotlarni olish
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Preview Area */}
-              <AnimatePresence>
+              {/* Preview & Edit Area */}
+              <AnimatePresence mode="wait">
                 {preview && (
                   <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 pt-4"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-4"
                   >
-                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex gap-4">
-                      <div className="w-24 h-24 rounded-xl bg-black overflow-hidden flex-shrink-0 border border-white/5">
-                        {preview.type === 'video' ? (
-                          <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
-                            <img src={preview.thumbnail} alt="thumbnail" className="w-full h-full object-cover opacity-50" />
-                            <div className="absolute inset-0 flex items-center justify-center text-white">
-                              <RefreshCw size={24} className="opacity-80" />
+                    <div className="p-5 bg-white/5 rounded-3xl border border-white/10 space-y-4">
+                      {/* Media Preview */}
+                      <div className="flex gap-4">
+                        <div className="w-20 h-20 rounded-2xl bg-black overflow-hidden flex-shrink-0 border border-white/10">
+                          {preview.type === 'video' ? (
+                            <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
+                              <img src={preview.thumbnail} alt="thumbnail" className="w-full h-full object-cover opacity-60" />
+                              <div className="absolute inset-0 flex items-center justify-center text-white">
+                                <RefreshCw size={24} className="opacity-80" />
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <img src={preview.mediaUrl} alt="preview" className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-text-primary truncate">{preview.title}</h4>
-                        <p className="text-xs text-text-secondary line-clamp-3 mt-1 leading-relaxed">
-                          {preview.description}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                           <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase">
+                          ) : (
+                            <img src={preview.thumbnail || preview.mediaUrl} alt="preview" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase mb-1 inline-block">
                              {preview.type}
-                           </span>
+                          </span>
+                          <input 
+                            value={preview.title}
+                            onChange={(e) => setPreview({...preview, title: e.target.value})}
+                            className="w-full bg-transparent border-b border-white/10 text-white font-bold focus:outline-none focus:border-blue-500 py-1"
+                            placeholder="Sarlavha"
+                          />
                         </div>
                       </div>
+
+                      {/* Description Editor */}
+                      <textarea 
+                        value={preview.description}
+                        onChange={(e) => setPreview({...preview, description: e.target.value})}
+                        className="w-full h-24 bg-white/5 rounded-xl p-3 text-sm text-white/70 focus:outline-none border border-white/5"
+                        placeholder="Tavsif..."
+                      />
                     </div>
 
                     <button

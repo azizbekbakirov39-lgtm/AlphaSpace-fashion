@@ -225,11 +225,12 @@ const ReelItem: React.FC<{
     } else {
       // Single tap - Carousel navigation with delay to allow double tap
       tapTimeout.current = setTimeout(() => {
-        if (realPost.mediaUrls.length > 1) {
+        const len = realPost.mediaUrls?.length || 0;
+        if (len > 1) {
           if (carouselRef.current) {
             const nextIndex = isRightSide 
-              ? (currentMediaIndex + 1) % realPost.mediaUrls.length
-              : (currentMediaIndex - 1 + realPost.mediaUrls.length) % realPost.mediaUrls.length;
+              ? (currentMediaIndex + 1) % len
+              : (currentMediaIndex - 1 + len) % len;
             
             carouselRef.current.scrollTo({
               left: nextIndex * carouselRef.current.offsetWidth,
@@ -293,7 +294,7 @@ const ReelItem: React.FC<{
         className="h-full w-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide touch-pan-x touch-pan-y"
         style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
       >
-        {realPost.mediaUrls.map((url, idx) => (
+        {realPost.mediaUrls?.map((url, idx) => (
           <div 
             key={idx} 
             className="min-w-full w-full h-full snap-center snap-always flex-shrink-0 relative"
@@ -386,9 +387,9 @@ const ReelItem: React.FC<{
       </div>
 
       {/* Carousel Navigation Indicators */}
-      {realPost.mediaUrls.length > 1 && (
+      {(realPost.mediaUrls?.length || 0) > 1 && (
         <div className="absolute top-20 left-4 right-4 flex gap-1 z-30">
-          {realPost.mediaUrls.map((_, idx) => (
+          {realPost.mediaUrls?.map((_, idx) => (
             <div 
               key={idx} 
               className={`h-0.5 flex-1 rounded-full transition-all ${idx === currentMediaIndex ? 'bg-white' : 'bg-white/30'}`} 

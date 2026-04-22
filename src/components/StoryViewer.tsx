@@ -23,7 +23,7 @@ interface StoryViewerProps {
 }
 
 const StoryViewer: React.FC<StoryViewerProps> = ({ 
-  stories, 
+  stories = [], 
   initialIndex, 
   onClose, 
   onMarkViewed, 

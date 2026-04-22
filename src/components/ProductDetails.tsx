@@ -222,13 +222,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
             })()}
 
             {/* Gallery Arrows */}
-            {post.mediaUrls.length > 1 && (
+            {(post.mediaUrls?.length || 0) > 1 && (
               <>
                 <button 
                   className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setCurrentMediaIndex((prev) => (prev - 1 + post.mediaUrls.length) % post.mediaUrls.length);
+                    const len = post.mediaUrls?.length || 0;
+                    setCurrentMediaIndex((prev) => (prev - 1 + len) % len);
                   }}
                 >
                   <ChevronLeft size={24} />
@@ -237,7 +238,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                   className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setCurrentMediaIndex((prev) => (prev + 1) % post.mediaUrls.length);
+                    const len = post.mediaUrls?.length || 0;
+                    setCurrentMediaIndex((prev) => (prev + 1) % len);
                   }}
                 >
                   <ChevronRight size={24} />
@@ -250,9 +252,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
           <div className="absolute inset-0 bg-black/5 pointer-events-none" />
           
           {/* Media Indicators */}
-          {post.mediaUrls.length > 1 && (
+          {(post.mediaUrls?.length || 0) > 1 && (
             <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-              {post.mediaUrls.map((_, idx) => (
+              {post.mediaUrls?.map((_, idx) => (
                 <div 
                   key={idx} 
                   className={`h-1 rounded-full transition-all ${idx === currentMediaIndex ? 'w-8 bg-white' : 'w-1.5 bg-white/40'}`} 
@@ -563,7 +565,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                       />
                     ) : (
                       <img 
-                        src={getProxiedUrl(relatedPost.mediaUrls[0])} 
+                        src={getProxiedUrl(relatedPost.mediaUrls?.[0] || '')} 
                         alt={relatedPost.outfitName}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
