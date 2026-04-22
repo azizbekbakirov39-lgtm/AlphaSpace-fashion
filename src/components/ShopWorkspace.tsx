@@ -60,8 +60,6 @@ import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, ad
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
 import CreateStoryModal from './CreateStoryModal';
-import InstagramImportModal from './InstagramImportModal';
-import CreateGalleryPostModal from './CreateGalleryPostModal';
 
 interface Message {
   id: string;
@@ -289,9 +287,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
-  const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
-  const [showGalleryPostModal, setShowGalleryPostModal] = useState(false);
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1153,36 +1148,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 <div className="flex flex-col gap-6">
                   {/* Action Buttons */}
                   <div className="px-6 flex flex-col gap-3 w-full">
-                    <button 
-                      onClick={() => document.getElementById('gallery-post-upload')?.click()}
-                      className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-                    >
-                      <ImageIcon size={18} />
-                      Post qo'shish
-                    </button>
-                    <button 
-                      onClick={() => setShowInstagramImportModal(true)}
-                      className="w-full py-4 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-purple-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-                    >
-                      <Instagram size={18} />
-                      Instagramdan import
-                    </button>
-                    <input 
-                      type="file" 
-                      id="gallery-post-upload" 
-                      className="hidden" 
-                      accept="image/*,video/*" 
-                      multiple
-                      onChange={(e) => {
-                        const files = e.target.files;
-                        if (files && files.length > 0) {
-                          const selectedFiles = Array.from(files).slice(0, 10);
-                          setGalleryFiles(selectedFiles);
-                          setShowGalleryPostModal(true);
-                          e.target.value = ''; // Reset input so same files can be selected again if needed
-                        }
-                      }}
-                    />
                     <button 
                       onClick={() => setShowCreateStoryModal(true)}
                       className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -2229,31 +2194,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         </div>
       )}
 
-      {/* Instagram Import Modal */}
-      <InstagramImportModal 
-        isOpen={showInstagramImportModal} 
-        onClose={() => setShowInstagramImportModal(false)}
-        shopData={localShopData}
-        user={user}
-      />
+      {/* Modals with internal AnimatePresence */}
       <AnimatePresence>
-        {/* Instagram Import Modal */}
-      <InstagramImportModal 
-        isOpen={showInstagramImportModal} 
-        onClose={() => setShowInstagramImportModal(false)}
-        shopData={localShopData}
-        user={user}
-      />
-
-      <CreateGalleryPostModal 
-        isOpen={showGalleryPostModal}
-        onClose={() => setShowGalleryPostModal(false)}
-        initialFiles={galleryFiles}
-        shopData={localShopData}
-        user={user}
-      />
-
-      {showCreateStoryModal && (
+        {showCreateStoryModal && (
           <CreateStoryModal 
             posts={posts}
             sellerId={shopData.id}

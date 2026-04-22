@@ -208,26 +208,6 @@ app.post("/api/create-checkout-session", async (req, res) => {
   }
 });
 
-app.post("/api/instagram-fetch", async (req, res) => {
-  try {
-    const { url } = req.body;
-    const response = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
-      { url },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-          'x-rapidapi-key': RAPIDAPI_KEY
-        },
-        timeout: 15000
-      }
-    );
-    return res.json(response.data);
-  } catch (error: any) {
-    console.error("API Error:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Xatolik" });
-  }
-});
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer } = await import("vite");
