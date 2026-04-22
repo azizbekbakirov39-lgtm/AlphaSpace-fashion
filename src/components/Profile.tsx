@@ -45,7 +45,7 @@ import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
 import { showChatNotification } from '../utils/notifications';
 import { PostData, Seller, User } from '../types';
-import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, updateDoc, deleteDoc, getDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
+import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { uploadImageToImgBB } from '../services/imgbb';
 
 import { InAppBrowserGuide } from './InAppBrowserGuide';
@@ -96,15 +96,13 @@ interface ChatMessage {
   time: string;
   reactions?: string[];
   replyTo?: string; // ID of the message being replied to
-  hiddenFor?: Record<string, boolean>;
-  timestamp?: any;
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
   language, 
   setLanguage, 
-  savedPosts = [], 
-  subscribedSellers = [],
+  savedPosts, 
+  subscribedSellers,
   onToggleLike,
   onToggleSave,
   onOpenShop,
@@ -114,8 +112,8 @@ const Profile: React.FC<ProfileProps> = ({
   onOpenShopSelector,
   userShops = [],
   workspace,
-  likedPosts = [],
-  recentlyViewedPosts = [],
+  likedPosts,
+  recentlyViewedPosts,
   hasShop,
   subView,
   setSubView,
@@ -148,8 +146,6 @@ const Profile: React.FC<ProfileProps> = ({
   // Firestore Chat Listeners
   const messageUnsubs = React.useRef<{ [chatId: string]: () => void }>({});
 
-  const [chatsMetadata, setChatsMetadata] = useState<Record<string, any>>({});
-
   React.useEffect(() => {
     if (!user) return;
 
@@ -159,12 +155,6 @@ const Profile: React.FC<ProfileProps> = ({
     let initComplete = false;
 
     const unsubChats = onSnapshot(q, (snapshot) => {
-      const meta: Record<string, any> = {};
-      snapshot.docs.forEach(d => {
-        meta[d.id] = d.data();
-      });
-      setChatsMetadata(meta);
-
       // Notification Logic
       if (initComplete) {
         snapshot.docChanges().forEach(change => {
@@ -191,14 +181,12 @@ const Profile: React.FC<ProfileProps> = ({
         if (!messageUnsubs.current[chatId]) {
           const msgQ = query(collection(db, `chats/${chatId}/messages`), orderBy('timestamp', 'asc'));
           messageUnsubs.current[chatId] = onSnapshot(msgQ, (msgSnapshot) => {
-            const msgs = msgSnapshot.docs
-              .map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                isMe: doc.data().senderUid === user.uid,
-                time: doc.data().timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              } as ChatMessage))
-              .filter(m => !m.hiddenFor?.[user.uid]);
+            const msgs = msgSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              isMe: doc.data().senderUid === user.uid,
+              time: doc.data().timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            } as ChatMessage));
             
             setChatMessages(prev => ({
               ...prev,
@@ -224,9 +212,6 @@ const Profile: React.FC<ProfileProps> = ({
     
     // Ensure all sellers from chat history are included
     Object.keys(chatMessages).forEach(sellerId => {
-      const chatId = [user.uid, sellerId].sort().join('_');
-      if (chatsMetadata[chatId]?.hiddenFor?.[user.uid]) return; // Skip if hidden
-
       if (!sellersMap.has(sellerId)) {
         // Construct a partial seller from history if not subscribed
         const firstMessage = chatMessages[sellerId][0];
@@ -335,20 +320,12 @@ const Profile: React.FC<ProfileProps> = ({
       recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
           const blob = new Blob(chunks, { type: 'audio/webm' });
-          
-          setIsUploading(true);
-          try {
-            const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-            const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-            await uploadBytes(storageRef, blob);
-            const downloadUrl = await getDownloadURL(storageRef);
-            handleSendMessage(undefined, downloadUrl);
-          } catch (error) {
-            console.error("Voice message upload error:", error);
-            toast.error("Ovozdan xaton yuborishda xatolik");
-          } finally {
-            setIsUploading(false);
-          }
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            const base64Audio = reader.result as string;
+            handleSendMessage(undefined, base64Audio);
+          };
         }
         stream.getTracks().forEach(track => track.stop());
         setDragX(0);
@@ -444,23 +421,14 @@ const Profile: React.FC<ProfileProps> = ({
       const recorder = new MediaRecorder(stream);
       const chunks: BlobPart[] = [];
       recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
           const blob = new Blob(chunks, { type: 'video/webm' });
-          
-          setIsUploading(true);
-          try {
-            const fileName = `vmsg_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-            const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-            await uploadBytes(storageRef, blob);
-            const downloadUrl = await getDownloadURL(storageRef);
-            handleSendMessage(undefined, undefined, undefined, undefined, downloadUrl);
-          } catch (error) {
-            console.error("Video message upload error:", error);
-            toast.error("Video xabarni yuklashda xatolik");
-          } finally {
-            setIsUploading(false);
-          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            handleSendMessage(undefined, undefined, undefined, undefined, reader.result as string);
+          };
+          reader.readAsDataURL(blob);
         }
         stream.getTracks().forEach(t => t.stop());
         setDragX(0);
@@ -555,13 +523,11 @@ const Profile: React.FC<ProfileProps> = ({
     
     const messageText = text || newMessage;
     
-    if (messageText) {
-      const prohibitedPattern = /🌈|🏳️‍🌈|🏳️‍⚧️|lgbt|gay|lesbian|homo/i;
-      if (prohibitedPattern.test(messageText)) {
-        toast.error("Ushbu xabarda taqiqlangan so'zlar yoki belgilar mavjud.");
-        isSendingRef.current = false;
-        return;
-      }
+    const prohibitedPattern = /🌈|🏳️‍🌈|🏳️‍⚧️|lgbt|gay|lesbian|homo/i;
+    if (prohibitedPattern.test(messageText)) {
+      toast.error("Ushbu xabarda taqiqlangan so'zlar yoki belgilar mavjud.");
+      isSendingRef.current = false;
+      return;
     }
 
     const audioData = audio || recordedAudio;
@@ -582,120 +548,111 @@ const Profile: React.FC<ProfileProps> = ({
     try {
       let finalImageUrl = image || null;
       let finalVideoUrl = video || null;
-      let finalVideoMessageUrl = videoMessage || null;
 
       if (stagedFile) {
         if (stagedImage) {
-          finalImageUrl = await uploadImageToImgBB(stagedFile);
+          try {
+            finalImageUrl = await uploadImageToImgBB(stagedFile);
+          } catch (error) {
+            console.error("ImgBB upload error:", error);
+          }
         } else if (stagedVideo) {
           const fileExt = stagedFile.name.split('.').pop();
           const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
           const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
+          
           await uploadBytes(storageRef, stagedFile);
           finalVideoUrl = await getDownloadURL(storageRef);
+        }
+      }
+
+      // If it's a video message (base64 from recording), upload it properly
+      if (videoMessage && videoMessage.startsWith('data:')) {
+        try {
+          const res = await fetch(videoMessage);
+          const blob = await res.blob();
+          const fileName = `vmsg_${Date.now()}.webm`;
+          const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
+          await uploadBytes(storageRef, blob);
+          finalVideoUrl = await getDownloadURL(storageRef);
+          videoMessage = undefined; // Clear base64, use finalVideoUrl
+        } catch (err) {
+          console.error("Video message upload error:", err);
         }
       }
 
       const chatId = [user.uid, sellerId].sort().join('_');
       const chatRef = doc(db, 'chats', chatId);
       
-      const msgData: any = {
-        senderUid: user.uid,
-        text: messageText || undefined,
-        audio: audioData || undefined,
-        image: finalImageUrl || undefined,
-        video: finalVideoUrl || undefined,
-        videoMessage: finalVideoMessageUrl || undefined,
-        location: locationData || undefined,
-        post: post || undefined,
-        timestamp: serverTimestamp(),
-        replyTo: replyingTo?.id,
-        hiddenFor: {}
-      };
-
-      // Compatibility for ShopWorkspace side
-      if (post) msgData.type = 'post';
-      else if (locationData) msgData.type = 'location';
-      else if (finalVideoMessageUrl) msgData.type = 'videoMessage';
-      else if (audioData) { msgData.type = 'voice'; msgData.mediaUrl = audioData; }
-      else if (finalVideoUrl) { msgData.type = 'video'; msgData.mediaUrl = finalVideoUrl; }
-      else if (finalImageUrl) { msgData.type = 'image'; msgData.mediaUrl = finalImageUrl; }
-      else msgData.type = 'text';
-
-      // Ensure lastMessage reflects types correctly for sidebar
-      let lastMsg = messageText || "";
-      if (!lastMsg) {
-        if (post) lastMsg = "[Post]";
-        else if (locationData) lastMsg = "[Joylashuv]";
-        else if (finalVideoMessageUrl) lastMsg = "[Video xabar]";
-        else if (audioData) lastMsg = "[Ovozli xabar]";
-        else if (finalVideoUrl) lastMsg = "[Video]";
-        else if (finalImageUrl) lastMsg = "[Rasm]";
-      }
-
+      // Ensure chat document exists
       await setDoc(chatRef, {
         id: chatId,
         participants: [user.uid, sellerId],
-        lastMessage: lastMsg,
-        lastSender: user.uid,
-        updatedAt: serverTimestamp(),
-        hiddenFor: {} // Unhide for everyone when new message comes
+        lastMessage: messageText || "Media xabar",
+        updatedAt: serverTimestamp()
       }, { merge: true });
 
-      await addDoc(collection(db, `chats/${chatId}/messages`), msgData);
+      let finalType = 'text';
+      let mediaUrl = undefined;
+      
+      if (post) {
+        finalType = 'post';
+      } else if (locationData) {
+        finalType = 'location';
+      } else if (videoMessage) {
+        finalType = 'videoMessage';
+        mediaUrl = videoMessage;
+      } else if (finalVideoUrl) {
+        finalType = 'video';
+        mediaUrl = finalVideoUrl;
+      } else if (finalImageUrl) {
+        finalType = 'image';
+        mediaUrl = finalImageUrl;
+      } else if (audioData) {
+        finalType = 'voice';
+        mediaUrl = audioData;
+      }
 
+      const msgData: any = {
+        chatId: chatId,
+        senderUid: user.uid,
+        text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
+        
+        // Profile.tsx compat
+        audio: audioData,
+        image: finalImageUrl,
+        video: finalVideoUrl,
+        videoMessage: videoMessage,
+        location: locationData,
+        post: post,
+        
+        // ShopWorkspace.tsx compat
+        type: finalType,
+        mediaUrl: mediaUrl,
+
+        timestamp: serverTimestamp(),
+        replyTo: replyingTo?.id
+      };
+
+      // Firestore doesn't support undefined values, so we delete them
+      Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
+
+      await addDoc(collection(db, `chats/${chatId}/messages`), msgData);
+      
       setNewMessage('');
+      setRecordedAudio(null);
+      setRecordingDuration(0);
       setReplyingTo(null);
       setStagedImage(null);
       setStagedVideo(null);
-      setStagedFile(null);
       setStagedLocation(null);
-      setShowAttachmentMenu(false);
-    } catch (error: any) {
+      setStagedFile(null);
+    } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Xabar yuborishda xatolik yuz berdi");
     } finally {
       setIsUploading(false);
       isSendingRef.current = false;
-    }
-  };
-
-  const handleDeleteMessage = async (sellerId: string, messageId: string) => {
-    if (!user) return;
-    try {
-      const chatId = [user.uid, sellerId].sort().join('_');
-      // For messages, we'll use actual delete to ensure they are "no longer seen" by anyone
-      const msgRef = doc(db, `chats/${chatId}/messages`, messageId);
-      await deleteDoc(msgRef);
-      
-      // Update chat last message if it was the one deleted
-      const chatRef = doc(db, 'chats', chatId);
-      const chatSnap = await getDoc(chatRef);
-      if (chatSnap.exists() && chatSnap.data().lastMessage) {
-        // Simple logic: if deleting message, maybe clear last message or just leave it
-        // Instagram doesn't always clear it immediately
-      }
-      
-      toast.success("Xabar o'chirildi");
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      toast.error("Xabarni o'chirishda xatolik");
-    }
-  };
-
-  const handleDeleteChat = async (sellerId: string) => {
-    if (!user) return;
-    try {
-      const chatId = [user.uid, sellerId].sort().join('_');
-      const chatRef = doc(db, 'chats', chatId);
-      await updateDoc(chatRef, {
-        [`hiddenFor.${user.uid}`]: true
-      });
-      setActiveChatSeller(null);
-      toast.success("Chat o'chirildi");
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      toast.error("Chatni o'chirishda xatolik");
     }
   };
 
@@ -752,6 +709,13 @@ const Profile: React.FC<ProfileProps> = ({
     };
 
     audio.play();
+  };
+
+  const handleDeleteMessage = (sellerId: string, messageId: string) => {
+    setChatMessages(prev => ({
+      ...prev,
+      [sellerId]: prev[sellerId].filter(m => m.id !== messageId)
+    }));
   };
 
   const renderMain = () => {

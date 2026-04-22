@@ -7,27 +7,8 @@ import admin from "firebase-admin";
 import crypto from "crypto";
 import axios from "axios";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegStatic from "ffmpeg-static";
-import fs from "fs";
-import { promisify } from "util";
 
 dotenv.config();
-
-// Set ffmpeg path
-if (ffmpegStatic) {
-  ffmpeg.setFfmpegPath(ffmpegStatic);
-}
-
-const writeFile = promisify(fs.writeFile);
-const unlink = promisify(fs.unlink);
-const mkdir = promisify(fs.mkdir);
-
-// Ensure temp directory exists
-const TEMP_DIR = path.join(process.cwd(), "temp");
-if (!fs.existsSync(TEMP_DIR)) {
-  fs.mkdirSync(TEMP_DIR);
-}
 
 // Cloudflare R2 Client Initialization
 const r2Client = new S3Client({
@@ -81,8 +62,6 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-
-
 app.post("/api/fetch-telegram-html", async (req, res) => {
   try {
     const { url } = req.body;
@@ -95,73 +74,89 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
   }
 });
 
-// New endpoint to import video to Cloudflare R2 with compression
-app.post("/api/import-to-r2", async (req, res) => {
-  const tempFiles: string[] = [];
+app.post("/api/refresh-instagram-url", async (req, res) => {
   try {
-    const { videoUrl, fileName, compress = true } = req.body;
+    const { shortcode, type = 'p' } = req.body;
+    if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
+    
+    if (!RAPIDAPI_KEY) {
+      console.error("RAPIDAPI_KEY missing");
+      return res.status(500).json({ error: "API Key missing" });
+    }
+
+    const tryFetch = async (targetUrl: string) => {
+      return axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+        { url: targetUrl },
+        {
+          headers: {
+            'content-type': 'application/json',
+            'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+            'x-rapidapi-key': RAPIDAPI_KEY
+          },
+          validateStatus: () => true 
+        }
+      );
+    };
+
+    const isApiError = (res: any) => {
+      const data = res.data || {};
+      return res.status !== 200 || data.response === 4 || JSON.stringify(data).includes('not found');
+    };
+
+    // Try types in order of likelihood
+    const typesToTry = [type];
+    if (type === 'p') typesToTry.push('reel');
+    else if (type === 'reel') typesToTry.push('p');
+    else if (type === 'tv') typesToTry.push('reel', 'p');
+
+    let response: any;
+    for (const currentType of typesToTry) {
+      response = await tryFetch(`https://www.instagram.com/${currentType}/${shortcode}/`);
+      if (!isApiError(response)) {
+        break; // Found valid data
+      }
+    }
+
+    if (isApiError(response)) {
+      console.error("RapidAPI Final Error:", response.status, response.data);
+      return res.status(response.status === 200 ? 500 : response.status).json({ error: response.data || 'Link not found' });
+    }
+
+    res.json(response.data);
+  } catch (error: any) {
+    console.error("Backend Proxy Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// New endpoint to import video to Cloudflare R2
+app.post("/api/import-to-r2", async (req, res) => {
+  try {
+    const { videoUrl, fileName } = req.body;
     if (!videoUrl) return res.status(400).json({ error: "videoUrl required" });
 
     // 1. Download the video
     console.log(`Downloading video from: ${videoUrl}`);
-    const downloadResponse = await axios({
+    const response = await axios({
       url: videoUrl,
       method: 'GET',
       responseType: 'arraybuffer',
-      timeout: 60000, // 60 seconds
+      timeout: 30000, // 30 seconds
     });
 
-    const buffer = Buffer.from(downloadResponse.data);
-    const originalSize = buffer.length;
+    const buffer = Buffer.from(response.data);
+    const contentType = response.headers['content-type'] || 'video/mp4';
     
-    // Generate unique temp filenames
-    const inputPath = path.join(TEMP_DIR, `input_${crypto.randomBytes(8).toString('hex')}.mp4`);
-    const outputPath = path.join(TEMP_DIR, `output_${crypto.randomBytes(8).toString('hex')}.mp4`);
-    tempFiles.push(inputPath, outputPath);
-
-    // Save buffer to temp file
-    await writeFile(inputPath, buffer);
-
-    let finalBuffer: Buffer = buffer;
-    
-    if (compress) {
-      console.log(`Compressing video... Original size: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
-      
-      await new Promise((resolve, reject) => {
-        ffmpeg(inputPath)
-          .outputOptions([
-            "-c:v libx264",
-            "-crf 18", // Higher quality (lower is better, 18 is visually lossless)
-            "-preset medium",
-            "-pix_fmt yuv420p",
-            "-c:a aac",
-            "-b:a 192k", // Better audio quality
-            "-movflags +faststart" // Web optimized, keep original resolution
-          ])
-          .toFormat("mp4")
-          .on("start", (cmd) => console.log("FFmpeg command:", cmd))
-          .on("end", resolve)
-          .on("error", (err) => {
-            console.error("FFmpeg Error:", err);
-            reject(err);
-          })
-          .save(outputPath);
-      });
-
-      finalBuffer = fs.readFileSync(outputPath);
-      const compressedSize = finalBuffer.length;
-      console.log(`Compression complete. New size: ${(compressedSize / 1024 / 1024).toFixed(2)} MB (${((1 - compressedSize/originalSize) * 100).toFixed(1)}% reduced)`);
-    }
+    // Generate a unique filename if not provided
+    const key = fileName || `videos/${crypto.randomBytes(8).toString('hex')}.mp4`;
 
     // 2. Upload to Cloudflare R2
-    const key = fileName || `videos/${crypto.randomBytes(8).toString('hex')}.mp4`;
     console.log(`Uploading to R2: ${key}`);
-    
     const command = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: key,
-      Body: finalBuffer,
-      ContentType: "video/mp4",
+      Body: buffer,
+      ContentType: contentType,
     });
 
     await r2Client.send(command);
@@ -170,74 +165,10 @@ app.post("/api/import-to-r2", async (req, res) => {
     const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
     console.log(`Upload complete: ${publicUrl}`);
     
-    res.json({ publicUrl, key, size: finalBuffer.length });
+    res.json({ publicUrl, key });
   } catch (error: any) {
-    console.error("R2 Upload/Compress Error:", error);
+    console.error("R2 Upload Error:", error);
     res.status(500).json({ error: error.message });
-  } finally {
-    // Cleanup temp files
-    for (const file of tempFiles) {
-      if (fs.existsSync(file)) {
-        try { await unlink(file); } catch(e) {}
-      }
-    }
-  }
-});
-
-const SOCIAL_API_KEY = process.env.SOCIAL_API_KEY || "24a016b72dmshab921371a8604f3p1bf7dbjsn6483e63bf0dd";
-const SOCIAL_API_HOST = process.env.SOCIAL_API_HOST || "social-media-video-downloader.p.rapidapi.com";
-
-app.post("/api/social-fetch", async (req, res) => {
-  try {
-    const { url } = req.body;
-    if (!url) return res.status(400).json({ error: "URL talab qilinadi" });
-
-    // Clean URL
-    let cleanUrl = url.trim();
-    if (cleanUrl.startsWith("hthttps://")) {
-      cleanUrl = cleanUrl.replace("hthttps://", "https://");
-    }
-
-    let platform = "Ijtimoiy tarmoq";
-    if (cleanUrl.includes("instagram.com")) platform = "Instagram";
-    else if (cleanUrl.includes("tiktok.com")) platform = "TikTok";
-    else if (cleanUrl.includes("youtube.com") || cleanUrl.includes("youtu.be")) platform = "YouTube";
-    else if (cleanUrl.includes("facebook.com")) platform = "Facebook";
-
-    try {
-      // Try Microlink (free open graph API, highly reliable, no keys needed for basic use)
-      const mlResponse = await axios.get(`https://api.microlink.io?url=${encodeURIComponent(cleanUrl)}`, { timeout: 8000 });
-      const mlData = mlResponse.data?.data;
-      
-      if (mlData) {
-        return res.json({
-          title: mlData.title || `${platform} Posti`,
-          description: mlData.description || "Ushbu mahsulot haqida ma'lumotlarni o'zingiz kiritishingiz mumkin.",
-          images: mlData.image?.url ? [{ url: mlData.image.url }] : [],
-          videos: mlData.video?.url ? [{ url: mlData.video.url }] : [],
-          sourceUrl: cleanUrl,
-          isSimpleImport: true,
-          thumbnail: mlData.image?.url || "https://cdn-icons-png.flaticon.com/512/2859/2859708.png"
-        });
-      }
-    } catch (mlError) {
-      console.log("Microlink fallback triggered");
-    }
-
-    // Ultimate Fallback: Just accept it gracefully without errors
-    return res.json({
-      title: `${platform} Posti`,
-      description: "Ushbu mahsulot haqida ma'lumotlarni o'zingiz kiritishingiz mumkin.",
-      images: [],
-      videos: [],
-      sourceUrl: cleanUrl,
-      isSimpleImport: true,
-      thumbnail: "https://cdn-icons-png.flaticon.com/512/2859/2859708.png"
-    });
-
-  } catch (error: any) {
-    console.error("Total Social Fetch Error:", error.message);
-    return res.status(500).json({ error: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring." });
   }
 });
 
@@ -265,6 +196,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
   }
 });
 
+// Vite / Static serving
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer } = await import("vite");
@@ -292,4 +224,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
   console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[${new Date().toISOString()}] RapidAPI Key configured: ${!!RAPIDAPI_KEY}`);
 });

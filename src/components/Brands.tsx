@@ -49,19 +49,19 @@ interface BrandsProps {
 
 const Brands: React.FC<BrandsProps> = ({ 
   language, 
-  stories = [], 
-  sellers = [], 
-  posts = [],
+  stories, 
+  sellers, 
+  posts,
   onToggleSubscribe, 
   onMarkStoryViewed,
   onOpenStories,
   onOpenLive,
   onOpenShopProfile,
   onRefresh,
-  searchQuery = '',
+  searchQuery,
   setSearchQuery,
   onSearchActive,
-  isSearchActive = false
+  isSearchActive
 }) => {
   const t = translations[language];
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -160,10 +160,10 @@ const Brands: React.FC<BrandsProps> = ({
 
     return baseSellers.filter(s => {
       const matchesSearch = !searchQuery || 
-        (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.categories || []).some(cat => (cat || '').toLowerCase().includes(searchQuery.toLowerCase()));
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.categories.some(cat => cat.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      const matchesCategory = !selectedCategory || (s.categories || []).includes(selectedCategory as any);
+      const matchesCategory = !selectedCategory || s.categories.includes(selectedCategory as any);
       
       return matchesSearch && matchesCategory;
     });

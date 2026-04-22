@@ -30,7 +30,7 @@ const PostInfo: React.FC<PostInfoProps> = ({
         <div className="flex flex-wrap items-baseline gap-1.5">
           <span className="text-black text-[14px] font-black tracking-tight">{post.seller.name}</span>
           <span className="text-black/80 text-[13px] font-bold">
-            {!(post.outfitName || '').toLowerCase().includes("instagram") ? post.outfitName : ""}
+            {!post.outfitName.toLowerCase().includes("instagram") ? post.outfitName : ""}
           </span>
         </div>
         {post.description && (

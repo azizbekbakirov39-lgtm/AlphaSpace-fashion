@@ -345,7 +345,7 @@ Foydalanuvchi xabari: ${messageText}`;
               // 3. Keyword / Query Match
               if (args.query) {
                 const q = args.query.toLowerCase();
-                const searchableText = `${p.outfitName || ''} ${p.description || ''} ${p.seller?.name || ''} ${p.aiMetadata?.category || ''}`.toLowerCase();
+                const searchableText = `${p.outfitName} ${p.description || ''} ${p.seller.name} ${p.aiMetadata?.category || ''}`.toLowerCase();
                 if (!searchableText.includes(q)) return false;
               }
 
@@ -437,7 +437,7 @@ Foydalanuvchi xabari: ${messageText}`;
             }
           }
 
-          const searchableText = `${p.outfitName || ''} ${p.description || ''} ${p.seller?.name || ''} ${p.aiMetadata?.category || ''}`.toLowerCase();
+          const searchableText = `${p.outfitName} ${p.description || ''} ${p.seller.name} ${p.aiMetadata?.category || ''}`.toLowerCase();
           return searchableText.includes(q);
         });
         

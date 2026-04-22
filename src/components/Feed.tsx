@@ -35,8 +35,8 @@ interface FeedProps {
 }
 
 const Feed: React.FC<FeedProps> = ({ 
-  posts = [], 
-  stories = [], 
+  posts, 
+  stories, 
   onToggleLike, 
   onToggleSave, 
   onMarkStoryViewed, 
@@ -51,11 +51,11 @@ const Feed: React.FC<FeedProps> = ({
   onOpenChat,
   onRefresh,
   language,
-  searchQuery = '',
+  searchQuery,
   setSearchQuery,
   onSearchActive,
-  isSearchActive = false,
-  globalMuted = false,
+  isSearchActive,
+  globalMuted,
   setGlobalMuted,
   isGlobalPaused = false
 }) => {
@@ -79,13 +79,13 @@ const Feed: React.FC<FeedProps> = ({
     if (!searchQuery) return posts;
     
     const matches = posts.filter(post => 
-      (post.outfitName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (post.seller?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+      post.outfitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.seller.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     const nonMatches = posts.filter(post => 
-      !(post.outfitName || '').toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !(post.seller?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+      !post.outfitName.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !post.seller.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // YouTube style: matches first, then random/other content

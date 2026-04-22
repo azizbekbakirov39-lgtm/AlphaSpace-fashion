@@ -611,7 +611,7 @@ const Post: React.FC<PostProps> = ({
                 
                 {/* Carousel Dots Overlay */}
                 <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
-                  {post.mediaUrls?.map((_, idx) => (
+                  {post.mediaUrls.map((_, idx) => (
                     <div 
                       key={idx}
                       className={`rounded-full transition-all duration-300 shadow-sm ${idx === currentImageIndex ? 'w-3 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/60'}`}

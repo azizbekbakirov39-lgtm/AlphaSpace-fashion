@@ -59,8 +59,6 @@ import { uploadImageToImgBB } from '../services/imgbb';
 import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, Timestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
-import CreateStoryModal from './CreateStoryModal';
-import SocialImportModal from './SocialImportModal';
 
 interface Message {
   id: string;
@@ -110,7 +108,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   language, 
   shopData, 
   user,
-  posts = [],
+  posts,
   onBackToMarketplace, 
   onUpdateShop,
   activeTab,
@@ -288,7 +286,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [editingPost, setEditingPost] = useState<PostData | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
-  const [showSocialImportModal, setShowSocialImportModal] = useState(false);
+  const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
+  const [instagramLink, setInstagramLink] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -395,6 +396,212 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           console.error("Error detecting location:", error);
         }
       );
+    }
+  };
+
+  const handleInstagramImport = async () => {
+    if (!instagramLink) {
+      toast.error("Iltimos, Instagram linkini kiriting");
+      return;
+    }
+    setIsImporting(true);
+    try {
+      // Extract shortcode from Instagram URL to ensure it's a valid post link
+      const shortcodeMatch = instagramLink.match(/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
+      const shortcode = shortcodeMatch ? shortcodeMatch[1] : null;
+
+      if (!shortcode) {
+        throw new Error("Noto'g'ri Instagram linki. Iltimos, to'g'ri link kiriting (masalan: https://www.instagram.com/p/...)");
+      }
+
+      const apiKey = (import.meta as any).env.VITE_RAPIDAPI_KEY;
+      if (!apiKey) {
+         throw new Error("API kalit topilmadi. Iltimos VITE_RAPIDAPI_KEY ni sozlamalarga qo'shing.");
+      }
+
+      // Clean URL for the API
+      const cleanUrl = `https://www.instagram.com/p/${shortcode}/`;
+
+      const response = await fetch(`https://instagram120.p.rapidapi.com/api/instagram/links`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+          'x-rapidapi-key': apiKey
+        },
+        body: JSON.stringify({ url: cleanUrl })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("API Error Response:", errText);
+        if (response.status === 403) {
+           throw new Error("API ga obuna bo'lmagansiz (403). Iltimos RapidAPI da obuna bo'ling.");
+        }
+        throw new Error(`API Xatosi (${response.status}): Iltimos qayta urinib ko'ring.`);
+      }
+
+      const result = await response.json();
+
+      // Parse the response based on common structures for this API
+      let mediaUrls: string[] = [];
+      let mediaType: 'video' | 'carousel' = 'carousel';
+      let description = "";
+
+      if (Array.isArray(result) && result.length > 0) {
+        // If it's an array, it's a carousel (multiple slides)
+        mediaUrls = result.map((item: any) => {
+          if (item.urls && Array.isArray(item.urls) && item.urls.length > 0) {
+            // Pick the first URL which is usually the highest quality/primary one
+            return item.urls[0].url;
+          } else if (item.pictureUrl) {
+            return item.pictureUrl;
+          } else if (item.display_url) {
+            return item.display_url;
+          } else if (item.thumbnail_url) {
+            return item.thumbnail_url;
+          }
+          return null;
+        }).filter(Boolean) as string[];
+
+        // Try to find the best description
+        const firstItem = result[0];
+        description = firstItem.caption || firstItem.text || (firstItem.meta && firstItem.meta.title) || "";
+        
+        // Check if any item is a video
+        const hasVideo = result.some((item: any) => 
+          item.urls?.some((u: any) => u.extension === 'mp4' || u.url?.includes('.mp4') || u.url?.includes('video'))
+        );
+        
+        if (hasVideo && mediaUrls.length === 1) {
+          mediaType = 'video';
+        } else {
+          mediaType = 'carousel';
+        }
+      } else if (result.urls && Array.isArray(result.urls)) {
+        // Single post with multiple resolutions/formats
+        // If it's a single post, we only want the primary media URL
+        mediaUrls = [result.urls[0].url].filter(Boolean);
+        description = result.caption || result.text || (result.meta && result.meta.title) || "";
+        
+        const hasVideo = result.urls.some((u: any) => u.extension === 'mp4' || u.url?.includes('.mp4') || u.url?.includes('video'));
+        mediaType = hasVideo ? 'video' : 'carousel';
+      } else if (result.pictureUrl || result.display_url || result.thumbnail_url) {
+        mediaUrls = [result.pictureUrl || result.display_url || result.thumbnail_url].filter(Boolean);
+        description = result.caption || result.text || (result.meta && result.meta.title) || "";
+        mediaType = 'carousel';
+      }
+
+      if (mediaUrls.length === 0) {
+        throw new Error("Postda rasm yoki video topilmadi. API tuzilmasi o'zgargan bo'lishi mumkin.");
+      }
+
+      const newPreview = {
+        outfitName: "Instagramdan mahsulot",
+        price: "",
+        description: description,
+        mediaUrls: mediaUrls,
+        category: "Kiyim",
+        sizes: [],
+        colors: [],
+        mediaType: mediaType,
+        instagramUrl: cleanUrl,
+        items: [{ id: '1', type: 'shirt', name: description.substring(0, 50), price: '', store: shopData.name }]
+      };
+      
+      setImportPreview(newPreview);
+      toast.success("Ma'lumotlar muvaffaqiyatli olindi!");
+    } catch (error: any) {
+      console.error("Import error:", error);
+      toast.error(error.message || "Instagramdan ma'lumot olishda xatolik");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importPreview || !user) return;
+    try {
+      setIsUploading(true);
+      
+      // Handle default price message if price is empty
+      let finalPriceMessage = importPreview.priceMessage;
+      if (!importPreview.price && !finalPriceMessage) {
+        finalPriceMessage = "Narxi qancha?";
+      }
+
+      // Sync price to items and ensure name/outfitName consistency
+      const syncedItems = (importPreview.items || []).map((item: any) => ({
+        ...item,
+        price: importPreview.price || item.price || ''
+      }));
+
+      const postData: any = {
+        ...importPreview,
+        name: importPreview.outfitName || '',
+        items: syncedItems,
+        priceMessage: finalPriceMessage || '',
+        ownerUid: user.uid,
+        seller: {
+          id: shopData.id,
+          name: shopData.name,
+          logo: shopData.logo || null,
+          region: shopData.region || 'Toshkent'
+        },
+        likes: 0,
+        views: 0,
+        shares: 0,
+        comments: 0,
+        createdAt: serverTimestamp()
+      };
+
+      // Clean undefined values
+      Object.keys(postData).forEach(key => postData[key] === undefined && delete postData[key]);
+      
+      // Upgrade step: Import videos to Cloudflare R2 for permanent storage if backend is configured
+      if (postData.mediaUrls && postData.mediaUrls.length > 0) {
+        const updatedUrls = [...postData.mediaUrls];
+        const toastId = toast.loading("Videolarni mustaqil xotiraga ko'chirilmoqda...");
+        
+        try {
+          for (let i = 0; i < updatedUrls.length; i++) {
+            const url = updatedUrls[i];
+            const isVideo = url.includes('.mp4') || url.includes('video') || postData.mediaType === 'video';
+            
+            if (isVideo) {
+              const res = await fetch('/api/import-to-r2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoUrl: url, fileName: `videos/shop-${shopData.id}/${Date.now()}-${i}.mp4` })
+              });
+              
+              if (res.ok) {
+                const { publicUrl } = await res.json();
+                updatedUrls[i] = publicUrl;
+              }
+            }
+          }
+          postData.mediaUrls = updatedUrls;
+          toast.success("Videolar mustaqil xotiraga saqlandi!", { id: toastId });
+        } catch (err) {
+          console.error("R2 Import during confirm failed:", err);
+          toast.error("Videolarni saqlashda xatolik, original linklardan foydalaniladi.", { id: toastId });
+        }
+      }
+
+      await addDoc(collection(db, 'posts'), postData);
+      toast.success("Mahsulot muvaffaqiyatli import qilindi!");
+      setShowInstagramImportModal(false);
+      setImportPreview(null);
+      setInstagramLink('');
+    } catch (error: any) {
+      console.error("Save error:", error);
+      const errorMsg = error.code === 'permission-denied' 
+        ? "Ruxsat etilmadi. Sizda ushbu do'konga maxsulot qo'shish huquqi yo'q." 
+        : (error.message || "Saqlashda xatolik yuz berdi");
+      toast.error(errorMsg);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -506,18 +713,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const handleLocationShare = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
-        const loc = {
+        setStagedLocation({
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        };
-        setStagedLocation(loc);
-        toast.success("Joylashuv aniqlandi! Yuborish uchun xabar tugmasini bosing.");
-      }, (error) => {
-        console.error("Geolocation error:", error);
-        toast.error("Joylashuvni aniqlab bo'lmadi. Geolokatsiya ruxsatini tekshiring.");
+        });
       });
-    } else {
-      toast.error("Brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi.");
     }
   };
 
@@ -538,23 +738,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const recorder = new MediaRecorder(stream);
       recordingChunksRef.current = [];
       recorder.ondataavailable = (e) => recordingChunksRef.current.push(e.data);
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
           const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
-          
-          setIsUploading(true);
-          try {
-            const fileName = `vmsg_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-            const storageRef = ref(storage, `chat_media/${shopData.id}/${fileName}`);
-            await uploadBytes(storageRef, blob);
-            const downloadUrl = await getDownloadURL(storageRef);
-            handleSendMessage('videoMessage', downloadUrl);
-          } catch (error) {
-            console.error("Video message upload error:", error);
-            toast.error("Video xabarni yuklashda xatolik");
-          } finally {
-            setIsUploading(false);
-          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            handleSendMessage('videoMessage', reader.result as string);
+          };
+          reader.readAsDataURL(blob);
         }
         stream.getTracks().forEach(t => t.stop());
         setDragX(0);
@@ -593,20 +784,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
           const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
-          
-          setIsUploading(true);
-          try {
-            const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(2)}.webm`;
-            const storageRef = ref(storage, `chat_media/${shopData.id}/${fileName}`);
-            await uploadBytes(storageRef, blob);
-            const downloadUrl = await getDownloadURL(storageRef);
-            handleSendMessage('voice', downloadUrl);
-          } catch (error) {
-            console.error("Voice message upload error:", error);
-            toast.error("Ovozli xabarni yuklashda xatolik");
-          } finally {
-            setIsUploading(false);
-          }
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            const base64Audio = reader.result as string;
+            handleSendMessage('voice', base64Audio);
+          };
         }
         stream.getTracks().forEach(track => track.stop());
         setDragX(0);
@@ -680,29 +863,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     audio.play();
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!activeChatId) return;
-    try {
-      // Direct deletion for "no longer seen" behavior
-      const msgRef = doc(db, `chats/${activeChatId}/messages`, messageId);
-      await deleteDoc(msgRef);
-      
-      setSelectedMessageId(null);
-      toast.success("Xabar o'chirildi");
-    } catch (error) {
-      console.error("Error deleting message:", error);
-      toast.error("Xabarni o'chirishda xatolik");
-    }
-  };
-
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const chatRef = doc(db, 'chats', chatId);
-      await updateDoc(chatRef, {
-        [`hiddenFor.${shopData.id}`]: true
-      });
-      
+      // In a real app, we might just hide it for the user, 
+      // but for "full integration" we'll delete the doc
+      await deleteDoc(doc(db, 'chats', chatId));
       if (activeChatId === chatId) handleCloseChat();
       toast.success("Chat o'chirildi");
     } catch (error) {
@@ -775,30 +941,30 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const msgData: any = {
         senderUid: shopData.id,
         text: messageText,
+        
+        // ShopWorkspace.tsx compat
         type: finalType,
         mediaUrl: finalMedia,
         location: finalLocation,
         post: postData,
         
-        // Compat fields
+        // Profile.tsx compat
         audio: finalType === 'voice' ? finalMedia : undefined,
         image: finalType === 'image' ? finalMedia : undefined,
         video: finalType === 'video' ? finalMedia : undefined,
         videoMessage: finalType === 'videoMessage' ? finalMedia : undefined,
 
         timestamp: serverTimestamp(),
-        replyTo: replyingTo?.id,
-        hiddenFor: {} // Initialize hidden status
+        replyTo: replyingTo?.id
       };
 
+      // Ensure no undefined values are written to Firestore
       Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
 
       const chatRef = doc(db, 'chats', activeChatId);
       await setDoc(chatRef, {
         lastMessage: messageText || `[${finalType}]`,
-        updatedAt: serverTimestamp(),
-        // When sending a new message, unhide the chat for both participants
-        hiddenFor: {} 
+        updatedAt: serverTimestamp()
       }, { merge: true });
 
       await addDoc(collection(db, `chats/${activeChatId}/messages`), msgData);
@@ -817,6 +983,19 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       setIsUploading(false);
     }
   };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!activeChatId) return;
+    try {
+      await deleteDoc(doc(db, `chats/${activeChatId}/messages`, messageId));
+      setSelectedMessageId(null);
+      toast.success("Xabar o'chirildi");
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Xabarni o'chirishda xatolik");
+    }
+  };
+
   const handleReaction = async (messageId: string, emoji: string) => {
     if (!activeChatId) return;
     const msgRef = doc(db, `chats/${activeChatId}/messages`, messageId);
@@ -1151,11 +1330,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   {/* Action Buttons */}
                   <div className="px-6 flex flex-col gap-3 w-full">
                     <button 
-                      onClick={() => setShowSocialImportModal(true)}
-                      className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                      onClick={() => setShowInstagramImportModal(true)}
+                      className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
                     >
-                      <Share2 size={18} />
-                      Ijtimoiy tarmoqdan import
+                      <Instagram size={18} />
+                      Instagramdan import
                     </button>
                     <button 
                       onClick={() => setShowCreateStoryModal(true)}
@@ -1238,12 +1417,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         );
       case 'Chats':
         const filteredChats = chats.filter(chat => {
-          if (chat.hiddenFor?.[shopData.id]) return false;
           const matchesSearch = chat.customerName.toLowerCase().includes(chatSearchQuery.toLowerCase()) || 
                                chat.lastMessage.toLowerCase().includes(chatSearchQuery.toLowerCase());
           if (chatFilter === 'unread') return matchesSearch && chat.status === 'new';
           if (chatFilter === 'pending') return matchesSearch && chat.status === 'in-progress';
-          if (chatFilter === 'completed') return matchesSearch && chat.status === 'completed';
           return matchesSearch;
         });
 
@@ -1424,7 +1601,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
                   {/* Messages Area */}
                   <div className="flex-1 overflow-y-auto p-4 pb-8 flex flex-col gap-4 scrollbar-hide bg-slate-50/50 dark:bg-transparent min-h-0">
-                    {!activeChat || activeChat.messages.filter(m => !m.hiddenFor?.[shopData.id]).length === 0 ? (
+                    {activeChat?.messages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-text-primary/40 pt-20">
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center mb-4">
                           <MessageSquare size={40} className="text-accent-blue opacity-50" />
@@ -1440,7 +1617,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           <span className="px-3 py-1 bg-text-primary/5 rounded-full text-[9px] font-black uppercase tracking-widest text-text-primary/30 border border-text-primary/5">Bugun</span>
                         </div>
                         
-                        {activeChat?.messages.filter(m => !m.hiddenFor?.[shopData.id]).map((msg, idx) => {
+                        {activeChat?.messages.map((msg, idx) => {
                       const isNextSame = idx < activeChat.messages.length - 1 && activeChat.messages[idx + 1].sender === msg.sender;
                       const isPrevSame = idx > 0 && activeChat.messages[idx - 1].sender === msg.sender;
                       
@@ -2135,7 +2312,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
               {/* Account Management */}
               <div className="mt-8 pt-8 border-t border-white/10 flex flex-col gap-4">
-                <h3 className="text-sm font-black italic tracking-tighter uppercase text-red-500/80 mt-4 mb-2">Xavfli Hudud</h3>
+                <h3 className="text-sm font-black italic tracking-tighter uppercase text-red-500/80 mb-2">Xavfli Hudud</h3>
                 
                 <button 
                   onClick={() => setShowFreezeModal(true)}
@@ -2202,15 +2379,179 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           />
         </div>
       )}
+      {/* Instagram Import Modal */}
+      <AnimatePresence>
+        {showInstagramImportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="w-full max-w-lg bg-bg-primary rounded-[40px] border border-white/10 overflow-hidden shadow-2xl"
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-pink-500/20">
+                      <Instagram size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-text-primary tracking-tight">Instagram Import</h3>
+                      <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest">Link orqali post qo'shish</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setShowInstagramImportModal(false);
+                      setImportPreview(null);
+                      setInstagramLink('');
+                    }}
+                    className="p-3 bg-text-primary/5 rounded-2xl text-text-primary/40 hover:text-red-500 transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
 
-      {/* Modals with internal AnimatePresence */}
-      <SocialImportModal 
-        isOpen={showSocialImportModal}
-        onClose={() => setShowSocialImportModal(false)}
-        shopData={localShopData}
-        user={user}
-      />
+                {!importPreview ? (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-text-primary/40 uppercase tracking-widest ml-1">Instagram Post Linki</label>
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          value={instagramLink}
+                          onChange={(e) => setInstagramLink(e.target.value)}
+                          placeholder="https://www.instagram.com/p/..."
+                          className="w-full bg-text-primary/5 border border-border-primary rounded-2xl px-6 py-4 text-sm font-bold text-text-primary outline-none focus:border-pink-500/50 transition-colors"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-500">
+                          <ExternalLink size={18} />
+                        </div>
+                      </div>
+                    </div>
 
+                    <p className="text-[11px] text-text-primary/40 leading-relaxed bg-pink-500/5 p-4 rounded-2xl border border-pink-500/10">
+                      <Info size={14} className="inline mr-2 text-pink-500" />
+                      Post linkini kiriting va tizim avtomatik ravishda rasm va tavsifni ajratib oladi. Siz faqat kerakli ma'lumotlarni tasdiqlaysiz.
+                    </p>
+
+                    <button 
+                      onClick={handleInstagramImport}
+                      disabled={isImporting || !instagramLink}
+                      className="w-full py-5 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-pink-500/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                      {isImporting ? (
+                        <>
+                          <RefreshCw size={18} className="animate-spin" />
+                          Ma'lumotlar olinmoqda...
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={18} />
+                          Ma'lumotlarni olish
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex gap-4 p-4 bg-text-primary/5 rounded-3xl border border-border-primary">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex-shrink-0">
+                        {importPreview.mediaType === 'video' ? (
+                          <video 
+                            src={getProxiedUrl(importPreview?.mediaUrls?.[0] || '')} 
+                            className="w-full h-full object-cover" 
+                            muted
+                            playsInline
+                            crossOrigin="anonymous"
+                          />
+                        ) : (
+                          <img 
+                            src={getProxiedUrl(importPreview?.mediaUrls?.[0] || '')} 
+                            className="w-full h-full object-cover" 
+                            alt="Preview"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const originalUrl = importPreview?.mediaUrls?.[0] || '';
+                              const proxy1 = `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}`;
+                              const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+                              
+                              if (!target.dataset.triedProxy1) {
+                                target.dataset.triedProxy1 = 'true';
+                                target.src = proxy1;
+                              } else if (!target.dataset.triedProxy2) {
+                                target.dataset.triedProxy2 = 'true';
+                                target.src = proxy2;
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input 
+                          type="text"
+                          value={importPreview.outfitName}
+                          onChange={(e) => setImportPreview({...importPreview, outfitName: e.target.value})}
+                          className="w-full bg-transparent border-none outline-none text-sm font-black text-text-primary mb-1"
+                          placeholder="Mahsulot nomi"
+                        />
+                        <input 
+                          type="text"
+                          value={importPreview.price}
+                          onChange={(e) => setImportPreview({...importPreview, price: e.target.value})}
+                          className="w-full bg-transparent border-none outline-none text-xs font-bold text-accent-blue mb-2"
+                          placeholder="Narxi"
+                        />
+                        {!importPreview.price && (
+                          <input 
+                            type="text"
+                            maxLength={50}
+                            value={importPreview.priceMessage || ''}
+                            onChange={(e) => setImportPreview({...importPreview, priceMessage: e.target.value})}
+                            className="w-full bg-accent-blue/10 border border-accent-blue/20 rounded-lg px-3 py-1.5 outline-none text-[10px] font-bold text-accent-blue mb-2 placeholder:text-accent-blue/50"
+                            placeholder="Tugma yozuvi (masalan: Narxi qancha?)"
+                          />
+                        )}
+                        <textarea 
+                          value={importPreview.description}
+                          onChange={(e) => setImportPreview({...importPreview, description: e.target.value})}
+                          className="w-full bg-transparent border-none outline-none text-xs font-bold text-black leading-tight resize-none h-16"
+                          placeholder="Tavsif"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => setImportPreview(null)}
+                        className="flex-1 py-4 bg-text-primary/5 text-text-primary/60 rounded-2xl font-black uppercase tracking-widest text-[10px] border border-border-primary active:scale-95 transition-all"
+                      >
+                        Qayta urinish
+                      </button>
+                      <button 
+                        onClick={confirmImport}
+                        disabled={isUploading}
+                        className="flex-[2] py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                        {isUploading ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                        Platformaga qo'shish
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Statistics Modal */}
       <AnimatePresence>
         {showCreateStoryModal && (
           <CreateStoryModal 
@@ -2610,5 +2951,128 @@ const ShopNavButton = ({ active, onClick, icon: Icon, label }: any) => (
 );
 
 // Premium features removed
+
+const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { posts: PostData[], sellerId: string, ownerUid: string, shopData: Seller, onClose: () => void }) => {
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!selectedPostId) return;
+    setIsCreating(true);
+    try {
+      const selectedPost = posts.find(p => p.id === selectedPostId);
+      if (!selectedPost || !selectedPost.mediaUrls || selectedPost.mediaUrls.length === 0) {
+        toast.error("Postda rasm yoki video topilmadi");
+        setIsCreating(false);
+        return;
+      }
+
+      const newStoryData: any = {
+        sellerId,
+        ownerUid,
+        seller: {
+          id: shopData.id,
+          name: shopData.name,
+          logo: shopData.logo || null,
+          region: shopData.region || 'Toshkent'
+        },
+        videoUrl: selectedPost.mediaUrls[0], // Use the first media from the post
+        price: selectedPost.price || '',
+        likes: 0,
+        comments: 0,
+        isLive: false,
+        isViewed: false,
+        createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000))
+      };
+
+      // Clean undefined values
+      Object.keys(newStoryData).forEach(key => newStoryData[key] === undefined && delete newStoryData[key]);
+      
+      await addDoc(collection(db, 'stories'), newStoryData);
+      toast.success("Story muvaffaqiyatli yaratildi");
+      onClose();
+    } catch (error: any) {
+      console.error("Error creating story:", error);
+      const errorMsg = error.code === 'permission-denied' 
+        ? "Ruxsat etilmadi. Sizda story qo'shish huquqi yo'q." 
+        : (error.message || "Story yaratishda xatolik");
+      toast.error(errorMsg);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="w-full max-w-lg bg-bg-primary rounded-[2.5rem] overflow-hidden shadow-2xl border border-border-primary flex flex-col max-h-[90vh]"
+      >
+        <div className="p-6 border-b border-border-primary flex items-center justify-between bg-bg-primary/80 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-500/10 rounded-xl">
+              <Play size={20} className="text-orange-500" />
+            </div>
+            <h3 className="text-lg font-black uppercase tracking-tighter text-text-primary">Story Yaratish</h3>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-text-primary/10 rounded-full transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-3 px-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Qaysi postni story qilasiz?</h4>
+            </div>
+            <div className="grid grid-cols-2 gap-0">
+              {posts.map(post => (
+                <div 
+                  key={post.id} 
+                  onClick={() => setSelectedPostId(post.id)}
+                  className={`aspect-[9/16] overflow-hidden border-2 transition-all relative cursor-pointer ${selectedPostId === post.id ? 'border-orange-500 scale-[0.98] z-10 shadow-xl' : 'border-transparent opacity-80 hover:opacity-100'}`}
+                >
+                  {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
+                    <video 
+                      src={`${post.mediaUrls?.[0]}#t=0.1`}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img src={post.mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  )}
+                  {selectedPostId === post.id && (
+                    <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
+                      <CheckCircle2 size={32} className="text-white drop-shadow-md" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              {posts.length === 0 && (
+                <div className="col-span-2 py-10 text-center text-text-primary/40 text-xs font-bold">
+                  Hali postlar yo'q
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 bg-bg-primary border-t border-border-primary">
+          <button 
+            onClick={handleCreate}
+            disabled={!selectedPostId || isCreating}
+            className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isCreating ? "Yaratilmoqda..." : "Storyni Saqlash"}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 export default ShopWorkspace;
