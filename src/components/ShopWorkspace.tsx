@@ -1151,12 +1151,32 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   {/* Action Buttons */}
                   <div className="px-6 flex flex-col gap-3 w-full">
                     <button 
-                      onClick={() => setShowInstagramImportModal(true)}
+                      onClick={() => document.getElementById('gallery-post-upload')?.click()}
                       className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <ImageIcon size={18} />
+                      Post qo'shish
+                    </button>
+                    <button 
+                      onClick={() => setShowInstagramImportModal(true)}
+                      className="w-full py-4 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-purple-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
                     >
                       <Instagram size={18} />
                       Instagramdan import
                     </button>
+                    <input 
+                      type="file" 
+                      id="gallery-post-upload" 
+                      className="hidden" 
+                      accept="image/*,video/*" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // TODO: Implement file processing (upload, auto-fill description/price)
+                          toast.info("Galareyadan tanlandi: " + file.name);
+                        }
+                      }}
+                    />
                     <button 
                       onClick={() => setShowCreateStoryModal(true)}
                       className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
@@ -2202,17 +2222,24 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           />
         </div>
       )}
+
       {/* Instagram Import Modal */}
       <InstagramImportModal 
         isOpen={showInstagramImportModal} 
         onClose={() => setShowInstagramImportModal(false)}
-        shopData={shopData}
+        shopData={localShopData}
+        user={user}
+      />
+      <AnimatePresence>
+        {/* Instagram Import Modal */}
+      <InstagramImportModal 
+        isOpen={showInstagramImportModal} 
+        onClose={() => setShowInstagramImportModal(false)}
+        shopData={localShopData}
         user={user}
       />
 
-      {/* Statistics Modal */}
-      <AnimatePresence>
-        {showCreateStoryModal && (
+      {showCreateStoryModal && (
           <CreateStoryModal 
             posts={posts}
             sellerId={shopData.id}

@@ -81,36 +81,7 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-app.get("/api/instagram-fetch", async (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  try {
-    const url = req.query.url as string;
-    if (!url) return res.status(400).json({ error: "URL required" });
 
-    if (!RAPIDAPI_KEY) {
-      return res.status(500).json({ error: "RapidAPI Key is not configured" });
-    }
-
-    const response = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
-      { url },
-      {
-        headers: {
-          'content-type': 'application/json',
-          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
-          'x-rapidapi-key': RAPIDAPI_KEY
-        },
-        timeout: 15000
-      }
-    );
-
-    res.json(response.data);
-  } catch (error: any) {
-    const status = error.response?.status || 500;
-    const details = error.response?.data || error.message;
-    console.error("Fetch Instagram Error:", details);
-    res.status(status).json({ error: typeof details === 'string' ? details : "Instagramdan ma'lumot yuklab bo'lmadi" });
-  }
-});
 
 app.post("/api/fetch-telegram-html", async (req, res) => {
   try {
@@ -237,7 +208,26 @@ app.post("/api/create-checkout-session", async (req, res) => {
   }
 });
 
-// Vite / Static serving
+app.post("/api/instagram-fetch", async (req, res) => {
+  try {
+    const { url } = req.body;
+    const response = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+      { url },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-rapidapi-host': 'instagram120.p.rapidapi.com',
+          'x-rapidapi-key': RAPIDAPI_KEY
+        },
+        timeout: 15000
+      }
+    );
+    return res.json(response.data);
+  } catch (error: any) {
+    console.error("API Error:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Xatolik" });
+  }
+});
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer } = await import("vite");

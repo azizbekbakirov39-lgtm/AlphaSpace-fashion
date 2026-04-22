@@ -26,18 +26,13 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
     }
     setIsImporting(true);
     try {
-      const shortcodeMatch = instagramLink.match(/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-      const shortcode = shortcodeMatch ? shortcodeMatch[1] : null;
-
-      if (!shortcode) {
-        throw new Error("Noto'g'ri Instagram linki. Iltimos, to'g'ri link kiriting");
-      }
-
-      const cleanUrl = `https://www.instagram.com/p/${shortcode}/`;
-
-      const response = await fetch(`/api/instagram-fetch?url=${encodeURIComponent(cleanUrl)}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
+      const response = await fetch(`/api/instagram-fetch`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
+        body: JSON.stringify({ url: instagramLink })
       });
 
       if (!response.ok) {
@@ -53,7 +48,7 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
 
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server noto'g'ri formatda javob qaytardi (JSON kutilgan edi)");
+        throw new Error("Server noto'g'ri formatda javob qaytardi");
       }
 
       const result = await response.json();
@@ -69,7 +64,6 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
         description = data.caption || "";
         mediaType = data.video_url ? 'video' : 'carousel';
       } else if (Array.isArray(result) && result.length > 0) {
-        // Fallback for previous response structure
         mediaUrls = result.map((item: any) => item.urls?.[0]?.url || item.pictureUrl || item.display_url).filter(Boolean);
         description = result[0].caption || result[0].text || "";
         const hasVideo = result.some((item: any) => item.urls?.some((u: any) => u.extension === 'mp4' || u.url?.includes('.mp4')));
@@ -87,7 +81,7 @@ const InstagramImportModal: React.FC<InstagramImportModalProps> = ({ isOpen, onC
         sizes: [],
         colors: [],
         mediaType: mediaType,
-        instagramUrl: cleanUrl,
+        instagramUrl: instagramLink,
         items: [{ id: '1', type: 'shirt', name: description.substring(0, 50), price: '', store: shopData.name }]
       });
       toast.success("Ma'lumotlar olindi!");
