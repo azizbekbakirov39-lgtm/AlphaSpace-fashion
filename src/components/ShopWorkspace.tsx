@@ -61,6 +61,7 @@ import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
 import CreateStoryModal from './CreateStoryModal';
 import InstagramImportModal from './InstagramImportModal';
+import CreateGalleryPostModal from './CreateGalleryPostModal';
 
 interface Message {
   id: string;
@@ -289,6 +290,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
+  const [showGalleryPostModal, setShowGalleryPostModal] = useState(false);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -1173,11 +1176,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                       onChange={(e) => {
                         const files = e.target.files;
                         if (files && files.length > 0) {
-                          // Handle up to 10 files
                           const selectedFiles = Array.from(files).slice(0, 10);
-                          // TODO: Open modal to input description and price
-                          toast.info(`${selectedFiles.length} ta fayl tanlandi`);
-                          // Here we would set state to open a new EditPostModal
+                          setGalleryFiles(selectedFiles);
+                          setShowGalleryPostModal(true);
+                          e.target.value = ''; // Reset input so same files can be selected again if needed
                         }
                       }}
                     />
@@ -2239,6 +2241,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       <InstagramImportModal 
         isOpen={showInstagramImportModal} 
         onClose={() => setShowInstagramImportModal(false)}
+        shopData={localShopData}
+        user={user}
+      />
+
+      <CreateGalleryPostModal 
+        isOpen={showGalleryPostModal}
+        onClose={() => setShowGalleryPostModal(false)}
+        initialFiles={galleryFiles}
         shopData={localShopData}
         user={user}
       />
