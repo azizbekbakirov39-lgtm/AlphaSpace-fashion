@@ -1169,11 +1169,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                       id="gallery-post-upload" 
                       className="hidden" 
                       accept="image/*,video/*" 
+                      multiple
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // TODO: Implement file processing (upload, auto-fill description/price)
-                          toast.info("Galareyadan tanlandi: " + file.name);
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          // Handle up to 10 files
+                          const selectedFiles = Array.from(files).slice(0, 10);
+                          // TODO: Open modal to input description and price
+                          toast.info(`${selectedFiles.length} ta fayl tanlandi`);
+                          // Here we would set state to open a new EditPostModal
                         }
                       }}
                     />
