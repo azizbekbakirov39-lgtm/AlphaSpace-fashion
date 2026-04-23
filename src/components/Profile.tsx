@@ -60,7 +60,7 @@ interface ProfileProps {
   onToggleSave: (postId: string) => void;
   onOpenShop: () => void;
   onOpenShopProfile: (shopId: string) => void;
-  onOpenPostDetails: (post: PostData) => void;
+  onOpenPostDetails: (posts: PostData[], index: number) => void;
   onToggleSubscribe: (sellerId: string) => void;
   onOpenShopSelector?: () => void;
   userShops?: Seller[];
@@ -1830,10 +1830,10 @@ const Profile: React.FC<ProfileProps> = ({
   const renderSaved = () => (
     <div className="grid grid-cols-3 gap-1">
       {savedPosts.length > 0 ? (
-        savedPosts.map((post) => (
+        savedPosts.map((post, index) => (
           <div 
             key={post.id} 
-            onClick={() => onOpenPostDetails(post)}
+            onClick={() => onOpenPostDetails(savedPosts, index)}
             className="aspect-square relative group overflow-hidden cursor-pointer"
           >
             <img 
@@ -1842,7 +1842,7 @@ const Profile: React.FC<ProfileProps> = ({
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
               <div className="flex items-center gap-1 text-white text-[10px] font-bold">
                 <Bookmark size={12} fill="white" />
               </div>
@@ -1963,10 +1963,10 @@ const Profile: React.FC<ProfileProps> = ({
 
         <div className="grid grid-cols-3 gap-1">
           {filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => (
+            filteredPosts.map((post, index) => (
               <div 
                 key={post.id} 
-                onClick={() => onOpenPostDetails(post)}
+                onClick={() => onOpenPostDetails(filteredPosts, index)}
                 className="aspect-square relative group overflow-hidden cursor-pointer rounded-xl"
               >
                 {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
@@ -1985,7 +1985,7 @@ const Profile: React.FC<ProfileProps> = ({
                     referrerPolicy="no-referrer"
                   />
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                   <Bookmark size={16} fill="white" className="text-white" />
                 </div>
               </div>
@@ -2020,12 +2020,12 @@ const Profile: React.FC<ProfileProps> = ({
 
   const renderLikedPosts = () => (
     <div className="p-4 grid grid-cols-2 gap-3">
-      {likedPosts.slice(0, 100).map((post) => (
+      {likedPosts.slice(0, 100).map((post, index) => (
         <motion.div
           key={post.id}
           whileTap={{ scale: 0.98 }}
-          onClick={() => onOpenPostDetails(post)}
-          className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md"
+          onClick={() => onOpenPostDetails(likedPosts, index)}
+          className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md cursor-pointer"
         >
           <img 
             src={post.mediaUrls[0] || undefined} 
@@ -2033,7 +2033,7 @@ const Profile: React.FC<ProfileProps> = ({
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500/80 backdrop-blur-md flex items-center justify-center text-white">
             <Heart size={16} className="fill-current" />
           </div>
@@ -2053,12 +2053,12 @@ const Profile: React.FC<ProfileProps> = ({
 
   const renderRecentlyViewed = () => (
     <div className="p-4 grid grid-cols-2 gap-3">
-      {recentlyViewedPosts.slice(0, 100).map((post) => (
+      {recentlyViewedPosts.slice(0, 100).map((post, index) => (
         <motion.div
           key={post.id}
           whileTap={{ scale: 0.98 }}
-          onClick={() => onOpenPostDetails(post)}
-          className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md"
+          onClick={() => onOpenPostDetails(recentlyViewedPosts, index)}
+          className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md cursor-pointer"
         >
           <img 
             src={post.mediaUrls[0] || undefined} 
@@ -2066,7 +2066,7 @@ const Profile: React.FC<ProfileProps> = ({
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-emerald-500/80 backdrop-blur-md flex items-center justify-center text-white">
             <RefreshCw size={16} />
           </div>

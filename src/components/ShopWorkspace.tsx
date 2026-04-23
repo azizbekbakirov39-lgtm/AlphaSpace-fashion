@@ -1370,34 +1370,43 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           key={post.id} 
-                          className="aspect-[9/16] bg-text-primary/5 overflow-hidden relative group"
+                          className="aspect-[9/16] bg-text-primary/5 overflow-hidden relative group cursor-pointer"
+                          onClick={() => onOpenReels?.(posts, index)}
                         >
                           {post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
                             <video 
                               src={`${post.mediaUrls?.[0]}#t=0.1`}
-                              className="w-full h-full object-cover cursor-pointer"
+                              className="w-full h-full object-cover"
                               preload="metadata"
                               muted
                               playsInline
-                              onClick={() => setSelectedPostDetails(post)}
                             />
                           ) : (
                             <img 
                               src={post.mediaUrls?.[0] || undefined} 
-                              className="w-full h-full object-cover cursor-pointer" 
+                              className="w-full h-full object-cover" 
                               alt={post.outfitName} 
                               referrerPolicy="no-referrer" 
-                              onClick={() => setSelectedPostDetails(post)}
                             />
                           )}
 
+                          {/* Stats/Settings Trigger for Seller */}
+                          <div className="absolute top-2 right-2 z-[50]">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPostDetails(post);
+                              }}
+                              className="w-8 h-8 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-90 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <Settings size={14} />
+                            </button>
+                          </div>
+
                           {/* Simplified View Button Overlay */}
-                          <div 
-                            onClick={() => setSelectedPostDetails(post)}
-                            className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all cursor-pointer flex justify-center items-center opacity-0 hover:opacity-100 z-[40]"
-                          >
-                             <div className="bg-black/50 backdrop-blur-md rounded-full px-4 py-2 text-white font-bold text-xs">
-                               Batafsil
+                          <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all flex justify-center items-center opacity-0 group-hover:opacity-100 z-[40] pointer-events-none">
+                             <div className="bg-black/50 backdrop-blur-md rounded-full w-10 h-10 flex items-center justify-center text-white">
+                                <Play size={20} fill="currentColor" />
                              </div>
                           </div>
                         </motion.div>
@@ -1705,8 +1714,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                             <div 
                                className={`${msg.text ? 'mb-2' : ''} w-56 max-w-full bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-text-primary/10 shadow-sm cursor-pointer`}
                                onClick={(e) => {
-                                  // Currently ShopWorkspace doesn't explicitly open post details here, but let's prevent defaults
-                                  // e.stopPropagation();
+                                  e.stopPropagation();
+                                  if (msg.post) {
+                                    onOpenReels?.([msg.post], 0);
+                                  }
                                }}
                             >
                               {isVideoUrl(msg.post.mediaUrls?.[0] || '') ? (

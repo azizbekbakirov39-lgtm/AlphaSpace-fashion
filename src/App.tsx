@@ -744,14 +744,17 @@ export default function App() {
     }
   }, [workspace, activeTab, profileSubView]);
 
-  const openReels = React.useCallback((reelsList: any[], index: number) => {
+  const openReels = React.useCallback((reelsList: any[], index: number = 0) => {
+    if (!reelsList || reelsList.length === 0) return;
+    const safeIndex = typeof index === 'number' ? Math.max(0, Math.min(index, reelsList.length - 1)) : 0;
     setActiveReelList(reelsList);
-    setActiveReelIndex(index);
-    if (workspace === 'Marketplace') {
+    setActiveReelIndex(safeIndex);
+    
+    if (!isPoppingState.current) {
       window.history.pushState({ 
         type: 'reel', 
         list: reelsList, 
-        index,
+        index: safeIndex,
         workspace,
         activeTab,
         profileSubView

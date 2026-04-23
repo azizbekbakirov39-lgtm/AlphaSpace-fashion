@@ -423,7 +423,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                       referrerPolicy="no-referrer"
                     />
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
                 </motion.div>
               ))}
             </div>
