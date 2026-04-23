@@ -576,8 +576,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               });
               
               if (res.ok) {
-                const { publicUrl } = await res.json();
+                const { publicUrl, originalSize, compressedSize } = await res.json();
                 updatedUrls[i] = publicUrl;
+                
+                if (originalSize && compressedSize && originalSize > compressedSize) {
+                  const origMB = (originalSize / 1048576).toFixed(1);
+                  const compMB = (compressedSize / 1048576).toFixed(1);
+                  const ratio = (originalSize / compressedSize).toFixed(1);
+                  toast.success(`Video siqildi: ${origMB}MB -> ${compMB}MB (${ratio}x yengilashdi🚀)`, { duration: 6000 });
+                }
               }
             }
           }
