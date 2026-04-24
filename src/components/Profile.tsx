@@ -2183,7 +2183,7 @@ const Profile: React.FC<ProfileProps> = ({
         )}
       </div>
 
-      <div className={`flex-1 ${subView === 'chats' && activeChatSeller ? 'overflow-hidden' : 'overflow-y-auto'} scrollbar-hide ${isKeyboardOpen ? 'pb-2' : 'pb-[calc(6rem+env(safe-area-inset-bottom))]'}`}>
+      <div className={`flex-1 ${subView === 'chats' && activeChatSeller ? 'overflow-hidden' : 'overflow-y-auto'} scrollbar-hide ${(subView === 'chats' && activeChatSeller) ? 'pb-0' : (isKeyboardOpen ? 'pb-2' : 'pb-[calc(6rem+env(safe-area-inset-bottom))]')}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={subView}

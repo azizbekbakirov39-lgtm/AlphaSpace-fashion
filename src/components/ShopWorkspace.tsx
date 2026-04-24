@@ -1523,29 +1523,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                       />
                       <Users size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/30" />
                     </div>
-
-                    {/* Filters */}
-                    <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide pb-2">
-                      {[
-                        { id: 'all', label: 'Barchasi' },
-                        { id: 'unread', label: 'Yangi', color: 'bg-accent-blue' },
-                        { id: 'pending', label: 'Jarayonda', color: 'bg-amber-500' },
-                        { id: 'completed', label: 'Yakunlangan', color: 'bg-emerald-500' }
-                      ].map(f => (
-                        <button
-                          key={f.id}
-                          onClick={() => setChatFilter(f.id as any)}
-                          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap flex items-center gap-2 ${
-                            chatFilter === f.id 
-                              ? 'bg-accent-blue border-accent-blue text-white shadow-lg shadow-accent-blue/20' 
-                              : 'border-text-primary/10 text-text-primary/40 hover:border-text-primary/20'
-                          }`}
-                        >
-                          {f.color && <span className={`w-1.5 h-1.5 rounded-full ${f.color}`} />}
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Chat List */}
@@ -1580,13 +1557,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                             >
                               <Trash2 size={16} />
                             </button>
-                            {chat.status === 'new' ? (
-                              <span className="w-2 h-2 bg-accent-blue rounded-full" />
-                            ) : chat.status === 'in-progress' ? (
-                              <span className="w-2 h-2 bg-amber-500 rounded-full" />
-                            ) : (
-                              <span className="w-2 h-2 bg-emerald-500 rounded-full" />
-                            )}
                           </div>
                         </motion.div>
                       )) : (
@@ -1629,29 +1599,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                             Online
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex bg-text-primary/5 rounded-xl p-1 border border-text-primary/10">
-                          {[
-                            { id: 'new', color: 'bg-accent-blue' },
-                            { id: 'in-progress', color: 'bg-amber-500' },
-                            { id: 'completed', color: 'bg-emerald-500' }
-                          ].map(s => (
-                            <button
-                              key={s.id}
-                              onClick={() => updateChatStatus(s.id as any)}
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${activeChat?.status === s.id ? s.color + ' text-white shadow-lg' : 'text-text-primary/20 hover:text-text-primary/40'}`}
-                            >
-                              <CheckCircle2 size={16} />
-                            </button>
-                          ))}
-                        </div>
-                        <button 
-                          onClick={(e) => activeChat && handleDeleteChat(activeChat.id, e as any)}
-                          className="w-10 h-10 rounded-xl bg-text-primary/5 flex items-center justify-center text-text-primary/40 hover:text-red-500 transition-all"
-                        >
-                          <Trash2 size={18} />
-                        </button>
                       </div>
                     </div>
 
@@ -1895,7 +1842,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
                   {/* Input Area */}
                   <div 
-                    className="p-4 border-t border-white/10 bg-white/5 backdrop-blur-xl flex flex-col gap-3 relative"
+                    className="p-4 border-t border-white/10 bg-white/5 backdrop-blur-xl relative"
                     style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
                   >
                     {/* Staged Media Preview */}
@@ -1991,28 +1938,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                       )}
                     </AnimatePresence>
 
-                    {/* Quick Replies Bar */}
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                      {QUICK_REPLIES.map((reply, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setMessageInput(reply)}
-                          className="flex-shrink-0 px-4 py-2 bg-transparent border border-text-primary/10 rounded-xl text-[10px] font-bold text-text-primary/40 hover:bg-accent-blue/5 hover:text-accent-blue hover:border-accent-blue/30 transition-all whitespace-nowrap"
-                        >
-                          {reply.length > 25 ? reply.substring(0, 25) + '...' : reply}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="flex items-end gap-2">
+                    <div className="flex items-end gap-2 bg-text-primary/5 border border-border-primary rounded-[1.5rem] p-1.5 backdrop-blur-xl mt-2">
                       <button 
                         onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                        className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all ${showAttachmentMenu ? 'bg-accent-blue text-white rotate-45' : 'bg-text-primary/5 text-text-primary/40 hover:bg-text-primary/10'}`}
+                        className={`w-9 h-9 flex items-center justify-center rounded-full transition-all ${showAttachmentMenu ? 'bg-accent-blue text-white rotate-45' : 'text-text-primary/40 hover:bg-text-primary/10'}`}
                       >
-                        <Plus size={24} />
+                        <Plus size={20} />
                       </button>
 
-                      <div className="flex-1 relative bg-text-primary/5 border border-border-primary rounded-2xl overflow-hidden backdrop-blur-md">
+                      <div className="flex-1 relative">
                         <textarea 
                           value={messageInput}
                           onChange={(e) => {
@@ -2028,18 +1962,18 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           }}
                           placeholder="Xabar yozing..."
                           rows={1}
-                          className="w-full bg-transparent px-4 py-3.5 text-sm focus:outline-none transition-all resize-none max-h-[120px] scrollbar-hide"
+                          className="w-full bg-transparent px-2 py-2 text-sm focus:outline-none transition-all resize-none max-h-[120px] scrollbar-hide"
                         />
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 px-0.5">
                         {messageInput.trim() || stagedImage || stagedVideo || stagedLocation || stagedFile ? (
                           <button 
                             onClick={() => handleSendMessage('text')}
                             disabled={isUploading}
-                            className={`w-12 h-12 flex items-center justify-center bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-2xl shadow-xl shadow-accent-blue/30 transition-all flex-shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed' : 'active:scale-90'}`}
+                            className={`w-9 h-9 flex items-center justify-center bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-full shadow-lg shadow-accent-blue/20 transition-all flex-shrink-0 ${isUploading ? 'opacity-50' : 'active:scale-90'}`}
                           >
-                            {isUploading ? <RefreshCw size={22} className="animate-spin" /> : <Send size={22} />}
+                            {isUploading ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
                           </button>
                         ) : (
                           <div className="flex items-center gap-2">
@@ -2130,9 +2064,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                                   isCancelAreaHoveredRef.current = isHovered;
                                 }
                               }}
-                              className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all active:scale-125 relative touch-none bg-gradient-to-br from-accent-blue to-accent-light text-white shadow-sm ${isVideoRecording ? 'scale-150 z-[60] shadow-xl' : 'hover:shadow-md'}`}
+                              className="w-9 h-9 flex items-center justify-center rounded-full text-accent-blue hover:bg-accent-blue/5 transition-all active:scale-110"
                             >
-                              <Video size={22} />
+                              <Video size={18} />
                             </button>
 
                             <button 
@@ -2159,9 +2093,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                                   isCancelAreaHoveredRef.current = isHovered;
                                 }
                               }}
-                              className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all active:scale-125 relative touch-none bg-gradient-to-br from-accent-blue to-accent-light text-white shadow-sm ${isRecording ? 'scale-150 z-[60] shadow-xl' : 'hover:shadow-md'}`}
+                              className="w-9 h-9 flex items-center justify-center rounded-full text-accent-blue hover:bg-accent-blue/5 transition-all active:scale-110"
                             >
-                              <Mic size={22} />
+                              <Mic size={18} />
                             </button>
                           </div>
                         )}
