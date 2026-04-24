@@ -589,6 +589,8 @@ const Profile: React.FC<ProfileProps> = ({
         id: chatId,
         participants: [user.uid, sellerId],
         lastMessage: messageText || "Media xabar",
+        lastSender: user.uid,
+        readBy: [user.uid],
         updatedAt: serverTimestamp()
       }, { merge: true });
 

@@ -1,3 +1,4 @@
+import { RealisticBlueMessageIcon } from './RealisticBlueMessageIcon';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -102,6 +103,37 @@ interface ShopWorkspaceProps {
   activeChatId: string | null;
   setActiveChatId: (chatId: string | null) => void;
   onOpenReels?: (posts: PostData[], index: number) => void;
+}
+
+const RealisticBlueShopIcon = ({ active, size = 26 }: { active: boolean, size?: number }) => {
+  return (
+    <div style={{ width: size, height: size, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: active ? 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.4))' : 'grayscale(100%) opacity(60%)', transform: active ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.3s' }}>
+        {/* Base building */}
+        <path d="M8 28V56C8 58.2091 9.79086 60 12 60H52C54.2091 60 56 58.2091 56 56V28H8Z" fill="#EBF5FF"/>
+        {/* Windows */}
+        <rect x="14" y="32" width="12" height="14" rx="2" fill="#93C5FD"/>
+        <rect x="38" y="32" width="12" height="14" rx="2" fill="#93C5FD"/>
+        <path d="M14 39H26M20 32V46M38 39H50M44 32V46" stroke="#FFFFFF" strokeWidth="2"/>
+        {/* Door */}
+        <path d="M26 44H38V60H26V44Z" fill="#3B82F6"/>
+        <path d="M34 52H36" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round"/>
+        {/* Awning */}
+        <path d="M4 28L10 14H54L60 28H4Z" fill="#1D4ED8"/>
+        <path d="M10 28L14 14H18L14 28H10Z" fill="#3B82F6"/>
+        <path d="M18 28L22 14H26L22 28H18Z" fill="#60A5FA"/>
+        <path d="M26 28L30 14H34L30 28H26Z" fill="#3B82F6"/>
+        <path d="M34 28L38 14H42L38 28H34Z" fill="#60A5FA"/>
+        <path d="M42 28L46 14H50L46 28H42Z" fill="#3B82F6"/>
+        <path d="M50 28L54 14H58L54 28H50Z" fill="#60A5FA"/>
+        {/* Scalloped edge of awning */}
+        <path d="M4 28C6 32 8 32 10 28C12 32 14 32 16 28C18 32 20 32 22 28C24 32 26 32 28 28C30 32 32 32 34 28C36 32 38 32 40 28C42 32 44 32 46 28C48 32 50 32 52 28C54 32 56 32 58 28C60 28 60 28 60 28M4 28Z" fill="#1D4ED8"/>
+        {/* Sign board */}
+        <rect x="20" y="4" width="24" height="10" rx="2" fill="#EBF5FF" stroke="#3B82F6" strokeWidth="2"/>
+        <circle cx="32" cy="9" r="2" fill="#3B82F6"/>
+      </svg>
+    </div>
+  )
 }
 
 const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({ 
@@ -971,6 +1003,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const chatRef = doc(db, 'chats', activeChatId);
       await setDoc(chatRef, {
         lastMessage: messageText || `[${finalType}]`,
+        lastSender: shopData.id,
+        readBy: [shopData.id],
         updatedAt: serverTimestamp()
       }, { merge: true });
 
@@ -1074,7 +1108,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     switch (activeTab) {
       case 'MyShop':
         return (
-          <div className="h-full overflow-y-auto scrollbar-hide pb-24">
+          <div className="h-full overflow-y-auto scrollbar-hide pb-16">
             {/* Hero Section */}
             <div className="relative h-[300px] w-full overflow-hidden bg-text-primary/5">
               {(() => {
@@ -1331,7 +1365,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               </div>
             </div>
 
-            <div className="pb-20">
+            <div className="pb-16">
               {activeProfileTab === 'Postlar' && (
                 <div className="flex flex-col gap-6">
                   {/* Action Buttons */}
@@ -1492,7 +1526,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   </div>
 
                   {/* Chat List */}
-                  <div className="flex-1 overflow-y-auto px-4 pb-24 scrollbar-hide">
+                  <div className="flex-1 overflow-y-auto px-4 pb-16 scrollbar-hide">
                     <div className="flex flex-col gap-2">
                       {filteredChats.length > 0 ? filteredChats.map(chat => (
                         <motion.div 
@@ -2118,7 +2152,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         );
       case 'Settings':
         return (
-          <div className="h-full overflow-y-auto scrollbar-hide p-4 pb-24 bg-bg-primary">
+          <div className="h-full overflow-y-auto scrollbar-hide p-4 pb-16 bg-bg-primary">
             <div className="flex items-center gap-4 mb-6">
               <button 
                 onClick={() => handleTabChange('MyShop')}
@@ -2376,17 +2410,19 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       {/* Shop Bottom Nav */}
       {!isKeyboardOpen && (
-        <div className="h-20 bg-header-bg border-t border-border-primary flex items-center justify-around px-2 pb-safe">
+        <div className="bg-header-bg border-t border-border-primary flex items-center justify-around px-2 pt-2 pb-[calc(4px+env(safe-area-inset-bottom))]">
           <ShopNavButton 
             active={activeTab === 'MyShop'} 
             onClick={() => handleTabChange('MyShop')} 
             icon={Store} 
+            customIcon={RealisticBlueShopIcon}
             label="Do'konim" 
           />
           <ShopNavButton 
             active={activeTab === 'Chats'} 
             onClick={() => handleTabChange('Chats')} 
             icon={MessageSquare} 
+            customIcon={RealisticBlueMessageIcon}
             label="Chatlar" 
           />
           <ShopNavButton 
@@ -2763,7 +2799,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             </div>
 
             {/* Content Body */}
-            <div className="flex-1 overflow-y-auto pb-24">
+            <div className="flex-1 overflow-y-auto pb-16">
               {postDetailsTab === 'stats' && (
                 <motion.div 
                   initial={{ opacity: 0, x: -20 }}
@@ -2957,13 +2993,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   );
 };
 
-const ShopNavButton = ({ active, onClick, icon: Icon, label }: any) => (
+const ShopNavButton = ({ active, onClick, icon: Icon, label, customIcon: CustomIcon }: any) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-accent-blue scale-110' : 'text-text-primary/40'}`}
+    className={`flex flex-col items-center gap-0.5 transition-all ${active ? 'text-accent-blue scale-110' : 'text-text-primary/40'}`}
   >
-    <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-    <span className="text-[9px] font-black uppercase tracking-tighter">{label}</span>
+    {CustomIcon ? <CustomIcon active={active} size={22} /> : <Icon size={22} strokeWidth={active ? 2.5 : 2} />}
+    <span className="text-[8px] font-black uppercase tracking-tighter">{label}</span>
   </button>
 );
 

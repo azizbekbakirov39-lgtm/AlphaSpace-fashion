@@ -15,6 +15,7 @@ import ProductDetails from './components/ProductDetails';
 import SplashScreen from './components/SplashScreen';
 import CreateShopModal from './components/CreateShopModal';
 import ShopConstruction from './components/ShopConstruction';
+import { RealisticBlueMessageIcon } from './components/RealisticBlueMessageIcon';
 import DownloadPage from './components/DownloadPage';
 import { motion, AnimatePresence } from 'motion/react';
 import { Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2 } from 'lucide-react';
@@ -407,8 +408,32 @@ export default function App() {
       }
     });
 
-    return () => unsubUser();
-  }, [user?.uid]);
+    // Unread messages listener
+    let shopIds: string[] = [];
+    if (userShops && userShops.length > 0) {
+      shopIds = userShops.map(s => s.id);
+    }
+    
+    // As a buyer
+    const qBuyer = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+    const unsubBuyerChats = onSnapshot(qBuyer, (snapshot) => {
+      let unread = 0;
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.lastSender && data.lastSender !== user.uid) {
+           if (!data.readBy || !data.readBy.includes(user.uid)) {
+              unread += 1;
+           }
+        }
+      });
+      setUnreadMessages(unread);
+    });
+
+    return () => {
+      unsubUser();
+      unsubBuyerChats();
+    };
+  }, [user?.uid, userShops]);
 
   // History tracking to prevent double pushes
   const isPoppingState = React.useRef(false);
@@ -1310,8 +1335,8 @@ export default function App() {
                         }}
                         className="relative flex flex-col items-center gap-0.5 p-1 hover:bg-accent-blue/5 rounded-xl transition-all active:scale-95"
                       >
-                        <Mail size={24} strokeWidth={1.5} stroke="url(#header-blue-gradient)" />
-                        <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent uppercase tracking-widest">Xabarlar</span>
+                        <RealisticBlueMessageIcon active={true} size={28} />
+                        <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent uppercase tracking-widest mt-0.5">Xabarlar</span>
                         {unreadMessages > 0 && (
                           <motion.div 
                             initial={{ scale: 0 }}
