@@ -566,6 +566,8 @@ const Profile: React.FC<ProfileProps> = ({
         }
       }
 
+      let finalAudioUrl = null;
+
       // If it's a video message (base64 from recording), upload it properly
       if (videoMessage && videoMessage.startsWith('data:')) {
         try {
@@ -574,11 +576,25 @@ const Profile: React.FC<ProfileProps> = ({
           const fileName = `vmsg_${Date.now()}.webm`;
           const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
           await uploadBytes(storageRef, blob);
-          finalVideoUrl = await getDownloadURL(storageRef);
-          videoMessage = undefined; // Clear base64, use finalVideoUrl
+          videoMessage = await getDownloadURL(storageRef);
         } catch (err) {
           console.error("Video message upload error:", err);
         }
+      }
+
+      if (audioData && audioData.startsWith('data:')) {
+        try {
+          const res = await fetch(audioData);
+          const blob = await res.blob();
+          const fileName = `audio_${Date.now()}.webm`;
+          const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
+          await uploadBytes(storageRef, blob);
+          finalAudioUrl = await getDownloadURL(storageRef);
+        } catch (err) {
+          console.error("Audio upload error:", err);
+        }
+      } else if (audioData) {
+        finalAudioUrl = audioData;
       }
 
       const chatId = [user.uid, sellerId].sort().join('_');
@@ -610,18 +626,18 @@ const Profile: React.FC<ProfileProps> = ({
       } else if (finalImageUrl) {
         finalType = 'image';
         mediaUrl = finalImageUrl;
-      } else if (audioData) {
+      } else if (finalAudioUrl) {
         finalType = 'voice';
-        mediaUrl = audioData;
+        mediaUrl = finalAudioUrl;
       }
 
       const msgData: any = {
         chatId: chatId,
         senderUid: user.uid,
-        text: (audioData || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
+        text: (finalAudioUrl || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
         
         // Profile.tsx compat
-        audio: audioData,
+        audio: finalAudioUrl,
         image: finalImageUrl,
         video: finalVideoUrl,
         videoMessage: videoMessage,
@@ -1522,7 +1538,7 @@ const Profile: React.FC<ProfileProps> = ({
 
           <div 
             className="p-4 border-t border-white/10 bg-white/5 backdrop-blur-xl relative z-20"
-            style={{ paddingBottom: '16px' }}
+            style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
           >
             {/* Staged Content Preview */}
             <AnimatePresence>
@@ -2087,9 +2103,9 @@ const Profile: React.FC<ProfileProps> = ({
   );
 
   return (
-    <div className="h-full flex flex-col bg-bg-primary overflow-hidden">
+    <div className={`flex flex-col bg-bg-primary overflow-hidden ${(subView === 'chats' && activeChatSeller) ? 'fixed inset-0 z-[9999]' : 'h-full'}`}>
       {/* Sub-view Header */}
-      <div className="flex items-center gap-4 px-4 py-4 border-b border-border-primary bg-header-bg">
+      <div className={`flex items-center gap-4 px-4 py-4 border-b border-border-primary bg-header-bg ${(subView === 'chats' && activeChatSeller) ? 'pt-[calc(1rem+env(safe-area-inset-top))]' : ''}`}>
         {subView !== 'main' && (
           <button 
             onClick={handleBack}

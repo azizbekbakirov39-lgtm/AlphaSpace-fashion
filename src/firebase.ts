@@ -33,7 +33,7 @@ import {
   getDocFromServer, 
   increment 
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
@@ -141,4 +141,4 @@ export {
   collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, orderBy, limit, increment 
 };
 
-export { ref, uploadBytes, uploadBytesResumable, getDownloadURL };
+export { ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString };

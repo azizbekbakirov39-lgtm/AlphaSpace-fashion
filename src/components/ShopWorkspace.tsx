@@ -57,7 +57,7 @@ import { showChatNotification } from '../utils/notifications';
 import { toast } from 'sonner';
 import { Seller, PostData, SellerCategory, SELLER_CATEGORIES, User } from '../types';
 import { uploadImageToImgBB } from '../services/imgbb';
-import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, addDoc, collection, serverTimestamp, Timestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
+import { db, storage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString, addDoc, collection, serverTimestamp, Timestamp, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, setDoc, getDoc } from '../firebase';
 import { compressImage, compressVideo } from '../lib/compression';
 import TelegramLinkManager from './TelegramLinkManager';
 
@@ -737,13 +737,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          if (type === 'image') setStagedImage(base64);
-          else setStagedVideo(base64);
-        };
-        reader.readAsDataURL(file);
+        setStagedFile(file);
+        const previewUrl = URL.createObjectURL(file);
+        if (type === 'image') {
+          setStagedImage(previewUrl);
+          setStagedVideo(null);
+        } else {
+          setStagedVideo(previewUrl);
+          setStagedImage(null);
+        }
       }
     };
     input.click();
@@ -970,6 +972,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           
           if (stagedVideo) finalType = 'video';
         }
+      } else if (mediaUrl && mediaUrl.startsWith('data:')) {
+        const ext = finalType === 'voice' ? 'webm' : 'webm';
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
+        const storageRef = ref(storage, `chat_media/${shopData.id}/${fileName}`);
+        await uploadString(storageRef, mediaUrl, 'data_url');
+        finalMedia = await getDownloadURL(storageRef);
       } else if (type === 'text') {
         if (stagedLocation) {
           finalType = 'location';
@@ -978,8 +986,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }
 
       const msgData: any = {
+        chatId: activeChatId,
         senderUid: shopData.id,
-        text: messageText,
+        text: messageText || "",
         
         // ShopWorkspace.tsx compat
         type: finalType,
@@ -997,7 +1006,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         replyTo: replyingTo?.id
       };
 
-      // Ensure no undefined values are written to Firestore
+      // Clean undefined values
       Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
 
       const chatRef = doc(db, 'chats', activeChatId);
@@ -1283,55 +1292,69 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
               {/* Description Card */}
               {localShopData.description && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-accent-blue/5 to-accent-light/5 p-6 rounded-[32px] border border-accent-blue/10">
-                  <div className="absolute -top-4 -right-4 w-24 h-24 bg-accent-blue/10 rounded-full blur-3xl" />
+                <div className="relative overflow-hidden bg-white dark:bg-bg-primary rounded-[32px] border-2 border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none p-6">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
+                  
                   <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 bg-accent-blue text-white rounded-xl flex items-center justify-center shadow-lg shadow-accent-blue/20">
-                        <Sparkles size={16} />
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-[14px] flex items-center justify-center border border-blue-100 dark:border-blue-500/20 shadow-sm">
+                        <Sparkles size={18} className="text-blue-600 dark:text-blue-400" />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-blue">Do'kon haqida</span>
+                      <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Do'kon haqida</span>
                     </div>
-                    <p className="text-sm font-medium text-text-primary leading-relaxed">
-                      {localShopData.description}
-                    </p>
+                    <div className="relative">
+                      <svg className="absolute -top-3 -left-2 w-8 h-8 text-blue-500/10 dark:text-blue-400/10 transform -scale-x-100" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                        <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
+                      </svg>
+                      <p className="text-[15px] font-medium text-slate-700 dark:text-slate-300 leading-relaxed pl-4 relative z-10">
+                        {localShopData.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Working Schedule Card */}
-              <div className="relative overflow-hidden bg-accent-blue/5 backdrop-blur-xl p-5 rounded-[32px] border border-white/10 shadow-xl">
-                <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-accent-blue/10 rounded-full blur-3xl" />
+              <div className="relative overflow-hidden bg-white dark:bg-bg-primary rounded-[32px] border-2 border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none p-6">
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl" />
                 <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-accent-blue text-white rounded-2xl shadow-lg shadow-accent-blue/20">
-                        <Clock size={18} />
+                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-500/10 dark:to-blue-500/10 rounded-[14px] flex items-center justify-center border border-indigo-100 dark:border-indigo-500/20 shadow-sm">
+                        <Clock size={18} className="text-indigo-600 dark:text-indigo-400" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-accent-blue/60">Ish tartibi</span>
-                        <span className="text-xs font-black text-text-primary">{localShopData.workingHours || '09:00 - 20:00'}</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 mb-0.5">Ish tartibi</span>
+                        <span className="text-[15px] font-black text-slate-800 dark:text-white tracking-tight">{localShopData.workingHours || '09:00 - 20:00'}</span>
                       </div>
+                    </div>
+                    
+                    {/* Active Pulse Indicator */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-full border border-emerald-100 dark:border-emerald-500/20">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Ochiq</span>
                     </div>
                   </div>
                   
-                  <div className="flex justify-between items-center px-1">
+                  {/* Continuous Pill Track for Days */}
+                  <div className="relative bg-slate-50 dark:bg-white/5 rounded-2xl p-1.5 flex justify-between items-center border border-slate-100 dark:border-white/5">
                     {[
-                      { key: 'Mon', label: 'D' },
-                      { key: 'Tue', label: 'S' },
+                      { key: 'Mon', label: 'Du' },
+                      { key: 'Tue', label: 'Se' },
                       { key: 'Wed', label: 'Ch' },
-                      { key: 'Thu', label: 'P' },
-                      { key: 'Fri', label: 'J' },
+                      { key: 'Thu', label: 'Pa' },
+                      { key: 'Fri', label: 'Ju' },
                       { key: 'Sat', label: 'Sh' },
-                      { key: 'Sun', label: 'Y' }
+                      { key: 'Sun', label: 'Ya' }
                     ].map((day) => {
-                      const isActive = localShopData.workingDays?.includes(day.key);
+                      const isActive = localShopData.workingDays?.includes(day.key) ?? !['Sat', 'Sun'].includes(day.key);
                       return (
-                        <div key={day.key} className="flex flex-col items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 ${
+                        <div key={day.key} className="relative z-10 flex-1 flex justify-center">
+                          <div className={`w-full mx-0.5 py-2 rounded-xl flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
                             isActive 
-                            ? 'bg-accent-blue text-white shadow-md shadow-accent-blue/20 scale-110' 
-                            : 'bg-white/10 text-text-secondary border border-white/5'
+                            ? 'bg-white dark:bg-[#2A2B2E] text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-white/5 transform scale-105' 
+                            : 'bg-transparent text-slate-400 dark:text-slate-500'
                           }`}>
                             {day.label}
                           </div>
@@ -1583,10 +1606,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="flex flex-col h-full bg-bg-primary overflow-hidden"
+                  className="fixed inset-0 z-[9999] flex flex-col bg-bg-primary overflow-hidden"
                 >
                   {/* Chat Header */}
-                  <div className="flex flex-col border-b border-border-primary bg-white/80 dark:bg-bg-primary/80 backdrop-blur-xl z-20">
+                  <div className="flex flex-col border-b border-border-primary bg-white/80 dark:bg-bg-primary/80 backdrop-blur-xl z-20 pt-[env(safe-area-inset-top)]">
                     <div className="flex items-center gap-3 p-4">
                       <button 
                         onClick={() => handleCloseChat()} 
@@ -1873,7 +1896,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   {/* Input Area */}
                   <div 
                     className="p-4 border-t border-white/10 bg-white/5 backdrop-blur-xl flex flex-col gap-3 relative"
-                    style={{ paddingBottom: '16px' }}
+                    style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
                   >
                     {/* Staged Media Preview */}
                     <AnimatePresence>
