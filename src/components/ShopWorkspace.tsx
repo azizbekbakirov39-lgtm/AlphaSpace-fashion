@@ -2486,7 +2486,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                             className="w-full h-full object-cover" 
                             muted
                             playsInline
-                            crossOrigin="anonymous"
                           />
                         ) : (
                           <img 

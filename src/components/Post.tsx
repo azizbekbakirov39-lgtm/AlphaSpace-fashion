@@ -114,7 +114,6 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
         playsInline
         onContextMenu={(e) => e.preventDefault()}
         preload={isActive ? "auto" : (isNext || isUpcoming ? "metadata" : "none")}
-        crossOrigin="anonymous"
         onPlaying={() => setIsPlaying(true)}
         onWaiting={() => setIsPlaying(false)}
         onLoadedData={(e) => {

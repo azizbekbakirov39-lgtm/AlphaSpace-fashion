@@ -606,7 +606,6 @@ Foydalanuvchi xabari: ${messageText}`;
                                 preload="metadata"
                                 muted
                                 playsInline
-                                crossOrigin="anonymous"
                                 onError={(e) => {
                                   const video = e.currentTarget;
                                   if (!video.dataset.triedProxy) {

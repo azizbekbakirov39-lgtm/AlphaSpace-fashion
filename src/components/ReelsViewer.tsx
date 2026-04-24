@@ -341,7 +341,6 @@ const ReelItem: React.FC<{
                   playsInline
                   muted={isMuted}
                   preload={isActive ? "auto" : "none"}
-                  crossOrigin="anonymous"
                   onLoadedData={(e) => {
                     if (shouldLoad) handleMediaSuccess(e.currentTarget);
                   }}
@@ -535,7 +534,7 @@ const ReelsViewer: React.FC<ReelsViewerProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[30000] bg-black"
+      className="fixed inset-0 z-[80000] bg-black"
     >
       {/* Close Button */}
       <motion.button 

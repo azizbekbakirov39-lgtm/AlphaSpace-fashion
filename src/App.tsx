@@ -94,6 +94,15 @@ export default function App() {
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [userSaves, setUserSaves] = useState<Set<string>>(new Set());
   const [userSubscriptions, setUserSubscriptions] = useState<Set<string>>(new Set());
+  const [lastViewedPostId, setLastViewedPostId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (activeReelIndex !== null && activeReelList[activeReelIndex]) {
+      setLastViewedPostId(activeReelList[activeReelIndex].id);
+    } else if (selectedPostForDetails) {
+      setLastViewedPostId(selectedPostForDetails.id);
+    }
+  }, [activeReelIndex, activeReelList, selectedPostForDetails]);
 
   // Workspace State
   const [workspace, setWorkspace] = useState<'Marketplace' | 'Shop'>('Marketplace');
@@ -1620,6 +1629,7 @@ export default function App() {
                   onOpenPostDetails={(postsList, index) => openReels(postsList, index)}
                   language={language}
                   allPosts={postsWithUserStatus}
+                  lastViewedPostId={lastViewedPostId}
                 />
               )}
             </AnimatePresence>

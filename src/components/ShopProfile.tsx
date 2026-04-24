@@ -41,6 +41,7 @@ interface ShopProfileProps {
   onOpenPostDetails: (posts: PostData[], index: number) => void;
   language: Language;
   allPosts?: PostData[];
+  lastViewedPostId?: string | null;
 }
 
 const ShopProfile: React.FC<ShopProfileProps> = ({ 
@@ -52,7 +53,8 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
   onOpenChat,
   onOpenPostDetails,
   language,
-  allPosts = []
+  allPosts = [],
+  lastViewedPostId = null
 }) => {
   const t = translations[language];
   const [showMap, setShowMap] = useState(false);
@@ -400,17 +402,19 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
         <div className="pb-24">
           {activeTab === 'posts' && (
             <div className="grid grid-cols-2 gap-0">
-              {posts.map((post, index) => (
+              {posts.map((post, index) => {
+                const isViewed = lastViewedPostId === post.id;
+                return (
                 <motion.div
                   key={post.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onOpenPostDetails(posts, index)}
-                  className="aspect-[9/16] relative group overflow-hidden bg-neutral-900 shadow-sm"
+                  className={`aspect-[9/16] relative group overflow-hidden bg-neutral-900 shadow-sm transition-all duration-500 ease-out ${isViewed ? 'ring-2 ring-inset ring-white/50 opacity-50 z-10' : ''}`}
                 >
                   {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
                     <video 
                       src={`${post.mediaUrls[0]}#t=0.1`}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isViewed ? 'scale-105' : ''}`}
                       preload="metadata"
                       muted
                       playsInline
@@ -419,13 +423,14 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                     <img 
                       src={post.mediaUrls[0]} 
                       alt={post.outfitName}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isViewed ? 'scale-105' : ''}`}
                       referrerPolicy="no-referrer"
                     />
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
+                  <div className={`absolute inset-0 transition-colors pointer-events-none ${isViewed ? 'bg-black/40' : 'bg-black/0 group-hover:bg-black/20'}`} />
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

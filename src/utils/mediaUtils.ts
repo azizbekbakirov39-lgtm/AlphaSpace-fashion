@@ -166,6 +166,12 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     if (cache[url]) return cache[url];
   }
 
+  // Avoid proxying video URLs because image proxies (like wsrv.nl) will break them
+  // and allorigins might fail on large payloads.
+  if (isVideoUrl(url) || url.includes('.mp4')) {
+    return url;
+  }
+
   // Use specified proxy
   const safeIndex = proxyIndex % PROXY_POOL.length;
   return PROXY_POOL[safeIndex](url);
