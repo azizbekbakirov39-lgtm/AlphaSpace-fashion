@@ -77,6 +77,7 @@ interface ProfileProps {
   onResetPassword?: (email: string) => Promise<void>;
   onBackToHome?: () => void;
   onOpenAdminDashboard?: () => void;
+  onOpenChat: (sellerId: string, product?: PostData | null) => void;
   initialChatSellerId?: string | null;
   initialChatProduct?: PostData | null;
 }
@@ -124,6 +125,7 @@ const Profile: React.FC<ProfileProps> = ({
   onResetPassword,
   onBackToHome,
   onOpenAdminDashboard,
+  onOpenChat,
   initialChatSellerId,
   initialChatProduct,
   sentPosts,
@@ -273,7 +275,7 @@ const Profile: React.FC<ProfileProps> = ({
 
   const handleBack = () => {
     if (activeChatSeller) {
-      setActiveChatSeller(null);
+      // Just go back, App.tsx handlePopState will handle state restoration
       window.history.back();
     } else if (subView !== 'main') {
       setSubView('main');
@@ -311,15 +313,22 @@ const Profile: React.FC<ProfileProps> = ({
 
   const startRecording = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz audio yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
       if (window.navigator.vibrate) window.navigator.vibrate(50);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
       const chunks: BlobPart[] = [];
 
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
-          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
           const reader = new FileReader();
           reader.readAsDataURL(blob);
           reader.onloadend = () => {
@@ -332,6 +341,7 @@ const Profile: React.FC<ProfileProps> = ({
         dragXRef.current = 0;
         setIsCancelAreaHovered(false);
         isCancelAreaHoveredRef.current = false;
+        setMediaRecorder(null);
       };
 
       recorder.start();
@@ -343,7 +353,7 @@ const Profile: React.FC<ProfileProps> = ({
       }, 1000);
     } catch (err) {
       console.error("Microphone access denied:", err);
-      alert("Mikrofonga ruxsat berilmadi.");
+      toast.error("Mikrofonga ruxsat berilmadi yoki xatolik yuz berdi.");
     }
   };
 
@@ -406,6 +416,11 @@ const Profile: React.FC<ProfileProps> = ({
 
   const startVideoMessage = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz video yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
       if (window.navigator.vibrate) window.navigator.vibrate(50);
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: cameraFacing }, 
@@ -418,12 +433,16 @@ const Profile: React.FC<ProfileProps> = ({
         safePlayVideo(videoPreviewRef.current);
       }
 
-      const recorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') 
+        ? 'video/webm;codecs=vp8,opus' 
+        : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
+      
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const chunks: BlobPart[] = [];
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
-          const blob = new Blob(chunks, { type: 'video/webm' });
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
           const reader = new FileReader();
           reader.onloadend = () => {
             handleSendMessage(undefined, undefined, undefined, undefined, reader.result as string);
@@ -435,6 +454,7 @@ const Profile: React.FC<ProfileProps> = ({
         dragXRef.current = 0;
         setIsCancelAreaHovered(false);
         isCancelAreaHoveredRef.current = false;
+        setMediaRecorder(null);
       };
       recorder.start();
       setMediaRecorder(recorder);
@@ -444,6 +464,7 @@ const Profile: React.FC<ProfileProps> = ({
       }, 1000);
     } catch (err) {
       console.error("Video access denied:", err);
+      toast.error("Kameraga ruxsat berilmadi yoki xatolik yuz berdi.");
     }
   };
 
@@ -476,9 +497,14 @@ const Profile: React.FC<ProfileProps> = ({
   const t = translations[language];
   React.useEffect(() => {
     if (initialChatSellerId && subView === 'chats') {
-      // Find seller in subscribed sellers or create a temporary one
-      let seller = subscribedSellers.find(s => s.id === initialChatSellerId);
+      // Find seller in computed chatSellers (which includes history and subscriptions)
+      let seller = chatSellers.find(s => s.id === initialChatSellerId);
       
+      if (!seller) {
+        // Fallback to subscribedSellers if chatSellers doesn't have it yet
+        seller = subscribedSellers.find(s => s.id === initialChatSellerId);
+      }
+
       if (!seller) {
         // Create a temporary seller object
         seller = {
@@ -508,7 +534,7 @@ const Profile: React.FC<ProfileProps> = ({
     } else if (!initialChatSellerId) {
       setActiveChatSeller(null);
     }
-  }, [initialChatSellerId, subView, subscribedSellers, initialChatProduct, activeChatSeller?.id]);
+  }, [initialChatSellerId, subView, subscribedSellers, initialChatProduct, activeChatSeller?.id, chatSellers]);
 
   const languages: { code: Language; name: string }[] = [
     { code: 'uz', name: "O'zbek (Lotin)" },
@@ -1312,6 +1338,45 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 pb-8 space-y-4 scrollbar-hide relative z-10 min-h-0">
+            {activeChatSeller && (
+              <div className="flex flex-col items-center justify-center py-10 px-6 text-center border-b border-border-primary/5 mb-6">
+                <div className="relative mb-4">
+                  <div className="p-1 bg-gradient-to-br from-accent-blue/40 to-accent-light/40 rounded-full">
+                    <div className="relative w-24 h-24 overflow-hidden rounded-full border-4 border-bg-primary bg-accent-blue/10 shadow-2xl">
+                      <div className="absolute inset-0 flex items-center justify-center text-accent-blue font-black text-3xl">
+                        {activeChatSeller.name.charAt(0).toUpperCase()}
+                      </div>
+                      {activeChatSeller.logo && (
+                        <img 
+                          src={activeChatSeller.logo} 
+                          alt={activeChatSeller.name} 
+                          className="absolute inset-0 w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-4 border-bg-primary shadow-lg" />
+                </div>
+                <h3 className="text-xl font-black text-text-primary tracking-tight mb-1 uppercase italic">{activeChatSeller.name}</h3>
+                <p className="text-xs font-black text-accent-blue uppercase tracking-[0.2em] mb-4">Official Shop</p>
+                <p className="text-xs text-text-primary/60 max-w-[240px] leading-relaxed mb-6">
+                  {activeChatSeller.description || "Bu do'kon o'zining ajoyib mahsulotlari bilan mashhur. Xarid qilish uchun suhbatni boshlang."}
+                </p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => onOpenShopProfile(activeChatSeller.id)}
+                    className="px-6 py-2 bg-text-primary text-bg-primary text-[10px] font-black uppercase tracking-widest rounded-full active:scale-95 transition-all shadow-lg"
+                  >
+                    Profilni ko'rish
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-text-primary/40 pt-20">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center mb-4">
@@ -1367,6 +1432,7 @@ const Profile: React.FC<ProfileProps> = ({
                       <video 
                         src={`${msg.video || msg.videoMessage}#t=0.1`} 
                         controls 
+                        playsInline
                         preload="metadata" 
                         className="w-full h-auto" 
                       />
@@ -1537,8 +1603,8 @@ const Profile: React.FC<ProfileProps> = ({
           )}
 
           <div 
-            className="p-4 border-t border-white/10 bg-white/5 backdrop-blur-xl relative z-20"
-            style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
+            className="p-2 border-t border-border-primary bg-bg-primary/95 backdrop-blur-xl relative z-20"
+            style={{ paddingBottom: (subView === 'chats' && activeChatSeller) ? 'calc(6rem + env(safe-area-inset-bottom))' : 'calc(8px + env(safe-area-inset-bottom))' }}
           >
             {/* Staged Content Preview */}
             <AnimatePresence>
@@ -1549,16 +1615,16 @@ const Profile: React.FC<ProfileProps> = ({
                   exit={{ height: 0, opacity: 0 }}
                   className="mb-2 bg-text-primary/5 rounded-xl p-2 flex items-center gap-3 border border-border-primary"
                 >
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-black/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/10 flex items-center justify-center">
                     {stagedImage && <img src={stagedImage} className="w-full h-full object-cover" />}
-                    {stagedVideo && <Video size={20} className="text-accent-blue" />}
-                    {stagedLocation && <MapPinIcon size={20} className="text-accent-blue" />}
+                    {stagedVideo && <Video size={18} className="text-accent-blue" />}
+                    {stagedLocation && <MapPinIcon size={18} className="text-accent-blue" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-accent-blue uppercase tracking-widest">
+                    <p className="text-[9px] font-black text-accent-blue uppercase tracking-widest">
                       {stagedImage ? "Rasm tayyor" : stagedVideo ? "Video tayyor" : "Joylashuv tayyor"}
                     </p>
-                    <p className="text-xs text-text-primary/60 truncate">
+                    <p className="text-[11px] text-text-primary/60 truncate">
                       {stagedImage ? "Yuborish uchun bosing" : stagedVideo ? "Yuborish uchun bosing" : `${stagedLocation?.lat.toFixed(4)}, ${stagedLocation?.lng.toFixed(4)}`}
                     </p>
                   </div>
@@ -1566,7 +1632,7 @@ const Profile: React.FC<ProfileProps> = ({
                     onClick={() => { setStagedImage(null); setStagedVideo(null); setStagedLocation(null); setStagedFile(null); }} 
                     className="p-1 text-text-primary/40 hover:text-red-500"
                   >
-                    <X size={16} />
+                    <X size={14} />
                   </button>
                 </motion.div>
               )}
@@ -1581,13 +1647,13 @@ const Profile: React.FC<ProfileProps> = ({
                   exit={{ height: 0, opacity: 0 }}
                   className="mb-2 bg-text-primary/5 rounded-xl p-2 flex items-center gap-3 border-l-4 border-accent-blue"
                 >
-                  <Reply size={16} className="text-accent-blue" />
+                  <Reply size={14} className="text-accent-blue" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-accent-blue uppercase tracking-widest">Javob qaytarish</p>
-                    <p className="text-xs text-text-primary/60 truncate">{replyingTo.text || "Ovozli xabar"}</p>
+                    <p className="text-[9px] font-black text-accent-blue uppercase tracking-widest">Javob qaytarish</p>
+                    <p className="text-[11px] text-text-primary/60 truncate">{replyingTo.text || "Ovozli xabar"}</p>
                   </div>
                   <button onClick={() => setReplyingTo(null)} className="p-1 text-text-primary/40">
-                    <X size={16} />
+                    <X size={14} />
                   </button>
                 </motion.div>
               )}
@@ -1648,11 +1714,11 @@ const Profile: React.FC<ProfileProps> = ({
               )}
             </AnimatePresence>
 
-            <div className="flex items-end gap-2 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-2xl rounded-3xl p-1.5 border border-white/40 dark:border-white/10 shadow-lg relative min-h-[52px]">
-              <div className="flex items-center mb-0.5">
+            <div className="flex items-end gap-2 bg-text-primary/5 border border-border-primary rounded-[1.5rem] p-1 backdrop-blur-xl relative min-h-[44px]">
+              <div className="flex items-center mb-0.5 ml-0.5">
                 <button 
                   onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                  className={`p-2 transition-all duration-300 rounded-full shadow-sm ${showAttachmentMenu ? 'rotate-45 bg-gradient-to-br from-accent-blue to-accent-light text-white' : 'bg-white dark:bg-neutral-800 text-text-primary hover:shadow-md active:scale-95'}`}
+                  className={`w-8 h-8 flex items-center justify-center transition-all duration-300 rounded-full ${showAttachmentMenu ? 'rotate-45 bg-accent-blue text-white shadow-md' : 'text-text-primary/40 hover:bg-text-primary/10 active:scale-95'}`}
                 >
                   <Plus size={20} />
                 </button>
@@ -1660,9 +1726,9 @@ const Profile: React.FC<ProfileProps> = ({
                 <AnimatePresence>
                   {showAttachmentMenu && (
                     <motion.div 
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
+                      initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -10 }}
                       className="flex items-center gap-1 ml-1"
                     >
                       <button 
@@ -1670,18 +1736,18 @@ const Profile: React.FC<ProfileProps> = ({
                           handleFileUpload('image');
                           setShowAttachmentMenu(false);
                         }}
-                        className="p-2 bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-full shadow-md active:scale-90 transition-all"
+                        className="w-8 h-8 flex items-center justify-center bg-accent-blue text-white rounded-full shadow-md active:scale-90 transition-all"
                       >
-                        <ImageIcon size={18} />
+                        <ImageIcon size={16} />
                       </button>
                       <button 
                         onClick={() => {
                           handleLocationShare();
                           setShowAttachmentMenu(false);
                         }}
-                        className="p-2 bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-full shadow-md active:scale-90 transition-all"
+                        className="w-8 h-8 flex items-center justify-center bg-accent-blue text-white rounded-full shadow-md active:scale-90 transition-all"
                       >
-                        <MapPinIcon size={18} />
+                        <MapPinIcon size={16} />
                       </button>
                     </motion.div>
                   )}
@@ -1693,7 +1759,7 @@ const Profile: React.FC<ProfileProps> = ({
                 onChange={(e) => {
                   setNewMessage(e.target.value);
                   e.target.style.height = 'auto';
-                  e.target.style.height = `${e.target.scrollHeight}px`;
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -1704,98 +1770,82 @@ const Profile: React.FC<ProfileProps> = ({
                 }}
                 placeholder="Xabar yozing..."
                 rows={1}
-                className="flex-1 bg-transparent border-none outline-none text-[15px] px-3 min-w-[100px] resize-none max-h-32 py-2.5 scrollbar-hide self-center"
+                className="flex-1 bg-transparent border-none outline-none text-[15px] px-2 min-w-[80px] resize-none max-h-32 py-2 scrollbar-hide self-center"
                 disabled={isRecording || isVideoRecording}
               />
               
-              <div className="flex items-center mb-0.5">
+              <div className="flex items-center mb-0.5 mr-0.5">
                 {(!newMessage.trim() && !stagedImage && !stagedVideo && !stagedLocation) ? (
-                  <div className="flex items-center relative">
-                    {/* Cancel Target Indicator (Telegram Style) */}
-                    {(isRecording || isVideoRecording) && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: -45 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center gap-1"
-                      >
-                        <div className={`p-2.5 rounded-full border-2 border-dashed transition-all duration-300 ${isCancelAreaHovered ? 'bg-red-500 border-red-500 text-white scale-125 shadow-lg' : 'bg-white border-text-primary/20 text-text-primary/40'}`}>
-                          <Trash size={16} />
-                        </div>
-                        <span className={`text-[9px] font-black uppercase whitespace-nowrap transition-colors ${isCancelAreaHovered ? 'text-red-500' : 'text-text-primary/40'}`}>
-                          Bekor qilish
-                        </span>
-                      </motion.div>
-                    )}
-                      <button 
-                        onPointerDown={(e) => {
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                          setRecordType('video');
-                          setDragX(0);
-                          dragStartRef.current = e.clientX;
-                          startVideoMessage();
-                        }}
-                        onPointerUp={(e) => {
-                          e.currentTarget.releasePointerCapture(e.pointerId);
-                          dragStartRef.current = null;
-                          stopVideoMessage();
-                        }}
-                        onPointerMove={(e) => {
-                          if (isVideoRecording && dragStartRef.current !== null) {
-                            const diff = e.clientX - dragStartRef.current;
-                            const newX = Math.min(0, diff);
-                            setDragX(newX);
-                            dragXRef.current = newX;
-                            const isHovered = newX < -100;
-                            setIsCancelAreaHovered(isHovered);
-                            isCancelAreaHoveredRef.current = isHovered;
-                          }
-                        }}
-                        className={`p-2 transition-all active:scale-125 relative touch-none rounded-full text-text-primary/60 hover:text-accent-blue ${isVideoRecording ? 'scale-150 z-[60] bg-accent-blue text-white shadow-xl' : ''}`}
-                      >
-                        <Video size={20} />
-                      </button>
-                      <button 
-                        onPointerDown={(e) => {
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                          setRecordType('voice');
-                          setDragX(0);
-                          dragStartRef.current = e.clientX;
-                          startRecording();
-                        }}
-                        onPointerUp={(e) => {
-                          e.currentTarget.releasePointerCapture(e.pointerId);
-                          dragStartRef.current = null;
-                          stopRecording();
-                        }}
-                        onPointerMove={(e) => {
-                          if (isRecording && dragStartRef.current !== null) {
-                            const diff = e.clientX - dragStartRef.current;
-                            const newX = Math.min(0, diff);
-                            setDragX(newX);
-                            dragXRef.current = newX;
-                            const isHovered = newX < -100;
-                            setIsCancelAreaHovered(isHovered);
-                            isCancelAreaHoveredRef.current = isHovered;
-                          }
-                        }}
-                        className={`p-2 transition-all active:scale-125 relative touch-none rounded-full text-text-primary/60 hover:text-accent-blue ${isRecording ? 'scale-150 z-[60] bg-accent-blue text-white shadow-xl' : ''}`}
-                      >
-                        <Mic size={20} />
-                      </button>
+                  <div className="flex items-center gap-0.5">
+                    <button 
+                      onPointerDown={(e) => {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        setRecordType('video');
+                        setDragX(0);
+                        dragStartRef.current = e.clientX;
+                        startVideoMessage();
+                      }}
+                      onPointerUp={(e) => {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                        dragStartRef.current = null;
+                        stopVideoMessage();
+                      }}
+                      onPointerMove={(e) => {
+                        if (isVideoRecording && dragStartRef.current !== null) {
+                          const diff = e.clientX - dragStartRef.current;
+                          const newX = Math.min(0, diff);
+                          setDragX(newX);
+                          dragXRef.current = newX;
+                          const isHovered = newX < -100;
+                          setIsCancelAreaHovered(isHovered);
+                          isCancelAreaHoveredRef.current = isHovered;
+                        }
+                      }}
+                      className={`w-8 h-8 flex items-center justify-center transition-all active:scale-110 relative touch-none rounded-full text-accent-blue hover:bg-accent-blue/5 ${isVideoRecording ? 'bg-accent-blue text-white shadow-xl scale-125' : ''}`}
+                    >
+                      <Video size={18} />
+                    </button>
+                    <button 
+                      onPointerDown={(e) => {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        setRecordType('voice');
+                        setDragX(0);
+                        dragStartRef.current = e.clientX;
+                        startRecording();
+                      }}
+                      onPointerUp={(e) => {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                        dragStartRef.current = null;
+                        stopRecording();
+                      }}
+                      onPointerMove={(e) => {
+                        if (isRecording && dragStartRef.current !== null) {
+                          const diff = e.clientX - dragStartRef.current;
+                          const newX = Math.min(0, diff);
+                          setDragX(newX);
+                          dragXRef.current = newX;
+                          const isHovered = newX < -100;
+                          setIsCancelAreaHovered(isHovered);
+                          isCancelAreaHoveredRef.current = isHovered;
+                        }
+                      }}
+                      className={`w-8 h-8 flex items-center justify-center transition-all active:scale-110 relative touch-none rounded-full text-accent-blue hover:bg-accent-blue/5 ${isRecording ? 'bg-accent-blue text-white shadow-xl scale-125' : ''}`}
+                    >
+                      <Mic size={18} />
+                    </button>
                   </div>
                 ) : (
                   <motion.button 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
                     onClick={() => handleSendMessage()}
                     disabled={isUploading}
-                    className={`p-2.5 rounded-full shadow-lg transition-all ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-br from-blue-500 via-accent-blue to-purple-500 text-white shadow-blue-500/30 active:scale-95'}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full shadow-md transition-all ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-accent-blue text-white active:scale-95'}`}
                   >
                     {isUploading ? (
-                      <RefreshCw size={18} className="animate-spin text-white" />
+                      <RefreshCw size={14} className="animate-spin text-white" />
                     ) : (
-                      <Send size={18} fill="currentColor" className="ml-0.5" />
+                      <Send size={14} className="ml-0.5" />
                     )}
                   </motion.button>
                 )}
@@ -1813,14 +1863,7 @@ const Profile: React.FC<ProfileProps> = ({
           <button
             key={seller.id}
             onClick={() => {
-              setActiveChatSeller(seller);
-              window.history.pushState({ 
-                type: 'profileChat', 
-                sellerId: seller.id,
-                workspace: 'Marketplace',
-                activeTab: 'Profile',
-                profileSubView: 'chats'
-              }, '');
+              onOpenChat(seller.id);
             }}
             className="flex items-center gap-3 p-3 hover:bg-text-primary/5 rounded-xl transition-colors text-left"
           >
@@ -2119,14 +2162,22 @@ const Profile: React.FC<ProfileProps> = ({
             className="flex items-center gap-3 flex-1 cursor-pointer active:opacity-70 transition-opacity"
             onClick={() => onOpenShopProfile(activeChatSeller.id)}
           >
-            <div className="relative">
-              <img 
-                src={activeChatSeller.logo || undefined} 
-                alt={activeChatSeller.name} 
-                className="w-10 h-10 rounded-full object-cover border border-border-primary"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-header-bg rounded-full" />
+            <div className="relative w-10 h-10 overflow-hidden rounded-full border border-border-primary bg-accent-blue/10">
+              <div className="absolute inset-0 flex items-center justify-center text-accent-blue font-black text-lg">
+                {activeChatSeller.name.charAt(0).toUpperCase()}
+              </div>
+              {activeChatSeller.logo && (
+                <img 
+                  src={activeChatSeller.logo} 
+                  alt={activeChatSeller.name} 
+                  className="absolute inset-0 w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-header-bg rounded-full z-10" />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-sm font-black truncate leading-tight uppercase tracking-tighter italic">
@@ -2191,7 +2242,7 @@ const Profile: React.FC<ProfileProps> = ({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
-            className={subView === 'chats' && activeChatSeller ? 'h-full' : ''}
+            className={subView === 'chats' && activeChatSeller ? 'h-full flex flex-col' : ''}
           >
             {subView === 'main' && renderMain()}
             {subView === 'language' && renderLanguage()}

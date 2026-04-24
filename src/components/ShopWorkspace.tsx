@@ -764,6 +764,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
   const startVideoMessage = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz video yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
       if (window.navigator.vibrate) window.navigator.vibrate(50);
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: isFrontCamera ? 'user' : 'environment' }, 
@@ -776,12 +781,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         safePlayVideo(videoPreviewRef.current);
       }
 
-      const recorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') 
+        ? 'video/webm;codecs=vp8,opus' 
+        : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
+      
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recordingChunksRef.current = [];
       recorder.ondataavailable = (e) => recordingChunksRef.current.push(e.data);
       recorder.onstop = () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
-          const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
+          const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
           const reader = new FileReader();
           reader.onloadend = () => {
             handleSendMessage('videoMessage', reader.result as string);
@@ -793,6 +802,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         dragXRef.current = 0;
         setIsCancelAreaHovered(false);
         isCancelAreaHoveredRef.current = false;
+        mediaRecorderRef.current = null;
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
@@ -802,6 +812,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }, 1000);
     } catch (err) {
       console.error("Video access denied:", err);
+      toast.error("Kameraga ruxsat berilmadi yoki xatolik yuz berdi.");
     }
   };
 
@@ -816,15 +827,22 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
   const startRecording = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz audio yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
       if (window.navigator.vibrate) window.navigator.vibrate(50);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
       recordingChunksRef.current = [];
 
       recorder.ondataavailable = (e) => recordingChunksRef.current.push(e.data);
       recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
-          const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
+          const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
           const reader = new FileReader();
           reader.readAsDataURL(blob);
           reader.onloadend = () => {
@@ -837,6 +855,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         dragXRef.current = 0;
         setIsCancelAreaHovered(false);
         isCancelAreaHoveredRef.current = false;
+        mediaRecorderRef.current = null;
       };
 
       recorder.start();
@@ -848,7 +867,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }, 1000);
     } catch (err) {
       console.error("Microphone access denied:", err);
-      toast.error("Mikrofonga ruxsat berilmadi.");
+      toast.error("Mikrofonga ruxsat berilmadi yoki xatolik yuz berdi.");
     }
   };
 
@@ -1681,7 +1700,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           )}
                           {msg.type === 'video' && (
                             <div className="relative aspect-video bg-black rounded-xl flex items-center justify-center overflow-hidden shadow-lg min-w-[200px] group">
-                              <video src={`${msg.mediaUrl}#t=0.1`} controls preload="metadata" className="w-full h-full object-cover" />
+                              <video src={`${msg.mediaUrl}#t=0.1`} controls playsInline preload="metadata" className="w-full h-full object-cover" />
                             </div>
                           )}
                           {msg.type === 'videoMessage' && (
@@ -1691,6 +1710,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                                 className="w-full h-full object-cover scale-x-[-1]" 
                                 loop 
                                 muted 
+                                playsInline
                                 onMouseOver={(e) => safePlayVideo(e.currentTarget)}
                                 onMouseOut={(e) => e.currentTarget.pause()}
                               />
@@ -1771,7 +1791,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                                 </div>
                                 <div className="flex justify-between items-center">
                                   <span className={`text-[8px] font-bold uppercase tracking-widest ${msg.sender === 'shop' ? 'text-white/60' : 'text-text-primary/40'}`}>Ovozli xabar</span>
-                                  <span className={`text-[8px] font-bold ${msg.sender === 'shop' ? 'text-white/60' : 'text-text-primary/40'}`}>0:12</span>
+                                  {msg.duration && <span className={`text-[8px] font-bold ${msg.sender === 'shop' ? 'text-white/60' : 'text-text-primary/40'}`}>{formatDuration(msg.duration)}</span>}
                                 </div>
                               </div>
                             </div>
@@ -1938,168 +1958,104 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                       )}
                     </AnimatePresence>
 
-                    <div className="flex items-end gap-2 bg-text-primary/5 border border-border-primary rounded-[1.5rem] p-1.5 backdrop-blur-xl mt-2">
+                    <div className="flex items-end gap-1.5 bg-text-primary/5 border border-border-primary rounded-[1.5rem] p-1 backdrop-blur-xl mt-2 relative min-h-[44px]">
                       <button 
                         onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-full transition-all ${showAttachmentMenu ? 'bg-accent-blue text-white rotate-45' : 'text-text-primary/40 hover:bg-text-primary/10'}`}
+                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${showAttachmentMenu ? 'bg-accent-blue text-white rotate-45 shadow-md' : 'text-text-primary/40 hover:bg-text-primary/10'}`}
                       >
                         <Plus size={20} />
                       </button>
 
                       <div className="flex-1 relative">
-                        <textarea 
-                          value={messageInput}
-                          onChange={(e) => {
-                            setMessageInput(e.target.value);
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMessage('text');
-                            }
-                          }}
-                          placeholder="Xabar yozing..."
-                          rows={1}
-                          className="w-full bg-transparent px-2 py-2 text-sm focus:outline-none transition-all resize-none max-h-[120px] scrollbar-hide"
-                        />
+                          <textarea 
+                            value={messageInput}
+                            onChange={(e) => {
+                              setMessageInput(e.target.value);
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage('text');
+                              }
+                            }}
+                            placeholder="Xabar yozing..."
+                            rows={1}
+                            className="w-full bg-transparent px-2 py-2 text-[15px] focus:outline-none transition-all resize-none max-h-[120px] scrollbar-hide min-w-[80px]"
+                          />
                       </div>
 
-                      <div className="flex items-center gap-1.5 px-0.5">
-                        {messageInput.trim() || stagedImage || stagedVideo || stagedLocation || stagedFile ? (
-                          <button 
-                            onClick={() => handleSendMessage('text')}
-                            disabled={isUploading}
-                            className={`w-9 h-9 flex items-center justify-center bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-full shadow-lg shadow-accent-blue/20 transition-all flex-shrink-0 ${isUploading ? 'opacity-50' : 'active:scale-90'}`}
-                          >
-                            {isUploading ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            {/* Video Recording Interface */}
-                            {isVideoRecording && (
-                              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                                <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden border-4 border-accent-blue shadow-2xl shadow-accent-blue/20">
-                                  <video 
-                                    ref={videoPreviewRef} 
-                                    muted 
-                                    playsInline 
-                                    className="w-full h-full object-cover scale-x-[-1]" 
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
-                                  <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2">
-                                    <div className="flex items-center gap-2 px-3 py-1 bg-red-500 rounded-full animate-pulse">
-                                      <div className="w-2 h-2 bg-white rounded-full" />
-                                      <span className="text-xs font-black text-white tabular-nums">{formatDuration(recordingDuration)}</span>
+                        <div className="flex items-center gap-0.5 px-0.5 mb-0.5">
+                          {messageInput.trim() || stagedImage || stagedVideo || stagedLocation || stagedFile ? (
+                            <button 
+                              onClick={() => handleSendMessage('text')}
+                              disabled={isUploading}
+                              className={`w-8 h-8 flex items-center justify-center bg-accent-blue text-white rounded-full shadow-md transition-all flex-shrink-0 ${isUploading ? 'opacity-50' : 'active:scale-95'}`}
+                            >
+                              {isUploading ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-0.5">
+                              {isVideoRecording && (
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                                  <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden border-4 border-accent-blue shadow-2xl shadow-accent-blue/20">
+                                    <video ref={videoPreviewRef} muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
+                                    <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2">
+                                      <div className="flex items-center gap-2 px-3 py-1 bg-red-500 rounded-full animate-pulse">
+                                        <div className="w-2 h-2 bg-white rounded-full" />
+                                        <span className="text-xs font-black text-white tabular-nums">{formatDuration(recordingDuration)}</span>
+                                      </div>
+                                      <button onClick={toggleCamera} className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors">
+                                        <FlipHorizontal size={20} />
+                                      </button>
                                     </div>
-                                    <button 
-                                      onClick={toggleCamera}
-                                      className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors"
-                                    >
-                                      <FlipHorizontal size={20} />
-                                    </button>
+                                  </div>
+                                  <div className="absolute bottom-32 left-0 right-0 flex justify-center">
+                                    <motion.div animate={{ x: dragX }} className="flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                      <ChevronLeft size={20} className="text-white animate-pulse" />
+                                      <span className="text-sm font-bold text-white uppercase tracking-widest">{dragX < -100 ? "Qo'yib yuboring" : "Bekor qilish uchun suring"}</span>
+                                    </motion.div>
                                   </div>
                                 </div>
-                                
-                                <div className="absolute bottom-32 left-0 right-0 flex justify-center">
-                                  <motion.div 
-                                    animate={{ x: dragX }}
-                                    className="flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20"
-                                  >
-                                    <ChevronLeft size={20} className="text-white animate-pulse" />
-                                    <span className="text-sm font-bold text-white uppercase tracking-widest">
-                                      {dragX < -100 ? "Qo'yib yuboring" : "Bekor qilish uchun suring"}
-                                    </span>
+                              )}
+
+                              {isRecording && (
+                                <div className="absolute right-0 bottom-0 left-0 h-full bg-bg-primary z-50 flex items-center justify-between px-4 rounded-2xl border border-border-primary">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                    <span className="text-sm font-black text-red-500 tabular-nums">{formatDuration(recordingDuration)}</span>
+                                  </div>
+                                  <motion.div animate={{ x: dragX }} className="flex items-center gap-2 text-text-primary/40">
+                                    <ChevronLeft size={16} className="animate-pulse" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">{dragX < -100 ? "Qo'yib yuboring" : "Bekor qilish uchun suring"}</span>
                                   </motion.div>
+                                  <div className={`p-2 rounded-full transition-colors ${dragX < -100 ? 'bg-red-500 text-white' : 'text-text-primary/20'}`}>
+                                    <Trash size={20} />
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* Voice Recording Interface */}
-                            {isRecording && (
-                              <div className="absolute right-0 bottom-0 left-0 h-full bg-white dark:bg-bg-primary z-50 flex items-center justify-between px-4 rounded-2xl">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                                  <span className="text-sm font-black text-red-500 tabular-nums">{formatDuration(recordingDuration)}</span>
-                                </div>
-                                
-                                <motion.div 
-                                  animate={{ x: dragX }}
-                                  className="flex items-center gap-2 text-text-primary/40"
-                                >
-                                  <ChevronLeft size={16} className="animate-pulse" />
-                                  <span className="text-[10px] font-bold uppercase tracking-widest">
-                                    {dragX < -100 ? "Qo'yib yuboring" : "Bekor qilish uchun suring"}
-                                  </span>
-                                </motion.div>
-
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCancelAreaHovered ? 'bg-red-500 text-white scale-125' : 'bg-accent-blue text-white'} transition-all`}>
-                                  <Mic size={20} />
-                                </div>
-                              </div>
-                            )}
-
-                            <button 
-                              onPointerDown={(e) => {
-                                e.currentTarget.setPointerCapture(e.pointerId);
-                                setRecordType('video');
-                                setDragX(0);
-                                dragStartRef.current = e.clientX;
-                                startVideoMessage();
-                              }}
-                              onPointerUp={(e) => {
-                                e.currentTarget.releasePointerCapture(e.pointerId);
-                                dragStartRef.current = null;
-                                stopVideoMessage();
-                              }}
-                              onPointerMove={(e) => {
-                                if (isVideoRecording && dragStartRef.current !== null) {
-                                  const diff = e.clientX - dragStartRef.current;
-                                  const newX = Math.min(0, diff);
-                                  setDragX(newX);
-                                  dragXRef.current = newX;
-                                  const isHovered = newX < -100;
-                                  setIsCancelAreaHovered(isHovered);
-                                  isCancelAreaHoveredRef.current = isHovered;
-                                }
-                              }}
-                              className="w-9 h-9 flex items-center justify-center rounded-full text-accent-blue hover:bg-accent-blue/5 transition-all active:scale-110"
-                            >
-                              <Video size={18} />
-                            </button>
-
-                            <button 
-                              onPointerDown={(e) => {
-                                e.currentTarget.setPointerCapture(e.pointerId);
-                                setRecordType('voice');
-                                setDragX(0);
-                                dragStartRef.current = e.clientX;
-                                startRecording();
-                              }}
-                              onPointerUp={(e) => {
-                                e.currentTarget.releasePointerCapture(e.pointerId);
-                                dragStartRef.current = null;
-                                stopRecording();
-                              }}
-                              onPointerMove={(e) => {
-                                if (isRecording && dragStartRef.current !== null) {
-                                  const diff = e.clientX - dragStartRef.current;
-                                  const newX = Math.min(0, diff);
-                                  setDragX(newX);
-                                  dragXRef.current = newX;
-                                  const isHovered = newX < -100;
-                                  setIsCancelAreaHovered(isHovered);
-                                  isCancelAreaHoveredRef.current = isHovered;
-                                }
-                              }}
-                              className="w-9 h-9 flex items-center justify-center rounded-full text-accent-blue hover:bg-accent-blue/5 transition-all active:scale-110"
-                            >
-                              <Mic size={18} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                              <button 
+                                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setRecordType('video'); setDragX(0); dragStartRef.current = e.clientX; startVideoMessage(); }}
+                                onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); dragStartRef.current = null; stopVideoMessage(); }}
+                                onPointerMove={(e) => { if (isVideoRecording && dragStartRef.current !== null) { const diff = e.clientX - dragStartRef.current; const newX = Math.min(0, diff); setDragX(newX); dragXRef.current = newX; const isHovered = newX < -100; setIsCancelAreaHovered(isHovered); isCancelAreaHoveredRef.current = isHovered; } }}
+                                className={`w-8 h-8 flex items-center justify-center rounded-full text-accent-blue hover:bg-accent-blue/5 transition-all active:scale-125 ${isVideoRecording ? 'bg-accent-blue text-white scale-125' : ''}`}
+                              >
+                                <Video size={18} />
+                              </button>
+                              <button 
+                                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setRecordType('voice'); setDragX(0); dragStartRef.current = e.clientX; startRecording(); }}
+                                onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); dragStartRef.current = null; stopRecording(); }}
+                                onPointerMove={(e) => { if (isRecording && dragStartRef.current !== null) { const diff = e.clientX - dragStartRef.current; const newX = Math.min(0, diff); setDragX(newX); dragXRef.current = newX; const isHovered = newX < -100; setIsCancelAreaHovered(isHovered); isCancelAreaHoveredRef.current = isHovered; } }}
+                                className={`w-8 h-8 flex items-center justify-center rounded-full text-accent-blue hover:bg-accent-blue/5 transition-all active:scale-125 ${isRecording ? 'bg-accent-blue text-white scale-125' : ''}`}
+                              >
+                                <Mic size={18} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                     </div>
                   </div>
                 </motion.div>

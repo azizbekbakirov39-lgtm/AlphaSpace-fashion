@@ -1540,6 +1540,7 @@ export default function App() {
                       onOpenShopProfile={openShopProfile}
                       onOpenPostDetails={openPostDetails}
                       onToggleSubscribe={toggleSubscribe}
+                      onOpenChat={handleOpenChat}
                       likedPosts={postsWithUserStatus.filter(p => p.isLiked)}
                       recentlyViewedPosts={recentlyViewedPosts}
                       hasShop={hasShop}

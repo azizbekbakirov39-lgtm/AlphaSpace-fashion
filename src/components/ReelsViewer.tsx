@@ -365,7 +365,7 @@ const ReelItem: React.FC<{
         onToggleSharedLike={onToggleLike}
         onToggleSave={onToggleSave}
         onToggleComment={() => setShowComments(true)}
-        onInternalShare={handleInternalShare}
+        onOpenChat={() => onOpenChat && onOpenChat(realPost.seller.id, realPost)}
         onExternalShare={handleExternalShare}
       />
 

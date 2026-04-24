@@ -9,7 +9,7 @@ interface ReelRightActionsProps {
   onToggleSharedLike: () => void;
   onToggleSave: () => void;
   onToggleComment: () => void;
-  onInternalShare: () => void;
+  onOpenChat: () => void;
   onExternalShare: () => void;
 }
 
@@ -18,7 +18,7 @@ const ReelRightActions: React.FC<ReelRightActionsProps> = ({
   onToggleLike,
   onToggleSave,
   onToggleComment,
-  onInternalShare,
+  onOpenChat,
   onExternalShare
 }) => {
   return (
@@ -68,13 +68,13 @@ const ReelRightActions: React.FC<ReelRightActionsProps> = ({
         <Bookmark size={28} fill={realPost.isSaved ? 'currentColor' : 'none'} strokeWidth={2.5} />
       </motion.button>
 
-      {/* Internal Share */}
+      {/* Message / Send to Chat */}
       <motion.button 
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.8 }}
         onClick={(e) => {
           e.stopPropagation();
-          onInternalShare();
+          onOpenChat();
         }} 
         className="w-9 h-9 flex items-center justify-center text-white drop-shadow-lg"
       >
