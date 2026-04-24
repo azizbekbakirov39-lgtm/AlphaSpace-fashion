@@ -56,14 +56,6 @@ export default function App() {
     return <DownloadPage />;
   }
 
-  // Check for ImgBB API Key on startup
-  React.useEffect(() => {
-    const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
-    if (!apiKey) {
-      // Only show toast if user is a seller or tries to upload
-    }
-  }, []);
-
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<PostData[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -111,6 +103,14 @@ export default function App() {
   const [userShops, setUserShops] = useState<Seller[]>([]);
   const [userShop, setUserShop] = useState<Seller | null>(null);
   const [showShopSelector, setShowShopSelector] = useState(false);
+
+  // Check for ImgBB API Key on startup
+  React.useEffect(() => {
+    const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
+    if (!apiKey && userShop) {
+      toast.error("ImgBB API kaliti topilmadi. Rasmlar yuklashda muammo bo'lishi mumkin.");
+    }
+  }, [userShop]);
   
   // Firestore Real-time Listeners
   React.useEffect(() => {

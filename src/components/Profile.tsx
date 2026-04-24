@@ -1328,9 +1328,6 @@ const Profile: React.FC<ProfileProps> = ({
 
       return (
         <div className="flex flex-col h-full relative overflow-hidden">
-          {/* Product Context removed */}
-
-          {/* Chat Background */}
           <div className="absolute inset-0 z-0">
             <div className="w-full h-full bg-gradient-to-br from-[#fdfbfb] to-[#ebedee] dark:from-neutral-900 dark:to-neutral-800">
               <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
@@ -1414,7 +1411,6 @@ const Profile: React.FC<ProfileProps> = ({
                   onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
                   className={`relative max-w-[85%] ${paddingStyle} text-[14px] transition-all cursor-pointer active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
                 >
-                  {/* Reply Preview */}
                   {msg.replyTo && (
                     <div className="mb-2 p-2 bg-black/5 rounded-lg border-l-4 border-accent-blue text-[11px] opacity-70 truncate">
                       {messages.find(m => m.id === msg.replyTo)?.text || "Ovozli xabar"}
@@ -1606,7 +1602,6 @@ const Profile: React.FC<ProfileProps> = ({
             className="p-2 border-t border-border-primary bg-bg-primary/95 backdrop-blur-xl relative z-20"
             style={{ paddingBottom: (subView === 'chats' && activeChatSeller) ? 'calc(6rem + env(safe-area-inset-bottom))' : 'calc(8px + env(safe-area-inset-bottom))' }}
           >
-            {/* Staged Content Preview */}
             <AnimatePresence>
               {(stagedImage || stagedVideo || stagedLocation) && (
                 <motion.div 
@@ -1638,7 +1633,6 @@ const Profile: React.FC<ProfileProps> = ({
               )}
             </AnimatePresence>
 
-            {/* Reply Preview in Input */}
             <AnimatePresence>
               {replyingTo && (
                 <motion.div 
@@ -1659,7 +1653,6 @@ const Profile: React.FC<ProfileProps> = ({
               )}
             </AnimatePresence>
 
-            {/* Recording Overlay (Telegram Style) */}
             <AnimatePresence>
               {(isRecording || isVideoRecording) && (
                 <motion.div 
