@@ -52,10 +52,6 @@ import {
 } from './firebase';
 
 export default function App() {
-  if (window.location.pathname === '/download') {
-    return <DownloadPage />;
-  }
-
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<PostData[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -103,6 +99,10 @@ export default function App() {
   const [userShops, setUserShops] = useState<Seller[]>([]);
   const [userShop, setUserShop] = useState<Seller | null>(null);
   const [showShopSelector, setShowShopSelector] = useState(false);
+
+  if (window.location.pathname === '/download') {
+    return <DownloadPage />;
+  }
 
   // Check for ImgBB API Key on startup
   React.useEffect(() => {

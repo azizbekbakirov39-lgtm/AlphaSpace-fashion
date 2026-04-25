@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -39,6 +40,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const messaging = getMessaging(app);
 
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
 
@@ -142,3 +144,39 @@ export {
 };
 
 export { ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString };
+
+export const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    console.log('This browser does not support desktop notification');
+    return null;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+      if (!vapidKey) {
+        console.warn("VITE_FIREBASE_VAPID_KEY yo'q. .env fayliga VAPID kalitni qo'shing.");
+        return null;
+      }
+      
+      const currentToken = await getToken(messaging, { vapidKey });
+      if (currentToken) {
+        console.log('FCM Token olindi:', currentToken);
+        // Bu tokenni backend (Firestore) ga saqlashingiz mumkin
+        return currentToken;
+      } else {
+        console.log('Token olinmadi.');
+        return null;
+      }
+    } else {
+      console.log('Bildirishnomalarga ruxsat berilmadi.');
+      return null;
+    }
+  } catch (error) {
+    console.error('Bildirishnomalarga ruxsat so\'rashda xatolik:', error);
+    return null;
+  }
+};
+
+export { onMessage };
