@@ -8,7 +8,7 @@ import {
 import { PostData } from '../types';
 import { Language, translations } from '../translations';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
 
 const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; index: number }> = ({ url, isMuted, post, index }) => {
@@ -569,9 +569,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                   className="bg-white dark:bg-neutral-900 overflow-hidden relative"
                 >
                   <div className="aspect-[9/16] relative">
-                    {relatedPost.mediaType === 'video' || (relatedPost.mediaUrls?.[0] && (relatedPost.mediaUrls[0].includes('.mp4') || relatedPost.mediaUrls[0].includes('video/upload'))) ? (
+                    {isVideoUrl(getPostThumbnailUrl(relatedPost)) ? (
                       <video 
-                        src={`${relatedPost.mediaUrls?.[0]}#t=0.1`}
+                        src={`${getProxiedUrl(getPostThumbnailUrl(relatedPost), 0)}#t=0.1`}
                         className="w-full h-full object-cover"
                         preload="metadata"
                         muted
@@ -579,7 +579,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                       />
                     ) : (
                       <img 
-                        src={getProxiedUrl(relatedPost.mediaUrls[0])} 
+                        src={getProxiedUrl(getPostThumbnailUrl(relatedPost), 0)} 
                         alt={relatedPost.outfitName}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
