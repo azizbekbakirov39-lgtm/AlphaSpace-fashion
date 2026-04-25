@@ -170,23 +170,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     let initComplete = false;
 
     const unsubChats = onSnapshot(q, (snapshot) => {
-      // Notification Logic
-      if (initComplete) {
-        snapshot.docChanges().forEach(change => {
-           if (change.type === 'modified') {
-             const data = change.doc.data();
-             // If last sender is NOT the shop, it means customer sent a message
-             if (data.lastSender && data.lastSender !== shopData.id) {
-               // Show notification only if we're not actively conversing in this specific chat
-               if (document.hidden || activeChatId !== change.doc.id) {
-                  showChatNotification("Yangi xabar", data.lastMessage || "Mijoz xabar yubordi");
-               }
-             }
-           }
-        });
-      }
-      initComplete = true;
-
       const chatsData = snapshot.docs.map(chatDoc => {
         const chatId = chatDoc.id;
         const customerUid = chatId.replace(shopData.id, '').replace('_', '');

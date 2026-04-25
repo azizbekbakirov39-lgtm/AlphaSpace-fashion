@@ -26,32 +26,48 @@ export const playNotificationSound = () => {
 
 // Umumiy bildirishnoma ko'rsatish funksiyasi
 export const showChatNotification = (title: string, body: string) => {
-  // 1. Ilova ichida chiroyli toast
-  toast(body, {
-    icon: '📩',
-    duration: 5000,
-    position: 'top-center',
-    style: {
-      borderRadius: '20px',
-      background: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(10px)',
-      color: '#000',
-      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-      fontWeight: 'bold',
-      border: '1px solid rgba(0,149,255,0.2)'
-    },
-  });
+  // 1. Ilova ichida chiroyli toast faqat ilova ekranda turganda
+  if (!document.hidden) {
+    toast(body, {
+      icon: '📩',
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        borderRadius: '20px',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        color: '#000',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+        fontWeight: 'bold',
+        border: '1px solid rgba(0,149,255,0.2)'
+      },
+    });
+  }
 
   // 2. Ovoz
   playNotificationSound();
 
-  // 3. Desktop/Telefon operatsion tizimining standart bildirishnomasi (agar sahifa ochiq bo'lmasligi yoki yashiringan bo'lsa)
+  // 3. Desktop/Telefon operatsion tizimining standart bildirishnomasi (Tepadan tushadigan panelda)
   if ("Notification" in window && Notification.permission === "granted") {
-    if (document.hidden) {
-      new Notification(title, { 
-        body,
-        icon: '/favicon.ico'
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(title, {
+          body,
+          icon: '/favicon.ico', // Ilova ikonkasi
+          badge: '/favicon.ico',
+          vibrate: [200, 100, 200, 100, 200], // Telefon titrashi
+          tag: 'chat-message', // Bitta joyga yig'ish
+          renotify: true,
+        });
+      }).catch(err => {
+        if (document.hidden) {
+          new Notification(title, { body, icon: '/favicon.ico' });
+        }
       });
+    } else {
+      if (document.hidden) {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      }
     }
   }
 };

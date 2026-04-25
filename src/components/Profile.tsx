@@ -65,6 +65,7 @@ interface ProfileProps {
   onOpenShopSelector?: () => void;
   userShops?: Seller[];
   workspace: 'Marketplace' | 'Shop';
+  onActiveChatSellerIdChange?: (id: string | undefined) => void;
   likedPosts: PostData[];
   recentlyViewedPosts: PostData[];
   hasShop: boolean;
@@ -113,6 +114,7 @@ const Profile: React.FC<ProfileProps> = ({
   onOpenShopSelector,
   userShops = [],
   workspace,
+  onActiveChatSellerIdChange,
   likedPosts,
   recentlyViewedPosts,
   hasShop,
@@ -135,6 +137,13 @@ const Profile: React.FC<ProfileProps> = ({
   const { installApp, isStandalone, isInAppBrowser, canInstall } = usePWA();
   const [showInAppGuideModal, setShowInAppGuideModal] = useState(false);
   const [activeChatSeller, setActiveChatSeller] = useState<Seller | null>(null);
+
+  React.useEffect(() => {
+    if (onActiveChatSellerIdChange) {
+      onActiveChatSellerIdChange(activeChatSeller?.id);
+    }
+  }, [activeChatSeller, onActiveChatSellerIdChange]);
+
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -169,24 +178,6 @@ const Profile: React.FC<ProfileProps> = ({
     let initComplete = false;
 
     const unsubChats = onSnapshot(q, (snapshot) => {
-      // Notification Logic
-      if (initComplete) {
-        snapshot.docChanges().forEach(change => {
-           if (change.type === 'modified') {
-             const data = change.doc.data();
-             // If last sender is NOT the user, it means shop sent a message
-             if (data.lastSender && data.lastSender !== user.uid) {
-                const msgSellerId = change.doc.id.replace(user.uid, '').replace('_', '');
-               // Show notification only if we're not actively conversing in this specific chat
-               if (document.hidden || activeChatSeller?.id !== msgSellerId || subView !== 'messages') {
-                  showChatNotification("Do'kondan xabar", data.lastMessage || "Yangi xabar keldi");
-               }
-             }
-           }
-        });
-      }
-      initComplete = true;
-
       snapshot.docs.forEach(chatDoc => {
         const chatId = chatDoc.id;
         const sellerId = chatId.replace(user.uid, '').replace('_', '');

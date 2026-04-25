@@ -26,6 +26,7 @@ import { Toaster, toast } from 'sonner';
 import { uploadImageToImgBB } from './services/imgbb';
 import { showChatNotification } from './utils/notifications';
 import { requestNotificationPermission, onMessage, messaging } from './firebase';
+import { useChatNotifications } from './hooks/useChatNotifications';
 import { 
   auth, 
   onSnapshot, 
@@ -100,6 +101,7 @@ export default function App() {
   const [userShops, setUserShops] = useState<Seller[]>([]);
   const [userShop, setUserShop] = useState<Seller | null>(null);
   const [showShopSelector, setShowShopSelector] = useState(false);
+  const [profileActiveChatSellerId, setProfileActiveChatSellerId] = useState<string | undefined>(undefined);
 
   if (window.location.pathname === '/download') {
     return <DownloadPage />;
@@ -469,6 +471,8 @@ export default function App() {
   // Shop Workspace Internal Navigation (Lifted for history management)
   const [shopWorkspaceTab, setShopWorkspaceTab] = React.useState('MyShop');
   const [shopWorkspaceChatId, setShopWorkspaceChatId] = useState<string | null>(null);
+
+  useChatNotifications(user, userShop, activeTab, shopWorkspaceChatId, profileActiveChatSellerId, profileSubView);
 
   const t = translations[language];
 
@@ -1568,6 +1572,7 @@ export default function App() {
                       onOpenShopSelector={() => setShowShopSelector(true)}
                       userShops={userShops}
                       workspace={workspace}
+                      onActiveChatSellerIdChange={setProfileActiveChatSellerId}
                     />
                   </motion.div>
                 ) : (
