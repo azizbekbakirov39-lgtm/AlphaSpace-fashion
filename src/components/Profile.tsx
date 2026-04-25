@@ -45,7 +45,7 @@ import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
 import { showChatNotification } from '../utils/notifications';
 import { PostData, Seller, User } from '../types';
-import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
+import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, getDoc, updateDoc, increment, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { uploadImageToImgBB } from '../services/imgbb';
 
 import { InAppBrowserGuide } from './InAppBrowserGuide';
@@ -147,6 +147,18 @@ const Profile: React.FC<ProfileProps> = ({
   
   // Firestore Chat Listeners
   const messageUnsubs = React.useRef<{ [chatId: string]: () => void }>({});
+
+  const [downloadCount, setDownloadCount] = useState<number>(0);
+
+  // Realtime listener for app downloads
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'stats', 'appTracker'), (docSnap) => {
+      if (docSnap.exists()) {
+        setDownloadCount(docSnap.data().downloads || 0);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   React.useEffect(() => {
     if (!user) return;
@@ -967,6 +979,86 @@ const Profile: React.FC<ProfileProps> = ({
               )}
             </AnimatePresence>
           </div>
+
+          {/* Smart App Download Banner */}
+          {!isStandalone && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full bg-white rounded-[2.5rem] p-6 shadow-2xl shadow-accent-blue/10 border border-border-primary/50 flex flex-col items-center gap-6 mt-8 mb-6 overflow-hidden relative shrink-0"
+            >
+              {/* Background embellishments */}
+              <div className="absolute -top-10 -right-10 w-48 h-48 bg-accent-blue/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col items-center justify-center relative z-10 w-full">
+                <Logo width={120} height={120} showText={true} animated={false} />
+                <span className="text-[12px] uppercase font-black text-accent-blue tracking-[0.2em] leading-tight text-center mt-2 bg-accent-blue/10 px-4 py-1.5 rounded-full">
+                  Ilova sifatida yuklash
+                </span>
+                {downloadCount > 0 && (
+                  <span className="text-xs font-bold text-gray-400 mt-3 flex items-center gap-1">
+                    <Users size={14} className="text-accent-blue" />
+                    {downloadCount.toLocaleString()}+ marta yuklab olingan
+                  </span>
+                )}
+              </div>
+              
+              <button
+                onClick={async () => {
+                  try {
+                    const statsRef = doc(db, 'stats', 'appTracker');
+                    const statsDoc = await getDoc(statsRef);
+                    if (statsDoc.exists()) {
+                      await updateDoc(statsRef, { downloads: increment(1) });
+                    } else {
+                      await setDoc(statsRef, { downloads: 1 });
+                    }
+                  } catch (e) {
+                     console.error('Failed to increment download count', e);
+                  }
+                  const promptShown = await installApp();
+                  if (!promptShown) {
+                    setShowInAppGuideModal(true);
+                  }
+                }}
+                className="w-full relative z-10 px-6 py-5 bg-gradient-to-r from-accent-blue to-accent-light text-white rounded-2xl font-black text-base uppercase tracking-widest shadow-xl shadow-accent-blue/30 active:scale-95 transition-all flex items-center justify-center gap-3 hover:shadow-2xl hover:-translate-y-1"
+              >
+                <Download size={24} strokeWidth={2.5} />
+                O'rnatish
+              </button>
+            </motion.div>
+          )}
+
+          {/* Modal for App Guide */}
+          <AnimatePresence>
+            {showInAppGuideModal && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              >
+                <motion.div 
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  className="bg-[#111] border border-white/10 rounded-3xl w-full max-w-md overflow-hidden relative"
+                >
+                  <button 
+                    onClick={() => setShowInAppGuideModal(false)}
+                    className="absolute top-4 right-4 p-2 bg-white/10 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition-colors z-10"
+                  >
+                    <X size={20} />
+                  </button>
+                  <div className="p-2">
+                    <InAppBrowserGuide />
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </div>
       );
     }
@@ -1064,10 +1156,27 @@ const Profile: React.FC<ProfileProps> = ({
               <span className="text-[12px] uppercase font-black text-accent-blue tracking-[0.2em] leading-tight text-center mt-2 bg-accent-blue/10 px-4 py-1.5 rounded-full">
                 Ilova sifatida yuklash
               </span>
+              {downloadCount > 0 && (
+                <span className="text-xs font-bold text-gray-400 mt-3 flex items-center gap-1">
+                  <Users size={14} className="text-accent-blue" />
+                  {downloadCount.toLocaleString()}+ marta yuklab olingan
+                </span>
+              )}
             </div>
             
             <button
               onClick={async () => {
+                try {
+                  const statsRef = doc(db, 'stats', 'appTracker');
+                  const statsDoc = await getDoc(statsRef);
+                  if (statsDoc.exists()) {
+                    await updateDoc(statsRef, { downloads: increment(1) });
+                  } else {
+                    await setDoc(statsRef, { downloads: 1 });
+                  }
+                } catch (e) {
+                   console.error('Failed to increment download count', e);
+                }
                 const promptShown = await installApp();
                 if (!promptShown) {
                   setShowInAppGuideModal(true);
