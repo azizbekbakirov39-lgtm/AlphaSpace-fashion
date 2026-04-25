@@ -27,24 +27,6 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
     }
   }, []);
 
-  const handleMediaSuccess = useCallback((mediaElement: HTMLVideoElement | HTMLImageElement | null) => {
-    // Basic validation that video actually has content
-    if (mediaElement instanceof HTMLVideoElement) {
-       if (mediaElement.readyState >= 2 && (mediaElement.videoWidth === 0 || mediaElement.videoHeight === 0)) {
-         console.warn("Video success called but dimensions are 0. Treating as error.");
-         handleMediaError(mediaElement);
-         return;
-       }
-    }
-
-    clearLoadingTimeout();
-    setIsLoading(false);
-    setHasError(false);
-    if (mediaElement?.src) {
-      markUrlAsSuccessful(currentUrl, mediaElement.src);
-    }
-  }, [currentUrl, clearLoadingTimeout, handleMediaError]);
-
   const handleMediaError = useCallback(async (mediaElement: HTMLVideoElement | null) => {
     clearLoadingTimeout();
     
@@ -107,6 +89,24 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
       }
     }
   }, [proxyIndex, post, mediaIndex, isActive, currentUrl, clearLoadingTimeout]);
+
+  const handleMediaSuccess = useCallback((mediaElement: HTMLVideoElement | HTMLImageElement | null) => {
+    // Basic validation that video actually has content
+    if (mediaElement instanceof HTMLVideoElement) {
+       if (mediaElement.readyState >= 2 && (mediaElement.videoWidth === 0 || mediaElement.videoHeight === 0)) {
+         console.warn("Video success called but dimensions are 0. Treating as error.");
+         handleMediaError(mediaElement);
+         return;
+       }
+    }
+
+    clearLoadingTimeout();
+    setIsLoading(false);
+    setHasError(false);
+    if (mediaElement?.src) {
+      markUrlAsSuccessful(currentUrl, mediaElement.src);
+    }
+  }, [currentUrl, clearLoadingTimeout, handleMediaError]);
 
   const handleRetry = useCallback((mediaElement: HTMLVideoElement | null) => {
     setHasError(false);

@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, MessageCircle, Share2, Volume2, VolumeX, Check, ChevronLeft, ChevronRight, ShoppingBag, Send } from 'lucide-react';
 import { Story, PostData, User } from '../types';
-import { isVideoUrl, useShare, safePlayVideo, getProxiedUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
+import { isVideoUrl, useShare, safePlayVideo, getProxiedUrl, getNextProxyIndex, markUrlAsSuccessful } from '../utils/mediaUtils';
+import { useMediaController } from '../hooks/useMediaController';
 import { formatRelativeTime } from '../utils/timeUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
@@ -67,6 +68,20 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const mockPost: PostData = {
+    id: `story-post-${currentStory?.id || 'story'}`,
+    seller: currentStory?.seller || { id: 'unknown', name: 'Unknown', logo: '', hasStory: false, followers: 0, categories: [] },
+    mediaUrls: [currentStory?.videoUrl || ''],
+    mediaType: 'video',
+    price: currentStory?.price || '',
+    outfitName: "Story Product",
+    likes: currentStory?.likes || 0,
+    comments: currentStory?.comments || 0,
+    isLiked: currentStory?.isLiked || false,
+    isSaved: false,
+    instagramUrl: ''
   };
 
   const { 
@@ -264,19 +279,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   };
 
   if (!currentStory) return null;
-
-  const mockPost: PostData = {
-    id: `story-post-${currentStory.id}`,
-    seller: currentStory.seller,
-    mediaUrls: [currentStory.videoUrl],
-    mediaType: 'video',
-    price: currentStory.price || '',
-    outfitName: "Story Product",
-    likes: currentStory.likes,
-    comments: currentStory.comments,
-    isLiked: currentStory.isLiked || false,
-    isSaved: false
-  };
 
   return (
     <motion.div

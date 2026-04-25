@@ -46,7 +46,7 @@ const ReelImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: string
         if (shouldLoad) markUrlAsSuccessful(url, proxiedUrl);
       }}
       onError={(e) => {
-        if (!isLastProxy(proxyIndex)) {
+        if (!isLastProxy(proxyIndex, url)) {
           setProxyIndex(prev => getNextProxyIndex(prev));
         } else {
           const target = e.target as HTMLImageElement;
