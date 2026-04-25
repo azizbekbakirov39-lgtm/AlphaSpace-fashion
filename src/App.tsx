@@ -24,7 +24,8 @@ import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
 import { Toaster, toast } from 'sonner';
 import { uploadImageToImgBB } from './services/imgbb';
-import { requestNotificationPermission } from './utils/notifications';
+import { showChatNotification } from './utils/notifications';
+import { requestNotificationPermission, onMessage, messaging } from './firebase';
 import { 
   auth, 
   onSnapshot, 
@@ -359,9 +360,18 @@ export default function App() {
 
   // Firebase Auth Listener
   React.useEffect(() => {
+    // Add foreground message listener
+    if (messaging) {
+      const unsubMessaging = onMessage(messaging, (payload) => {
+        console.log('FCM Foreground message: ', payload);
+        showChatNotification(payload.notification?.title || 'Yangi xabar', payload.notification?.body || '');
+      });
+      // Optionally attach it to window to prevent being garbage collected or trace
+    }
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        requestNotificationPermission(); // Muloqot xabarnomalari kelishi uchun so'rash
+        requestNotificationPermission(firebaseUser.uid); // Muloqot xabarnomalari kelishi uchun so'rash
         
         // Just set the basic user info first to trigger other effects
         // The real-time profile listener will handle the rest

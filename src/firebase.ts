@@ -145,7 +145,7 @@ export {
 
 export { ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString };
 
-export const requestNotificationPermission = async () => {
+export const requestNotificationPermission = async (uid?: string) => {
   if (!('Notification' in window)) {
     console.log('This browser does not support desktop notification');
     return null;
@@ -164,6 +164,13 @@ export const requestNotificationPermission = async () => {
       if (currentToken) {
         console.log('FCM Token olindi:', currentToken);
         // Bu tokenni backend (Firestore) ga saqlashingiz mumkin
+        if (uid) {
+           try {
+             await updateDoc(doc(db, 'users', uid), { fcmToken: currentToken });
+           } catch (e) {
+             console.error("Tokenni firestore ga saqlashda xatolik:", e);
+           }
+        }
         return currentToken;
       } else {
         console.log('Token olinmadi.');
