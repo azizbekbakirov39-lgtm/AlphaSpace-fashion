@@ -114,6 +114,7 @@ export interface PostData {
     tags?: string[];
   };
   instagramUrl?: string;
+  thumbnailUrl?: string;
 }
 
 export interface AIMessage {

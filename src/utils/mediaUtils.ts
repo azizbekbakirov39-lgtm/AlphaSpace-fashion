@@ -67,7 +67,7 @@ export const isVideoUrl = (url: string): boolean => {
     lowerUrl.includes('stream') ||
     lowerUrl.includes('blob') ||
     lowerUrl.includes('upload') ||
-    lowerUrl.includes('fbcdn.net') || // Instagram/Facebook CDN often hosts videos here
+    (lowerUrl.includes('fbcdn.net') && lowerUrl.includes('mp4')) || // Only if it also says mp4
     lowerUrl.includes('instagram.com/reels') ||
     lowerUrl.includes('instagram.com/reel')
   ) {
@@ -211,4 +211,20 @@ export const isLastProxy = (index: number, url: string): boolean => {
   }
   // For images try all in pool
   return index >= PROXY_POOL.length - 1;
+};
+
+/**
+ * Returns the best available thumbnail for a post.
+ * Prefers explicitly defined thumbnailUrl, then the first image from mediaUrls.
+ */
+export const getPostThumbnailUrl = (post: { thumbnailUrl?: string, mediaUrls: string[] }): string => {
+  if (post.thumbnailUrl) return post.thumbnailUrl;
+  
+  if (post.mediaUrls && post.mediaUrls.length > 0) {
+    // Find first true image URL if possible
+    const firstImage = post.mediaUrls.find(url => !isVideoUrl(url));
+    return firstImage || post.mediaUrls[0];
+  }
+  
+  return '';
 };

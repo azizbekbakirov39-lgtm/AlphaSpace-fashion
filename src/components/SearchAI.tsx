@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt, Search } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { AIMessage, PostData } from '../types';
-import { isVideoUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartSellerLogo from './SmartSellerLogo';
 
@@ -598,40 +598,17 @@ Foydalanuvchi xabari: ${messageText}`;
                         className="bg-neutral-50 dark:bg-neutral-900 overflow-hidden relative"
                       >
                         <div className="aspect-[9/16] relative">
-                          {isVideoUrl(post.mediaUrls?.[0]) ? (
-                            <>
-                              <video 
-                                src={`${post.mediaUrls?.[0]}#t=0.1`}
-                                className="w-full h-full object-cover"
-                                preload="metadata"
-                                muted
-                                playsInline
-                                onError={(e) => {
-                                  const video = e.currentTarget;
-                                  if (!video.dataset.triedProxy) {
-                                    video.dataset.triedProxy = 'true';
-                                    video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(post.mediaUrls?.[0] || '')}`;
-                                    video.load();
-                                  } else {
-                                    // Final fallback: hide video and show image if possible
-                                    video.style.display = 'none';
-                                    const img = video.nextElementSibling as HTMLImageElement;
-                                    if (img) img.style.display = 'block';
-                                  }
-                                }}
-                              />
-                              {post.thumbnailUrl && (
-                                <img 
-                                  src={post.thumbnailUrl} 
-                                  style={{ display: 'none' }}
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                              )}
-                            </>
+                          {isVideoUrl(getPostThumbnailUrl(post)) ? (
+                            <video 
+                              src={`${getProxiedUrl(getPostThumbnailUrl(post), 0)}#t=0.1`}
+                              className="w-full h-full object-cover"
+                              preload="metadata"
+                              muted
+                              playsInline
+                            />
                           ) : (
                             <img 
-                              src={post.mediaUrls[0]} 
+                              src={getProxiedUrl(getPostThumbnailUrl(post), 0)} 
                               alt={post.outfitName} 
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"

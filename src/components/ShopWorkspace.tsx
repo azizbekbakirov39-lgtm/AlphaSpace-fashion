@@ -49,7 +49,7 @@ import {
   Eye,
   Heart
 } from 'lucide-react';
-import { isVideoUrl, getProxiedUrl, safePlayVideo } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, safePlayVideo, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -476,12 +476,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       let mediaUrls: string[] = [];
       let mediaType: 'video' | 'carousel' = 'carousel';
       let description = "";
+      let thumbnailUrl = "";
 
       if (Array.isArray(result) && result.length > 0) {
         // If it's an array, it's a carousel (multiple slides)
         mediaUrls = result.map((item: any) => {
           if (item.urls && Array.isArray(item.urls) && item.urls.length > 0) {
-            // Pick the first URL which is usually the highest quality/primary one
             return item.urls[0].url;
           } else if (item.pictureUrl) {
             return item.pictureUrl;
@@ -493,9 +493,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           return null;
         }).filter(Boolean) as string[];
 
-        // Try to find the best description
+        // Try to find the best description and thumbnail
         const firstItem = result[0];
         description = firstItem.caption || firstItem.text || (firstItem.meta && firstItem.meta.title) || "";
+        
+        // Use first item's display/thumbnail if available as post thumbnail
+        thumbnailUrl = firstItem.pictureUrl || firstItem.display_url || firstItem.thumbnail_url || mediaUrls[0] || "";
         
         // Check if any item is a video
         const hasVideo = result.some((item: any) => 
@@ -508,16 +511,17 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           mediaType = 'carousel';
         }
       } else if (result.urls && Array.isArray(result.urls)) {
-        // Single post with multiple resolutions/formats
-        // If it's a single post, we only want the primary media URL
+        // Single post
         mediaUrls = [result.urls[0].url].filter(Boolean);
         description = result.caption || result.text || (result.meta && result.meta.title) || "";
+        thumbnailUrl = result.pictureUrl || result.display_url || result.thumbnail_url || mediaUrls[0] || "";
         
         const hasVideo = result.urls.some((u: any) => u.extension === 'mp4' || u.url?.includes('.mp4') || u.url?.includes('video'));
         mediaType = hasVideo ? 'video' : 'carousel';
       } else if (result.pictureUrl || result.display_url || result.thumbnail_url) {
         mediaUrls = [result.pictureUrl || result.display_url || result.thumbnail_url].filter(Boolean);
         description = result.caption || result.text || (result.meta && result.meta.title) || "";
+        thumbnailUrl = result.pictureUrl || result.display_url || result.thumbnail_url || "";
         mediaType = 'carousel';
       }
 
@@ -530,6 +534,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         price: "",
         description: description,
         mediaUrls: mediaUrls,
+        thumbnailUrl: thumbnailUrl,
         category: "Kiyim",
         sizes: [],
         colors: [],
@@ -1466,7 +1471,18 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           className="aspect-[9/16] bg-text-primary/5 overflow-hidden relative group cursor-pointer"
                           onClick={() => onOpenReels?.(posts, index)}
                         >
-                          {post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                           {post.thumbnailUrl ? (
+                            <img 
+                              src={getProxiedUrl(post.thumbnailUrl, 0)}
+                              className="w-full h-full object-cover"
+                              alt={post.outfitName}
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : post.mediaType === 'video' || (post.mediaUrls?.[0] && post.mediaUrls[0].includes('.mp4')) ? (
                             <video 
                               src={`${post.mediaUrls?.[0]}#t=0.1`}
                               className="w-full h-full object-cover"
@@ -3011,16 +3027,16 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
                   onClick={() => setSelectedPostId(post.id)}
                   className={`aspect-[9/16] overflow-hidden border-2 transition-all relative cursor-pointer ${selectedPostId === post.id ? 'border-orange-500 scale-[0.98] z-10 shadow-xl' : 'border-transparent opacity-80 hover:opacity-100'}`}
                 >
-                  {post.mediaType === 'video' || (post.mediaUrls?.[0] && (post.mediaUrls[0].includes('.mp4') || post.mediaUrls[0].includes('video/upload'))) ? (
+                  {isVideoUrl(getPostThumbnailUrl(post)) ? (
                     <video 
-                      src={`${post.mediaUrls?.[0]}#t=0.1`}
+                      src={`${getProxiedUrl(getPostThumbnailUrl(post), 0)}#t=0.1`}
                       className="w-full h-full object-cover"
                       preload="metadata"
                       muted
                       playsInline
                     />
                   ) : (
-                    <img src={post.mediaUrls?.[0] || undefined} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                    <img src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                   )}
                   {selectedPostId === post.id && (
                     <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">

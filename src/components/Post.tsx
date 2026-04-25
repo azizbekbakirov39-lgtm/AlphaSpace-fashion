@@ -9,7 +9,7 @@ import PostInteractions from './PostInteractions';
 import PostInfo from './PostInfo';
 
 import { Language, translations } from '../translations';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, getNextProxyIndex, isLastProxy, markUrlAsSuccessful, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { useMediaController } from '../hooks/useMediaController';
@@ -502,9 +502,9 @@ const Post: React.FC<PostProps> = ({
             )}
 
             {/* Instagram Trick: HD Poster behind the video */}
-            {post.thumbnailUrl && (
+            {(post.thumbnailUrl || getPostThumbnailUrl(post)) && (
               <img 
-                src={getProxiedUrl(post.thumbnailUrl, 0)}
+                src={getProxiedUrl(post.thumbnailUrl || getPostThumbnailUrl(post), 0)}
                 alt="Video Thumbnail"
                 className="absolute inset-0 w-full h-full object-cover z-0"
                 referrerPolicy="no-referrer"
@@ -573,7 +573,7 @@ const Post: React.FC<PostProps> = ({
                           isNext={isActive && idx === currentImageIndex + 1}
                           isUpcoming={isActive && idx === currentImageIndex + 2}
                           shouldLoad={shouldLoad}
-                          poster={post.thumbnailUrl || (idx === 0 ? url : undefined)}
+                          poster={getPostThumbnailUrl(post) || (idx === 0 ? url : undefined)}
                           post={post}
                           index={idx}
                           isGlobalPaused={isPaused}

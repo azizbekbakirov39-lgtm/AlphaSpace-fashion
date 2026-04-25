@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Seller, PostData } from '../types';
 import { Language, translations } from '../translations';
-import { isVideoUrl, useShare, safePlayVideo } from '../utils/mediaUtils';
+import { isVideoUrl, useShare, safePlayVideo, getProxiedUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
 
 const ShopCoverVideo: React.FC<{ url: string }> = ({ url }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -424,9 +424,9 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                   onClick={() => onOpenPostDetails(posts, index)}
                   className={`aspect-[9/16] relative group overflow-hidden bg-neutral-900 shadow-sm transition-all duration-500 ease-out ${isViewed ? 'ring-2 ring-inset ring-white/50 opacity-50 z-10' : ''}`}
                 >
-                  {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                  {isVideoUrl(getPostThumbnailUrl(post)) ? (
                     <video 
-                      src={`${post.mediaUrls[0]}#t=0.1`}
+                      src={`${getProxiedUrl(getPostThumbnailUrl(post), 0)}#t=0.1`}
                       className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isViewed ? 'scale-105' : ''}`}
                       preload="metadata"
                       muted
@@ -434,7 +434,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                     />
                   ) : (
                     <img 
-                      src={post.mediaUrls[0]} 
+                      src={getProxiedUrl(getPostThumbnailUrl(post), 0)} 
                       alt={post.outfitName}
                       className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isViewed ? 'scale-105' : ''}`}
                       referrerPolicy="no-referrer"

@@ -39,7 +39,7 @@ import {
   EyeOff,
   AlertCircle
 } from 'lucide-react';
-import { isVideoUrl, safePlayVideo } from '../utils/mediaUtils';
+import { isVideoUrl, safePlayVideo, getPostThumbnailUrl, getProxiedUrl } from '../utils/mediaUtils';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
@@ -1591,7 +1591,7 @@ const Profile: React.FC<ProfileProps> = ({
                       {isVideoUrl(msg.post.mediaUrls[0] || '') ? (
                         <div className="relative w-full aspect-[9/16] bg-black flex items-center justify-center group">
                           <video 
-                            src={`${msg.post.mediaUrls[0]}#t=0.1`} 
+                            src={`${getProxiedUrl(msg.post.mediaUrls[0], 0)}#t=0.1`} 
                             preload="metadata" 
                             className="w-full h-full object-cover" 
                           />
@@ -1602,7 +1602,7 @@ const Profile: React.FC<ProfileProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <img src={msg.post.mediaUrls[0] || undefined} alt="" className="w-full aspect-[9/16] object-cover" referrerPolicy="no-referrer" />
+                        <img src={getProxiedUrl(getPostThumbnailUrl(msg.post), 0) || undefined} alt="" className="w-full aspect-[9/16] object-cover" referrerPolicy="no-referrer" />
                       )}
                       <div className="p-2.5 pointer-events-none bg-white dark:bg-neutral-800">
                         <p className="text-xs font-black truncate text-text-primary">{msg.post.outfitName}</p>
@@ -2021,7 +2021,7 @@ const Profile: React.FC<ProfileProps> = ({
             className="aspect-square relative group overflow-hidden cursor-pointer"
           >
             <img 
-              src={post.mediaUrls[0] || undefined} 
+              src={getProxiedUrl(post.thumbnailUrl || post.mediaUrls[0], 0) || undefined} 
               alt={post.outfitName} 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -2153,9 +2153,9 @@ const Profile: React.FC<ProfileProps> = ({
                 onClick={() => onOpenPostDetails(filteredPosts, index)}
                 className="aspect-square relative group overflow-hidden cursor-pointer rounded-xl"
               >
-                {post.mediaType === 'video' || (post.mediaUrls[0] && post.mediaUrls[0].includes('.mp4')) ? (
+                {isVideoUrl(getPostThumbnailUrl(post)) ? (
                   <video 
-                    src={`${post.mediaUrls[0]}#t=0.1`}
+                    src={`${getProxiedUrl(getPostThumbnailUrl(post), 0)}#t=0.1`}
                     className="w-full h-full object-cover"
                     preload="metadata"
                     muted
@@ -2163,7 +2163,7 @@ const Profile: React.FC<ProfileProps> = ({
                   />
                 ) : (
                   <img 
-                    src={post.mediaUrls[0] || undefined} 
+                    src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} 
                     alt={post.outfitName} 
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
@@ -2212,7 +2212,7 @@ const Profile: React.FC<ProfileProps> = ({
           className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md cursor-pointer"
         >
           <img 
-            src={post.mediaUrls[0] || undefined} 
+            src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} 
             alt={post.outfitName}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
@@ -2245,7 +2245,7 @@ const Profile: React.FC<ProfileProps> = ({
           className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md cursor-pointer"
         >
           <img 
-            src={post.mediaUrls[0] || undefined} 
+            src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} 
             alt={post.outfitName}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
