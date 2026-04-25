@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { 
@@ -153,6 +153,19 @@ const Profile: React.FC<ProfileProps> = ({
   const [authLoading, setAuthLoading] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (subView === 'chats' && activeChatSeller) {
+      // Small timeout to ensure DOM has rendered
+      const timer = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [chatMessages, activeChatSeller, subView]);
   
   // Firestore Chat Listeners
   const messageUnsubs = React.useRef<{ [chatId: string]: () => void }>({});
@@ -1697,6 +1710,7 @@ const Profile: React.FC<ProfileProps> = ({
               </motion.div>
               );
             })}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Quick Actions */}

@@ -51,7 +51,7 @@ export const useChatNotifications = (
   // Listener for shop owner receiving messages from customers
   useEffect(() => {
     if (!userShop) return;
-    const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+    const q = query(collection(db, 'chats'), where('participants', 'array-contains', userShop.id));
     
     const unsub = onSnapshot(q, (snapshot) => {
       if (initCompleteShop.current) {

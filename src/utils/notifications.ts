@@ -76,7 +76,6 @@ export const showChatNotification = (title: string, body: string) => {
           icon: '/favicon.ico', // Ilova ikonkasi
           badge: '/favicon.ico',
           tag: 'chat-message', // Bitta joyga yig'ish
-          renotify: true,
         });
       }).catch(err => {
         new Notification(title, { body, icon: '/favicon.ico' });

@@ -159,12 +159,25 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [isFreezing, setIsFreezing] = useState(false);
 
   const [chats, setChats] = useState<Chat[]>([]);
+  const activeChat = chats.find(c => c.id === activeChatId);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (activeChatId && activeChat?.messages) {
+      const timer = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeChat?.messages, activeChatId]);
   
   // 1. Listen for chats list
   useEffect(() => {
     if (!shopData.id) return;
 
-    const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
+    const q = query(collection(db, 'chats'), where('participants', 'array-contains', shopData.id));
     
     // Store reference to avoid closure staleness in active state checking
     let initComplete = false;
@@ -312,7 +325,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const logoInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<any>(null);
   
-  const activeChat = chats.find(c => c.id === activeChatId);
   useEffect(() => {
     if (coverVideoRef.current) {
       safePlayVideo(coverVideoRef.current);
@@ -1854,7 +1866,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                         </div>
                       </motion.div>
                     )})}
-                    </>
+                        <div ref={messagesEndRef} />
+                      </>
                     )}
                   </div>
 

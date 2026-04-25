@@ -121,7 +121,8 @@ service cloud.firestore {
     function isChatParticipant(data) {
       return request.auth.uid in data.participants || 
              (data.participants.size() > 0 && isShopOwnerByUidInShopId(data.participants[0])) ||
-             (data.participants.size() > 1 && isShopOwnerByUidInShopId(data.participants[1]));
+             (data.participants.size() > 1 && isShopOwnerByUidInShopId(data.participants[1])) ||
+             (data.participants.size() > 2 && isShopOwnerByUidInShopId(data.participants[2]));
     }
 
     function isValidChat(data) {
