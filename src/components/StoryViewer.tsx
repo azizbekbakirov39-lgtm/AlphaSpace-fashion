@@ -69,9 +69,18 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const [isMediaLoading, setIsMediaLoading] = useState(true);
-  const [mediaError, setMediaError] = useState(false);
-  const [proxyIndex, setProxyIndex] = useState(0);
+  const { 
+    proxiedUrl, 
+    isLoading: isMediaLoading, 
+    hasError: mediaError, 
+    handleMediaSuccess, 
+    handleMediaError, 
+    handleRetry 
+  } = useMediaController({
+    url: currentStory?.videoUrl || '',
+    post: mockPost,
+    isActive: !showProductDetails && !showComments && isVideoUrl(currentStory?.videoUrl || '')
+  });
 
   // Pause/Resume video when details or comments are open
   useEffect(() => {
@@ -80,7 +89,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (showProductDetails || showComments) {
       video.pause();
     } else {
-      setMediaError(false);
       safePlayVideo(video);
     }
   }, [showProductDetails, showComments]);
@@ -90,11 +98,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (currentStory) {
       onMarkViewed(currentStory.id);
       setProgress(0);
-      setIsMediaLoading(true);
-      setMediaError(false);
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        setProxyIndex(0);
         if (!showProductDetails && !showComments) {
           safePlayVideo(videoRef.current);
         }
@@ -306,14 +311,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMediaError(false);
-                  setIsMediaLoading(true);
-                  setProxyIndex(0);
-                  if (videoRef.current) {
-                    delete videoRef.current.dataset.triedRefresh;
-                    videoRef.current.src = getProxiedUrl(currentStory.videoUrl, 0);
-                    videoRef.current.load();
-                  }
+                  handleRetry(videoRef.current);
                 }}
                 className="mt-3 px-4 py-1.5 bg-white/10 rounded-full text-white text-[9px] font-black uppercase tracking-widest border border-white/10 active:scale-95 transition-transform"
               >
@@ -324,7 +322,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
           <video
             ref={videoRef}
-            src={getProxiedUrl(currentStory.videoUrl, proxyIndex)}
+            src={proxiedUrl}
             className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
             onEnded={handleNext}
             playsInline
@@ -337,25 +335,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handlePressEnd}
             preload="auto"
-            onLoadedData={() => {
-              setIsMediaLoading(false); // Immediate show when data loaded
-              markUrlAsSuccessful(currentStory.videoUrl, videoRef.current?.src || '');
+            onLoadedData={(e) => {
+              handleMediaSuccess(e.currentTarget);
             }}
-            onCanPlay={() => setIsMediaLoading(false)}
-            onPlaying={() => setIsMediaLoading(false)}
-            onWaiting={() => setIsMediaLoading(true)}
+            onCanPlay={(e) => handleMediaSuccess(e.currentTarget)}
+            onPlaying={(e) => handleMediaSuccess(e.currentTarget)}
+            onWaiting={() => {}}
             onError={(e) => {
-              const video = e.currentTarget;
-              if (!isLastProxy(proxyIndex)) {
-                setProxyIndex(prev => getNextProxyIndex(prev));
-                video.load();
-                if (videoRef.current && !showProductDetails && !showComments) {
-                  safePlayVideo(videoRef.current);
-                }
-              } else {
-                setIsMediaLoading(false);
-                setMediaError(true);
-              }
+              handleMediaError(e.currentTarget);
             }}
           />
           

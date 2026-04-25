@@ -28,23 +28,31 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
   }, []);
 
   const handleMediaSuccess = useCallback((mediaElement: HTMLVideoElement | HTMLImageElement | null) => {
+    // Basic validation that video actually has content
+    if (mediaElement instanceof HTMLVideoElement) {
+       if (mediaElement.readyState >= 2 && (mediaElement.videoWidth === 0 || mediaElement.videoHeight === 0)) {
+         console.warn("Video success called but dimensions are 0. Treating as error.");
+         handleMediaError(mediaElement);
+         return;
+       }
+    }
+
     clearLoadingTimeout();
     setIsLoading(false);
     setHasError(false);
     if (mediaElement?.src) {
       markUrlAsSuccessful(currentUrl, mediaElement.src);
     }
-  }, [currentUrl, clearLoadingTimeout]);
+  }, [currentUrl, clearLoadingTimeout, handleMediaError]);
 
   const handleMediaError = useCallback(async (mediaElement: HTMLVideoElement | null) => {
     clearLoadingTimeout();
     
-    // For videos, since we don't really have many working proxies besides direct and maybe corsproxy,
-    // we should trigger refresh logic faster if it's an Instagram URL
+    // For videos, try all defined video proxies before refreshing
     const isVideo = isVideoUrl(currentUrl) || currentUrl.includes('.mp4');
-    const shouldJumpToRefresh = isVideo && proxyIndex >= 1;
+    const shouldJumpToRefresh = isVideo && proxyIndex >= 2; // Try Direct (0), CorsProxy (1), AllOrigins (2) before refresh
 
-    if (!isLastProxy(proxyIndex) && !shouldJumpToRefresh) {
+    if (!isLastProxy(proxyIndex, currentUrl) && !shouldJumpToRefresh) {
       setProxyIndex(prev => getNextProxyIndex(prev));
       setIsLoading(true);
       if (mediaElement) {
@@ -79,12 +87,24 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
           if (isActive) safePlayVideo(mediaElement);
         }
       } else {
+        // Even if refresh fails, try remaining proxies as last resort
+        if (!isLastProxy(proxyIndex, currentUrl)) {
+          setProxyIndex(prev => getNextProxyIndex(prev));
+          setIsLoading(true);
+        } else {
+          setIsLoading(false);
+          setHasError(true);
+        }
+      }
+    } else {
+      // Last resort: try all remaining proxies if we skipped some
+      if (!isLastProxy(proxyIndex, currentUrl)) {
+        setProxyIndex(prev => getNextProxyIndex(prev));
+        setIsLoading(true);
+      } else {
         setIsLoading(false);
         setHasError(true);
       }
-    } else {
-      setIsLoading(false);
-      setHasError(true);
     }
   }, [proxyIndex, post, mediaIndex, isActive, currentUrl, clearLoadingTimeout]);
 
@@ -111,7 +131,7 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
         if (isLoading) {
           handleMediaError(null);
         }
-      }, 12000); // 12 second timeout for video loading
+      }, 20000); // 20 second timeout for video loading
     }
     return () => clearLoadingTimeout();
   }, [isLoading, hasError, isActive, currentUrl, handleMediaError, clearLoadingTimeout]);

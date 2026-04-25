@@ -65,6 +65,46 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/api/proxy-video", async (req: any, res: any) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).send("URL required");
+
+    const decodedUrl = decodeURIComponent(url as string);
+    console.log(`Proxying video: ${decodedUrl}`);
+
+    const response = await axios({
+      url: decodedUrl,
+      method: "GET",
+      responseType: "stream",
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Referer': 'https://www.instagram.com/',
+        'Origin': 'https://www.instagram.com'
+      },
+      timeout: 15000,
+      validateStatus: () => true
+    });
+
+    if (response.status >= 400) {
+       return res.status(response.status).send(`Upstream error: ${response.status}`);
+    }
+
+    // Set headers for streaming
+    res.setHeader('Content-Type', response.headers['content-type'] || 'video/mp4');
+    if (response.headers['content-length']) {
+      res.setHeader('Content-Length', response.headers['content-length']);
+    }
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    response.data.pipe(res);
+  } catch (error: any) {
+    console.error("Video proxy error:", error.message);
+    res.status(500).send(error.message);
+  }
+});
+
 // Request Logger - Disabled to keep terminal clean
 // app.use((req, res, next) => {
 //   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);

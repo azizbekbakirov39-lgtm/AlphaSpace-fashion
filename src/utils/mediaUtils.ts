@@ -155,6 +155,8 @@ const PROXY_POOL = [
   (url: string) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}`, // Variant of WeServ
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, // AllOrigins
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`, // CorsProxy.io
+  (url: string) => `https://proxy.cors.sh/${url}`, // Proxy.cors.sh (fallback)
+  (url: string) => `/api/proxy-video?url=${encodeURIComponent(url)}`, // Internal fallback
 ];
 
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
@@ -166,15 +168,20 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     if (cache[url]) return cache[url];
   }
 
-  // Only allow direct or corsproxy for videos. 
-  // WeServ (index 1, 2) and AllOrigins (index 3) often break video streams.
-  if (isVideoUrl(url) || url.includes('.mp4')) {
+  const isVid = isVideoUrl(url) || url.includes('.mp4');
+
+  // Video specific proxy sequencing
+  if (isVid) {
+    // 0: Direct, 1: CorsProxy, 2: AllOrigins, 3: Proxy.cors.sh, 4: Internal fallback, 5+: Direct (fallback)
     if (proxyIndex === 0) return url;
-    if (proxyIndex === 4) return PROXY_POOL[4](url); // corsproxy.io
-    return url; // fallback to raw
+    if (proxyIndex === 1) return PROXY_POOL[4](url); // corsproxy.io
+    if (proxyIndex === 2) return PROXY_POOL[3](url); // allorigins
+    if (proxyIndex === 3) return PROXY_POOL[5](url); // proxy.cors.sh
+    if (proxyIndex === 4) return PROXY_POOL[6](url); // internal proxy
+    return url;
   }
 
-  // Use specified proxy
+  // Use specified proxy for images
   const safeIndex = proxyIndex % PROXY_POOL.length;
   return PROXY_POOL[safeIndex](url);
 };
@@ -187,6 +194,11 @@ export const getNextProxyIndex = (currentIndex: number): number => {
   return currentIndex + 1;
 };
 
-export const isLastProxy = (index: number): boolean => {
+export const isLastProxy = (index: number, url: string): boolean => {
+  if (isVideoUrl(url) || url.includes('.mp4')) {
+    // try up to internal fallback
+    return index >= 4; 
+  }
+  // For images try all in pool
   return index >= PROXY_POOL.length - 1;
 };
