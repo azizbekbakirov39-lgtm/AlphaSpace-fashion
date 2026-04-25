@@ -238,6 +238,10 @@ service cloud.firestore {
       }
     }
 
+    match /stats/appTracker {
+      allow read, write: if true;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
