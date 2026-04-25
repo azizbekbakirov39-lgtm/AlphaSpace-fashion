@@ -166,10 +166,12 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     if (cache[url]) return cache[url];
   }
 
-  // Avoid proxying video URLs because image proxies (like wsrv.nl) will break them
-  // and allorigins might fail on large payloads.
+  // Only allow direct or corsproxy for videos. 
+  // WeServ (index 1, 2) and AllOrigins (index 3) often break video streams.
   if (isVideoUrl(url) || url.includes('.mp4')) {
-    return url;
+    if (proxyIndex === 0) return url;
+    if (proxyIndex === 4) return PROXY_POOL[4](url); // corsproxy.io
+    return url; // fallback to raw
   }
 
   // Use specified proxy

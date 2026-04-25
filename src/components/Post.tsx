@@ -117,12 +117,12 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
         onPlaying={() => setIsPlaying(true)}
         onWaiting={() => setIsPlaying(false)}
         onLoadedData={(e) => {
-          setIsPlaying(true); // Trigger faster than onPlaying
+          setIsPlaying(true);
           if (shouldLoad) {
             handleMediaSuccess(e.currentTarget);
-            // Playback logic moved to useEffect for consistency
           }
         }}
+        onCanPlay={() => setIsPlaying(true)}
         onError={(e) => handleMediaError(e.currentTarget)}
       />
     </div>
@@ -525,8 +525,13 @@ const Post: React.FC<PostProps> = ({
               onLoadedData={(e) => {
                 if (shouldLoad) {
                   handleMediaSuccess(e.currentTarget);
-                  // Playback logic moved to useEffect for consistency
                 }
+              }}
+              onCanPlay={(e) => {
+                if (shouldLoad) handleMediaSuccess(e.currentTarget);
+              }}
+              onPlaying={(e) => {
+                if (shouldLoad) handleMediaSuccess(e.currentTarget);
               }}
               onError={(e) => handleMediaError(e.currentTarget)}
             />

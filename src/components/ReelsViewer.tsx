@@ -344,6 +344,12 @@ const ReelItem: React.FC<{
                   onLoadedData={(e) => {
                     if (shouldLoad) handleMediaSuccess(e.currentTarget);
                   }}
+                  onCanPlay={(e) => {
+                    if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                  }}
+                  onPlaying={(e) => {
+                    if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                  }}
                   onError={(e) => handleMediaError(e.currentTarget)}
                 />
               </div>

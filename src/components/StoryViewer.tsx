@@ -341,6 +341,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               setIsMediaLoading(false); // Immediate show when data loaded
               markUrlAsSuccessful(currentStory.videoUrl, videoRef.current?.src || '');
             }}
+            onCanPlay={() => setIsMediaLoading(false)}
             onPlaying={() => setIsMediaLoading(false)}
             onWaiting={() => setIsMediaLoading(true)}
             onError={(e) => {
