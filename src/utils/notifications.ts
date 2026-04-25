@@ -16,7 +16,7 @@ export const playNotificationSound = () => {
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        // Autoplay tixirligi bo'lishi mumkin (foydalanuvchi sahifaga hech qanday reaksiya qilmagan bo'lsa)
+        // Autoplay tixirligi bo'lishi mumkin
       });
     }
   } catch (e) {
@@ -24,9 +24,29 @@ export const playNotificationSound = () => {
   }
 };
 
+// Orqa fon (Push) xabarlar yuborish uchun funksiya
+export const sendPushNotification = async (targetToken: String, title: string, body: string, data?: any) => {
+  try {
+    await fetch('/api/send-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        token: targetToken,
+        title,
+        body,
+        data
+      })
+    });
+  } catch (e) {
+    console.error("Push jo'natish xatosi", e);
+  }
+};
+
 // Umumiy bildirishnoma ko'rsatish funksiyasi
 export const showChatNotification = (title: string, body: string) => {
-  // 1. Ilova ichida chiroyli toast faqat ilova ekranda turganda
+  // 1. Ilova ichida chiroyli toast
   if (!document.hidden) {
     toast(body, {
       icon: '📩',
@@ -55,19 +75,14 @@ export const showChatNotification = (title: string, body: string) => {
           body,
           icon: '/favicon.ico', // Ilova ikonkasi
           badge: '/favicon.ico',
-          vibrate: [200, 100, 200, 100, 200], // Telefon titrashi
           tag: 'chat-message', // Bitta joyga yig'ish
           renotify: true,
         });
       }).catch(err => {
-        if (document.hidden) {
-          new Notification(title, { body, icon: '/favicon.ico' });
-        }
+        new Notification(title, { body, icon: '/favicon.ico' });
       });
     } else {
-      if (document.hidden) {
-        new Notification(title, { body, icon: '/favicon.ico' });
-      }
+      new Notification(title, { body, icon: '/favicon.ico' });
     }
   }
 };

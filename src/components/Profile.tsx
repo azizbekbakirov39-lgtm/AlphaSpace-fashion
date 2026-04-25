@@ -629,10 +629,13 @@ const Profile: React.FC<ProfileProps> = ({
       const chatId = [user.uid, sellerId].sort().join('_');
       const chatRef = doc(db, 'chats', chatId);
       
+      const shopOwnerUid = sellerId.includes('_') ? sellerId.split('_')[1] : null;
+      const participants = Array.from(new Set([user.uid, sellerId, shopOwnerUid].filter(Boolean)));
+      
       // Ensure chat document exists
       await setDoc(chatRef, {
         id: chatId,
-        participants: [user.uid, sellerId],
+        participants: participants,
         lastMessage: messageText || "Media xabar",
         lastSender: user.uid,
         readBy: [user.uid],
@@ -685,6 +688,19 @@ const Profile: React.FC<ProfileProps> = ({
       Object.keys(msgData).forEach(key => msgData[key] === undefined && delete msgData[key]);
 
       await addDoc(collection(db, `chats/${chatId}/messages`), msgData);
+
+      // Send push notification to target seller
+      try {
+        const targetUserDoc = await getDoc(doc(db, 'users', sellerId));
+        if (targetUserDoc.exists() && targetUserDoc.data().fcmToken) {
+          const { sendPushNotification } = await import('../utils/notifications');
+          const pushText = messageText || `[${finalType}]`;
+          const senderName = user.displayName || user.email?.split('@')[0] || "Mijoz";
+          await sendPushNotification(targetUserDoc.data().fcmToken, `${senderName}dan xabar`, pushText, { chatId: chatId });
+        }
+      } catch (e) {
+        console.error("Push yuborib bo'lmadi:", e);
+      }
       
       setNewMessage('');
       setRecordedAudio(null);

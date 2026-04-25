@@ -51,13 +51,14 @@ export const useChatNotifications = (
   // Listener for shop owner receiving messages from customers
   useEffect(() => {
     if (!userShop) return;
-    const q = query(collection(db, 'chats'), where('participants', 'array-contains', userShop.id));
+    const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
     
     const unsub = onSnapshot(q, (snapshot) => {
       if (initCompleteShop.current) {
         snapshot.docChanges().forEach(change => {
            if (change.type === 'modified') {
              const data = change.doc.data();
+             if (!data.participants || !data.participants.includes(userShop.id)) return;
              if (data.lastSender && data.lastSender !== userShop.id) {
                // Check if shop owner is actively looking at THIS customer right now
                const isActivelyChattingWithCustomer = activeTab === 'ShopWorkspace' && shopWorkspaceChatId === change.doc.id;

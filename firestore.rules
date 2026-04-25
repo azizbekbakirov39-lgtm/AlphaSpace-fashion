@@ -114,17 +114,27 @@ service cloud.firestore {
              data.name is string && data.name.size() > 0;
     }
 
+    function isShopOwnerByUidInShopId(shopId) {
+      return shopId is string && shopId.split('_').size() >= 2 && shopId.split('_')[0] == 'shop' && shopId.split('_')[1] == request.auth.uid;
+    }
+
+    function isChatParticipant(data) {
+      return request.auth.uid in data.participants || 
+             (data.participants.size() > 0 && isShopOwnerByUidInShopId(data.participants[0])) ||
+             (data.participants.size() > 1 && isShopOwnerByUidInShopId(data.participants[1]));
+    }
+
     function isValidChat(data) {
       return hasRequiredFields(['participants']) &&
              data.participants is list &&
              data.participants.size() >= 2 &&
-             request.auth.uid in data.participants;
+             (request.auth.uid in data.participants || isChatParticipant(data));
     }
 
     function isValidMessage(data, chatId) {
       return hasRequiredFields(['chatId', 'senderUid']) &&
              data.chatId == chatId &&
-             data.senderUid == request.auth.uid &&
+             (data.senderUid == request.auth.uid || isShopOwnerByUidInShopId(data.senderUid)) &&
              (data.text is string || data.audio is string || data.image is string || data.video is string || data.videoMessage is string || data.location is map || data.post is map);
     }
 
@@ -227,14 +237,14 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants || isChatParticipant(resource.data) || isAdmin());
       allow create: if isAuthenticated() && isValidChat(request.resource.data);
-      allow update: if isAuthenticated() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.participants || isChatParticipant(resource.data) || isAdmin());
 
       match /messages/{messageId} {
-        allow read: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants || isAdmin());
+        allow read: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants || isChatParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data) || isAdmin());
         allow create: if isAuthenticated() && isValidMessage(request.resource.data, chatId) && 
-                        (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+                        (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants || isChatParticipant(get(/databases/$(database)/documents/chats/$(chatId)).data));
       }
     }
 

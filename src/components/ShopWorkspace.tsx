@@ -164,13 +164,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   useEffect(() => {
     if (!shopData.id) return;
 
-    const q = query(collection(db, 'chats'), where('participants', 'array-contains', shopData.id));
+    const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
     
     // Store reference to avoid closure staleness in active state checking
     let initComplete = false;
 
     const unsubChats = onSnapshot(q, (snapshot) => {
-      const chatsData = snapshot.docs.map(chatDoc => {
+      const chatsData = snapshot.docs
+        .filter(doc => doc.data().participants && doc.data().participants.includes(shopData.id))
+        .map(chatDoc => {
         const chatId = chatDoc.id;
         const customerUid = chatId.replace(shopData.id, '').replace('_', '');
         
@@ -1020,6 +1022,19 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }, { merge: true });
 
       await addDoc(collection(db, `chats/${activeChatId}/messages`), msgData);
+
+      // Send Push notification directly bridging to target user's FCM
+      try {
+        const targetUserId = activeChatId.replace(shopData.id, '').replace('_', '');
+        const targetUserDoc = await getDoc(doc(db, 'users', targetUserId));
+        if (targetUserDoc.exists() && targetUserDoc.data().fcmToken) {
+          const { sendPushNotification } = await import('../utils/notifications');
+          const pushText = messageText || `[${finalType}]`;
+          await sendPushNotification(targetUserDoc.data().fcmToken, `${shopData.name} do'konidan xabar`, pushText, { chatId: activeChatId });
+        }
+      } catch (e) {
+        console.error("Push yuborib bo'lmadi:", e);
+      }
       
       if (type === 'text') setMessageInput('');
       setReplyingTo(null);

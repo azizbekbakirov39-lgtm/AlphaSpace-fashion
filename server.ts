@@ -246,6 +246,30 @@ app.post("/api/create-checkout-session", async (req, res) => {
   }
 });
 
+app.post("/api/send-push", async (req, res) => {
+  try {
+    const { token, title, body, data } = req.body;
+    if (!token) return res.status(400).json({ error: "No target FCM token provided" });
+    if (!admin.apps.length) return res.status(500).json({ error: "Firebase Admin is not configured. Add FIREBASE_SERVICE_ACCOUNT."});
+
+    const payload = {
+      token: token,
+      notification: {
+        title: title || "Yangi xabar",
+        body: body || "Sizga xabar keldi"
+      },
+      data: data || {}
+    };
+
+    const response = await admin.messaging().send(payload);
+    console.log("FCM xabar muvaffaqiyatli jo'natildi:", response);
+    res.json({ success: true, messageId: response });
+  } catch (error: any) {
+    console.error("FCM jo'natish xatosi:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Vite / Static serving
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
