@@ -32,7 +32,7 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
     
     // For videos, try all defined video proxies before refreshing
     const isVideo = isVideoUrl(currentUrl) || currentUrl.includes('.mp4');
-    const shouldJumpToRefresh = isVideo && proxyIndex >= 2; // Try Direct (0), CorsProxy (1), AllOrigins (2) before refresh
+    const shouldJumpToRefresh = isVideo && proxyIndex >= 1; // Try Direct (0), Internal Proxy (1) before refresh
 
     if (!isLastProxy(proxyIndex, currentUrl) && !shouldJumpToRefresh) {
       setProxyIndex(prev => getNextProxyIndex(prev));
@@ -62,9 +62,8 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
         setProxyIndex(0);
         setHasError(false);
         triedRefresh.current = false; // allow retry on new url if needed
-        
+        // React's re-render will update the src attribute implicitly via proxiedUrl
         if (mediaElement) {
-          mediaElement.src = getProxiedUrl(newUrl, 0);
           mediaElement.load();
           if (isActive) safePlayVideo(mediaElement);
         }
@@ -114,12 +113,14 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
     setProxyIndex(0);
     triedRefresh.current = false;
     
+    // We let React update the src state first, then load
     if (mediaElement) {
-      mediaElement.src = getProxiedUrl(currentUrl, 0);
-      mediaElement.load();
-      if (isActive) safePlayVideo(mediaElement);
+      setTimeout(() => {
+        mediaElement.load();
+        if (isActive) safePlayVideo(mediaElement);
+      }, 50);
     }
-  }, [currentUrl, isActive]);
+  }, [isActive]);
 
   // Set timeout whenever trying to load
   useEffect(() => {

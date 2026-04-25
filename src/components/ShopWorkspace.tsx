@@ -587,17 +587,17 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       // Clean undefined values
       Object.keys(postData).forEach(key => postData[key] === undefined && delete postData[key]);
       
-      // Upgrade step: Import videos to Cloudflare R2 for permanent storage if backend is configured
+      // Upgrade step: Import videos to Cloudflare R2 for permanent storage
       if (postData.mediaUrls && postData.mediaUrls.length > 0) {
         const updatedUrls = [...postData.mediaUrls];
-        const toastId = toast.loading("Videolarni mustaqil xotiraga ko'chirilmoqda...");
+        const toastId = toast.loading("Videolarni xususiy omborga (Cloudflare R2) ko'chirilmoqda...");
         
         try {
           for (let i = 0; i < updatedUrls.length; i++) {
             const url = updatedUrls[i];
             const isVideo = url.includes('.mp4') || url.includes('video') || postData.mediaType === 'video';
             
-            if (isVideo) {
+            if (isVideo && (url.includes('instagram.com') || url.includes('scontent'))) {
               const res = await fetch('/api/import-to-r2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -618,7 +618,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             }
           }
           postData.mediaUrls = updatedUrls;
-          toast.success("Videolar mustaqil xotiraga saqlandi!", { id: toastId });
+          toast.success("Videolar Cloudflare R2 xotirasiga saqlandi!", { id: toastId });
         } catch (err) {
           console.error("R2 Import during confirm failed:", err);
           toast.error("Videolarni saqlashda xatolik, original linklardan foydalaniladi.", { id: toastId });

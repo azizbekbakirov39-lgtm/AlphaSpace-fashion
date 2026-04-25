@@ -73,15 +73,20 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
     const decodedUrl = decodeURIComponent(url as string);
     console.log(`Proxying video: ${decodedUrl}`);
 
+    const outboundHeaders: any = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Referer': 'https://www.instagram.com/',
+      'Origin': 'https://www.instagram.com'
+    };
+    if (req.headers.range) {
+      outboundHeaders['range'] = req.headers.range;
+    }
+
     const response = await axios({
       url: decodedUrl,
       method: "GET",
       responseType: "stream",
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Referer': 'https://www.instagram.com/',
-        'Origin': 'https://www.instagram.com'
-      },
+      headers: outboundHeaders,
       timeout: 15000,
       validateStatus: () => true
     });
@@ -91,9 +96,14 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
     }
 
     // Set headers for streaming
+    res.status(response.status); // 200 or 206
     res.setHeader('Content-Type', response.headers['content-type'] || 'video/mp4');
+    
     if (response.headers['content-length']) {
       res.setHeader('Content-Length', response.headers['content-length']);
+    }
+    if (response.headers['content-range']) {
+      res.setHeader('Content-Range', response.headers['content-range']);
     }
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=3600');

@@ -162,6 +162,16 @@ const PROXY_POOL = [
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
   if (!url) return url;
   
+  // Directly return trusted non-instagram URLs
+  if (
+    url.includes('firebasestorage.googleapis.com') || 
+    url.includes('i.ibb.co') || 
+    url.includes('r2.dev') || // Cloudflare R2 default domain
+    url.includes('scontent') === false && !url.includes('instagram.com')
+  ) {
+    return url;
+  }
+  
   // Try hit cache first if index 0
   if (proxyIndex === 0) {
     const cache = getCache();
@@ -172,12 +182,12 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
 
   // Video specific proxy sequencing
   if (isVid) {
-    // 0: Direct, 1: CorsProxy, 2: AllOrigins, 3: Proxy.cors.sh, 4: Internal fallback, 5+: Direct (fallback)
+    // 0: Direct, 1: Internal fallback, 2: CorsProxy, 3: Proxy.cors.sh, 4: AllOrigins, 5+: Direct
     if (proxyIndex === 0) return url;
-    if (proxyIndex === 1) return PROXY_POOL[4](url); // corsproxy.io
-    if (proxyIndex === 2) return PROXY_POOL[3](url); // allorigins
+    if (proxyIndex === 1) return PROXY_POOL[6](url); // internal proxy
+    if (proxyIndex === 2) return PROXY_POOL[4](url); // corsproxy.io
     if (proxyIndex === 3) return PROXY_POOL[5](url); // proxy.cors.sh
-    if (proxyIndex === 4) return PROXY_POOL[6](url); // internal proxy
+    if (proxyIndex === 4) return PROXY_POOL[3](url); // allorigins
     return url;
   }
 
