@@ -285,9 +285,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       initial={{ opacity: 0, scale: 1.1 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
-      className="absolute inset-0 z-[30000] bg-black flex items-center justify-center overflow-hidden"
+      className="absolute inset-0 z-[30000] bg-black/60 backdrop-blur-md flex items-center justify-center overflow-hidden p-0 lg:p-4"
     >
-      {isVideoUrl(currentStory.videoUrl) ? (
+      <div className="relative w-full h-full lg:max-w-[420px] lg:aspect-[9/16] lg:h-auto lg:max-h-[90vh] lg:rounded-[2.5rem] lg:shadow-2xl overflow-hidden bg-black">
+        {isVideoUrl(currentStory.videoUrl) ? (
         <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
           {/* Instagram Trick: HD Poster behind the video */}
           {(currentStory.imageUrl || currentStory.thumbnailUrl) && (
@@ -653,6 +654,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </motion.div>
   );
 };

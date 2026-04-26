@@ -119,10 +119,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-      className="absolute inset-0 z-[70000] bg-bg-primary overflow-y-auto scrollbar-hide"
+      className="absolute inset-0 z-[70000] bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 lg:p-4"
     >
-      {/* Floating Glassmorphic Header */}
-      <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-none">
+      <div className="relative w-full h-full lg:max-w-[480px] lg:max-h-[90vh] lg:rounded-[2.5rem] lg:shadow-2xl overflow-y-auto bg-bg-primary scrollbar-hide">
+        {/* Floating Glassmorphic Header */}
+        <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-none">
         <motion.button 
           whileTap={{ scale: 0.9 }}
           onClick={onClose} 
@@ -691,6 +692,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
           </div>
         )}
       </AnimatePresence>
+      </div>
     </motion.div>
   );
 };

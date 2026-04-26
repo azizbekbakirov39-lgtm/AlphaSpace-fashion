@@ -51,9 +51,7 @@ import {
   orderBy, 
   serverTimestamp,
   Timestamp,
-  increment,
-  handleFirestoreError,
-  OperationType
+  increment
 } from './firebase';
 
 export default function App() {
@@ -1193,10 +1191,11 @@ export default function App() {
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
 
   return (
-    <div className="absolute inset-0 bg-gray-100 dark:bg-gray-900 flex lg:flex-row items-center justify-center p-0 sm:p-4 md:p-8 lg:p-0 overflow-hidden">
+    <div className="absolute inset-0 bg-bg-primary flex flex-col lg:flex-row overflow-hidden">
       
-      <div className="hidden lg:flex flex-col flex-1 h-full items-end justify-start border-r border-border-primary bg-bg-primary p-8 pt-12 overflow-y-auto">
-        <div className="w-[300px] flex flex-col pr-8">
+      {/* Desktop Sidebar Nav */}
+      <div className="hidden lg:flex flex-col w-[320px] h-full border-r border-border-primary bg-bg-primary p-8 pt-12 overflow-y-auto shrink-0">
+        <div className="w-full flex flex-col">
           <div className="mb-12 pl-4">
             <Logo width={160} showText={true} />
             <h1 className="text-[28px] mt-2 ml-2 font-cursive font-bold italic bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent tracking-tight">
@@ -1236,7 +1235,7 @@ export default function App() {
               <div className="flex items-center gap-4">
                 <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-12 h-12 rounded-full object-cover" />
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-bold truncate">{user.displayName}</p>
+                  <p className="font-bold truncate text-text-primary">{user.displayName}</p>
                   <p className="text-[11px] text-text-secondary truncate">{user.email}</p>
                 </div>
               </div>
@@ -1249,7 +1248,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="h-[100dvh] w-full sm:h-[850px] sm:max-h-[90vh] sm:w-[400px] sm:rounded-[3rem] sm:border-[8px] sm:border-gray-900 sm:shadow-2xl lg:h-[100dvh] lg:max-h-none lg:w-[450px] lg:border-none lg:rounded-none lg:shadow-none bg-bg-primary text-text-primary font-sans selection:bg-accent-blue/30 overflow-hidden relative flex flex-col shrink-0">
+      <div className="h-[100dvh] w-full sm:h-full sm:max-h-none sm:w-full lg:h-full lg:max-h-none lg:flex-1 bg-bg-primary text-text-primary font-sans selection:bg-accent-blue/30 overflow-hidden relative flex flex-col shrink-0">
         <Toaster position="top-center" richColors />
       {/* Modals and Overlays */}
       <CreateShopModal 
@@ -1602,39 +1601,41 @@ export default function App() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="h-full"
+                    className="h-full flex justify-center bg-black/5"
                   >
-                    <Profile 
-                      language={language} 
-                      setLanguage={setLanguage} 
-                      savedPosts={postsWithUserStatus.filter(p => p.isSaved)}
-                      subscribedSellers={sellersWithUserStatus.filter(s => s.isSubscribed)}
-                      onToggleLike={toggleLike}
-                      onToggleSave={toggleSave}
-                      onOpenShop={handleOpenShop}
-                      onOpenShopProfile={openShopProfile}
-                      onOpenPostDetails={openPostDetails}
-                      onToggleSubscribe={toggleSubscribe}
-                      onOpenChat={handleOpenChat}
-                      likedPosts={postsWithUserStatus.filter(p => p.isLiked)}
-                      recentlyViewedPosts={recentlyViewedPosts}
-                      hasShop={hasShop}
-                      subView={profileSubView}
-                      setSubView={setProfileSubView}
-                      user={user}
-                      onLogin={signInWithGoogle}
-                      onEmailLogin={handleEmailLogin}
-                      onResetPassword={handleResetPassword}
-                      onLogout={logout}
-                      initialChatSellerId={initialChatSellerId}
-                      initialChatProduct={initialChatProduct}
-                      sentPosts={sentPosts}
-                      setSentPosts={setSentPosts}
-                      onOpenShopSelector={() => setShowShopSelector(true)}
-                      userShops={userShops}
-                      workspace={workspace}
-                      onActiveChatSellerIdChange={setProfileActiveChatSellerId}
-                    />
+                    <div className="w-full h-full lg:max-w-[480px] bg-bg-primary overflow-y-auto scrollbar-hide relative lg:shadow-2xl">
+                      <Profile 
+                        language={language} 
+                        setLanguage={setLanguage} 
+                        savedPosts={postsWithUserStatus.filter(p => p.isSaved)}
+                        subscribedSellers={sellersWithUserStatus.filter(s => s.isSubscribed)}
+                        onToggleLike={toggleLike}
+                        onToggleSave={toggleSave}
+                        onOpenShop={handleOpenShop}
+                        onOpenShopProfile={openShopProfile}
+                        onOpenPostDetails={openPostDetails}
+                        onToggleSubscribe={toggleSubscribe}
+                        onOpenChat={handleOpenChat}
+                        likedPosts={postsWithUserStatus.filter(p => p.isLiked)}
+                        recentlyViewedPosts={recentlyViewedPosts}
+                        hasShop={hasShop}
+                        subView={profileSubView}
+                        setSubView={setProfileSubView}
+                        user={user}
+                        onLogin={signInWithGoogle}
+                        onEmailLogin={handleEmailLogin}
+                        onResetPassword={handleResetPassword}
+                        onLogout={logout}
+                        initialChatSellerId={initialChatSellerId}
+                        initialChatProduct={initialChatProduct}
+                        sentPosts={sentPosts}
+                        setSentPosts={setSentPosts}
+                        onOpenShopSelector={() => setShowShopSelector(true)}
+                        userShops={userShops}
+                        workspace={workspace}
+                        onActiveChatSellerIdChange={setProfileActiveChatSellerId}
+                      />
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div

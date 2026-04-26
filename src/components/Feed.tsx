@@ -189,14 +189,16 @@ const Feed: React.FC<FeedProps> = ({
              style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
       </motion.div>
 
-      <div className="w-full bg-bg-primary z-40">
-        <StoryBar 
-          stories={stories} 
-          onMarkStoryViewed={onMarkStoryViewed} 
-          onOpenStories={onOpenStories}
-          onOpenLive={onOpenLive}
-          language={language} 
-        />
+      <div className="w-full bg-bg-primary z-40 flex justify-center">
+        <div className="w-full lg:max-w-[480px]">
+          <StoryBar 
+            stories={stories} 
+            onMarkStoryViewed={onMarkStoryViewed} 
+            onOpenStories={onOpenStories}
+            onOpenLive={onOpenLive}
+            language={language} 
+          />
+        </div>
       </div>
 
       {/* Search Bar - More subtle and integrated */}
@@ -207,30 +209,32 @@ const Feed: React.FC<FeedProps> = ({
           opacity: showSearch ? 1 : 0
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="px-4 py-4 bg-bg-primary"
+        className="px-4 py-4 bg-bg-primary flex justify-center"
       >
-        <div 
-          onClick={handleSearchActive}
-          className="relative group transition-all duration-300 cursor-pointer"
-        >
-          <div className="w-full h-[44px] bg-text-primary/5 border border-border-primary/50 rounded-2xl pl-11 pr-11 text-sm text-text-primary/40 flex items-center transition-all hover:bg-text-primary/10">
-            {searchQuery || (language === 'uz' ? 'Qidirish...' : 'Search...')}
+        <div className="w-full lg:max-w-[480px]">
+          <div 
+            onClick={handleSearchActive}
+            className="relative group transition-all duration-300 cursor-pointer"
+          >
+            <div className="w-full h-[44px] bg-text-primary/5 border border-border-primary/50 rounded-2xl pl-11 pr-11 text-sm text-text-primary/40 flex items-center transition-all hover:bg-text-primary/10">
+              {searchQuery || (language === 'uz' ? 'Qidirish...' : 'Search...')}
+            </div>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-primary/30">
+              <Search size={16} strokeWidth={2} />
+            </div>
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearchQuery('');
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-text-primary/5 rounded-full transition-colors"
+              >
+                <X size={14} strokeWidth={2} className="text-text-primary/30" />
+              </button>
+            )}
           </div>
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-primary/30">
-            <Search size={16} strokeWidth={2} />
-          </div>
-          {searchQuery && (
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSearchQuery('');
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-text-primary/5 rounded-full transition-colors"
-            >
-              <X size={14} strokeWidth={2} className="text-text-primary/30" />
-            </button>
-          )}
         </div>
       </motion.div>
 
@@ -243,24 +247,26 @@ const Feed: React.FC<FeedProps> = ({
       />
 
       {filteredPosts.map((post, index) => (
-        <div key={post.id} className="post-item" data-index={index}>
-          <Post 
-            post={post} 
-            isActive={index === activeIndex && !isGlobalPaused} 
-            shouldLoad={index >= activeIndex - 1 && index <= activeIndex + 1}
-            onToggleLike={() => onToggleLike(post.id)}
-            onToggleSave={() => onToggleSave(post.id)}
-            onOpenReels={() => onOpenReels(filteredPosts, index)}
-            onOpenShopProfile={() => onOpenShopProfile(post.seller.id)}
-            onOpenDetails={() => onOpenPostDetails(post)}
-            onOpenComments={() => onOpenPostComments(post)}
-            onOpenChat={() => onOpenChat && onOpenChat(post.seller.id)}
-            onSharePost={() => onSharePost(post)}
-            onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}
-            language={language}
-            isMuted={globalMuted}
-            onToggleMute={() => setGlobalMuted(!globalMuted)}
-          />
+        <div key={post.id} className="post-item flex justify-center" data-index={index}>
+          <div className="w-full lg:max-w-[480px]">
+            <Post 
+              post={post} 
+              isActive={index === activeIndex && !isGlobalPaused} 
+              shouldLoad={index >= activeIndex - 1 && index <= activeIndex + 1}
+              onToggleLike={() => onToggleLike(post.id)}
+              onToggleSave={() => onToggleSave(post.id)}
+              onOpenReels={() => onOpenReels(filteredPosts, index)}
+              onOpenShopProfile={() => onOpenShopProfile(post.seller.id)}
+              onOpenDetails={() => onOpenPostDetails(post)}
+              onOpenComments={() => onOpenPostComments(post)}
+              onOpenChat={() => onOpenChat && onOpenChat(post.seller.id)}
+              onSharePost={() => onSharePost(post)}
+              onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}
+              language={language}
+              isMuted={globalMuted}
+              onToggleMute={() => setGlobalMuted(!globalMuted)}
+            />
+          </div>
         </div>
       ))}
 

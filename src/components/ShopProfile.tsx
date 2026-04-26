@@ -98,10 +98,11 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="absolute inset-0 z-[60000] bg-bg-primary flex flex-col"
+      className="absolute inset-0 z-[60000] bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 lg:p-4"
     >
-      {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between pointer-events-none">
+      <div className="relative w-full h-full lg:max-w-[480px] lg:max-h-[90vh] lg:rounded-[2.5rem] lg:shadow-2xl overflow-hidden bg-bg-primary flex flex-col">
+        {/* Header Overlay */}
+        <div className="absolute top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between pointer-events-none">
         <button 
           onClick={onClose}
           className="p-2 bg-black/20 backdrop-blur-md text-white hover:bg-black/40 rounded-full transition-colors pointer-events-auto"
@@ -535,6 +536,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </motion.div>
   );
 };

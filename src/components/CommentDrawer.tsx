@@ -95,7 +95,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ isOpen, onClose, postId, 
                 onClose();
               }
             }}
-            className="absolute bottom-0 left-0 right-0 h-[80%] bg-white rounded-t-[32px] z-[40001] overflow-hidden flex flex-col shadow-2xl"
+            className="absolute bottom-0 left-0 right-0 lg:left-auto lg:right-4 lg:bottom-4 lg:w-[400px] lg:h-[calc(100%-2rem)] lg:rounded-[32px] bg-white rounded-t-[32px] z-[40001] overflow-hidden flex flex-col shadow-2xl"
           >
             {/* Drag Handle Area */}
             <div className="w-full py-4 cursor-grab active:cursor-grabbing flex-shrink-0 flex items-center justify-center">
