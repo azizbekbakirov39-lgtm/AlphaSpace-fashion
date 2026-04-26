@@ -1193,7 +1193,7 @@ export default function App() {
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
 
   return (
-    <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex lg:flex-row items-center justify-center p-0 sm:p-4 md:p-8 lg:p-0 overflow-hidden">
+    <div className="absolute inset-0 bg-gray-100 dark:bg-gray-900 flex lg:flex-row items-center justify-center p-0 sm:p-4 md:p-8 lg:p-0 overflow-hidden">
       
       <div className="hidden lg:flex flex-col flex-1 h-full items-end justify-start border-r border-border-primary bg-bg-primary p-8 pt-12 overflow-y-auto">
         <div className="w-[300px] flex flex-col pr-8">
@@ -1278,7 +1278,7 @@ export default function App() {
       {/* Share Overlay */}
       <AnimatePresence>
         {sharingPost && (
-          <div className="fixed inset-0 z-[20000] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="absolute inset-0 z-[20000] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1769,7 +1769,7 @@ export default function App() {
       {/* Shop Selector Modal */}
       <AnimatePresence>
         {showShopSelector && (
-          <div className="fixed inset-0 z-[20000] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[20000] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}

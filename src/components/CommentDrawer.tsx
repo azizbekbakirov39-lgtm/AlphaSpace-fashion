@@ -80,7 +80,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ isOpen, onClose, postId, 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[40000]"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[40000]"
           />
           <motion.div
             initial={{ y: '100%' }}

@@ -71,7 +71,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-bg-primary flex flex-col"
+          className="absolute inset-0 z-[100] bg-bg-primary flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center gap-3 p-4 border-b border-border-primary">
