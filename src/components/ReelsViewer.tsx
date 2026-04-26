@@ -436,7 +436,7 @@ const ReelItem: React.FC<{
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="absolute bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
+            className="fixed bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
           >
             <Check size={16} className="text-green-400" />
             {toastMessage}
@@ -540,48 +540,46 @@ const ReelsViewer: React.FC<ReelsViewerProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
       transition={{ duration: 0.2 }}
-      className="absolute inset-0 z-[80000] bg-black/60 backdrop-blur-md flex items-center justify-center p-0 lg:p-4"
+      className="fixed inset-0 z-[80000] bg-black"
     >
-      <div className="relative w-full h-full lg:max-w-[420px] lg:aspect-[9/16] lg:h-auto lg:max-h-[90vh] lg:rounded-[2.5rem] lg:shadow-2xl overflow-hidden bg-black shrink-0">
-        {/* Close Button */}
-        <motion.button 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }} 
-          className="absolute top-6 left-4 z-[10000] text-white p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full active:scale-90 transition-all shadow-2xl hover:bg-white/20"
-        >
-          <X size={16} strokeWidth={2.5} />
-        </motion.button>
+      {/* Close Button */}
+      <motion.button 
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }} 
+        className="absolute top-6 left-4 z-[10000] text-white p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full active:scale-90 transition-all shadow-2xl hover:bg-white/20"
+      >
+        <X size={16} strokeWidth={2.5} />
+      </motion.button>
 
-        <div 
-          ref={containerRef}
-          onScroll={handleScroll}
-          className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
-          {posts.map((post, idx) => (
-            <ReelItem
-              key={post.id}
-              post={post}
-              isActive={idx === activeIndex}
-              shouldLoad={idx >= activeIndex - 1 && idx <= activeIndex + 1}
-              onToggleLike={() => onToggleLike(post.id)}
-              onToggleSave={() => onToggleSave(post.id)}
-              onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}
-              onOpenShopProfile={onOpenShopProfile}
-              onOpenChat={onOpenChat}
-              onSharePost={() => onSharePost && onSharePost(post)}
-              language={language}
-              isMuted={globalMuted}
-              onToggleMute={() => setGlobalMuted(!globalMuted)}
-              allPosts={allPosts}
-              user={user}
-            />
-          ))}
-        </div>
+      <div 
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {posts.map((post, idx) => (
+          <ReelItem
+            key={post.id}
+            post={post}
+            isActive={idx === activeIndex}
+            shouldLoad={idx >= activeIndex - 1 && idx <= activeIndex + 1}
+            onToggleLike={() => onToggleLike(post.id)}
+            onToggleSave={() => onToggleSave(post.id)}
+            onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}
+            onOpenShopProfile={onOpenShopProfile}
+            onOpenChat={onOpenChat}
+            onSharePost={() => onSharePost && onSharePost(post)}
+            language={language}
+            isMuted={globalMuted}
+            onToggleMute={() => setGlobalMuted(!globalMuted)}
+            allPosts={allPosts}
+            user={user}
+          />
+        ))}
       </div>
     </motion.div>
   );

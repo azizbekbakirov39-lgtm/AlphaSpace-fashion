@@ -119,11 +119,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-      className="absolute inset-0 z-[70000] bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 lg:p-4"
+      className="fixed inset-0 z-[70000] bg-bg-primary overflow-y-auto scrollbar-hide"
     >
-      <div className="relative w-full h-full lg:max-w-[480px] lg:max-h-[90vh] lg:rounded-[2.5rem] lg:shadow-2xl overflow-y-auto bg-bg-primary scrollbar-hide">
-        {/* Floating Glassmorphic Header */}
-        <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-none">
+      {/* Floating Glassmorphic Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-none">
         <motion.button 
           whileTap={{ scale: 0.9 }}
           onClick={onClose} 
@@ -605,7 +604,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="absolute bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
+            className="fixed bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
           >
             <Check size={16} className="text-green-400" />
             {toastMessage}
@@ -616,7 +615,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
       {/* Location Modal */}
       <AnimatePresence>
         {showMap && seller.location && (
-          <div className="absolute inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -692,7 +691,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
           </div>
         )}
       </AnimatePresence>
-      </div>
     </motion.div>
   );
 };

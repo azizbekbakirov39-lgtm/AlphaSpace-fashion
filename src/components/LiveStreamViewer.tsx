@@ -67,7 +67,7 @@ const LiveStreamViewer: React.FC<LiveStreamViewerProps> = ({ story, onClose, onO
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="absolute inset-0 z-[10000] bg-black flex flex-col overflow-hidden"
+      className="fixed inset-0 z-[10000] bg-black flex flex-col overflow-hidden"
     >
       {/* Video Background (Mock) */}
       <div className="absolute inset-0 bg-neutral-900">

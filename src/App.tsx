@@ -18,8 +18,7 @@ import ShopConstruction from './components/ShopConstruction';
 import { RealisticBlueMessageIcon } from './components/RealisticBlueMessageIcon';
 import DownloadPage from './components/DownloadPage';
 import { motion, AnimatePresence } from 'motion/react';
-import { Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2, Home, Compass, User as UserIcon } from 'lucide-react';
-import { BrandsIcon, LiveIcon } from './components/CustomIcons';
+import { Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2, MessageCircle } from 'lucide-react';
 import Logo from './components/Logo';
 import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
@@ -28,9 +27,8 @@ import { uploadImageToImgBB } from './services/imgbb';
 import { showChatNotification } from './utils/notifications';
 import { requestNotificationPermission, onMessage, messaging } from './firebase';
 import { useChatNotifications } from './hooks/useChatNotifications';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import { 
-  handleFirestoreError,
-  OperationType,
   auth, 
   onSnapshot, 
   doc, 
@@ -51,7 +49,9 @@ import {
   orderBy, 
   serverTimestamp,
   Timestamp,
-  increment
+  increment,
+  handleFirestoreError,
+  OperationType
 } from './firebase';
 
 export default function App() {
@@ -366,6 +366,7 @@ export default function App() {
     // Add foreground message listener
     if (messaging) {
       const unsubMessaging = onMessage(messaging, (payload) => {
+        console.log('FCM Foreground message: ', payload);
         showChatNotification(payload.notification?.title || 'Yangi xabar', payload.notification?.body || '');
       });
       // Optionally attach it to window to prevent being garbage collected or trace
@@ -380,24 +381,20 @@ export default function App() {
         if (!user || user.uid !== firebaseUser.uid) {
           // Check if user exists in Firestore once to initialize
           const userDoc = doc(db, 'users', firebaseUser.uid);
-          try {
-            const docSnap = await getDoc(userDoc);
-            if (!docSnap.exists()) {
-              const newUser: User = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                photoURL: firebaseUser.photoURL,
-                role: 'buyer',
-                hasShop: false
-              };
-              await setDoc(userDoc, newUser);
-              setUser(newUser);
-            } else {
-              setUser(docSnap.data() as User);
-            }
-          } catch (error) {
-            handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          const docSnap = await getDoc(userDoc);
+          if (!docSnap.exists()) {
+            const newUser: User = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              role: 'buyer',
+              hasShop: false
+            };
+            await setDoc(userDoc, newUser);
+            setUser(newUser);
+          } else {
+            setUser(docSnap.data() as User);
           }
         }
       } else {
@@ -1191,65 +1188,36 @@ export default function App() {
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
 
   return (
-    <div className="absolute inset-0 bg-bg-primary flex flex-col lg:flex-row overflow-hidden">
+    <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex justify-center items-center overflow-hidden">
       
-      {/* Desktop Sidebar Nav */}
-      <div className="hidden lg:flex flex-col w-[320px] h-full border-r border-border-primary bg-bg-primary p-8 pt-12 overflow-y-auto shrink-0">
-        <div className="w-full flex flex-col">
-          <div className="mb-12 pl-4">
-            <Logo width={160} showText={true} />
-            <h1 className="text-[28px] mt-2 ml-2 font-cursive font-bold italic bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent tracking-tight">
-              AlphaSpace
-            </h1>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            {[
-              { name: 'Home', label: t.home, icon: Home },
-              { name: 'Brands', label: t.brands, icon: BrandsIcon },
-              { name: 'Search', label: t.ai, icon: Zap },
-              { name: 'Live', label: t.live, icon: LiveIcon },
-              { name: 'Profile', label: t.profile, icon: UserIcon }
-            ].map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.name}
-                  onClick={() => handleTabChange(tab.name)}
-                  className={`p-4 rounded-[20px] flex items-center gap-5 text-[17px] font-bold transition-all duration-300 active:scale-[0.98] ${
-                    activeTab === tab.name 
-                      ? 'bg-accent-blue/10 text-accent-blue shadow-sm' 
-                      : 'hover:bg-text-primary/5 text-text-primary'
-                  }`}
-                >
-                  <Icon size={26} strokeWidth={activeTab === tab.name ? 2.5 : 1.5} />
-                  <span className="tracking-wide">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="flex w-full md:max-w-5xl h-[100dvh] md:h-[90vh] md:max-h-[850px] shadow-2xl md:rounded-3xl overflow-hidden bg-bg-primary md:border border-border-primary relative">
+        {/* Desktop Sidebar */}
+        <DesktopSidebar 
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          language={language}
+          user={user}
+          unreadMessages={unreadMessages}
+          workspace={workspace}
+          handleWorkspaceChange={handleWorkspaceChange}
+          userShops={userShops}
+          setShowShopSelector={setShowShopSelector}
+          openMessages={() => {
+            setActiveTab('Profile');
+            setProfileSubView('chats');
+            setUnreadMessages(0);
+            window.history.pushState({ 
+              type: 'profileSubView', 
+              subView: 'chats',
+              workspace,
+              activeTab: 'Profile'
+            }, '');
+          }}
+        />
 
-          <div className="mt-12 bg-text-primary/5 rounded-[24px] p-6 border border-border-primary/20">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-text-primary/50 mb-4">Sizning profilingiz</h3>
-            {user ? (
-              <div className="flex items-center gap-4">
-                <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-12 h-12 rounded-full object-cover" />
-                <div className="flex-1 overflow-hidden">
-                  <p className="font-bold truncate text-text-primary">{user.displayName}</p>
-                  <p className="text-[11px] text-text-secondary truncate">{user.email}</p>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => handleTabChange('Profile')} className="w-full py-3 bg-accent-blue text-white rounded-xl font-bold flex justify-center items-center">
-                Kirish
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="h-[100dvh] w-full sm:h-full sm:max-h-none sm:w-full lg:h-full lg:max-h-none lg:flex-1 bg-bg-primary text-text-primary font-sans selection:bg-accent-blue/30 overflow-hidden relative flex flex-col shrink-0">
-        <Toaster position="top-center" richColors />
+        {/* Main app container */}
+        <div className="h-full w-full flex-1 md:max-w-[480px] lg:max-w-[540px] md:border-l border-border-primary bg-bg-primary text-text-primary font-sans selection:bg-accent-blue/30 overflow-hidden relative flex flex-col z-10 mx-auto border-0">
+          <Toaster position="top-center" richColors />
       {/* Modals and Overlays */}
       <CreateShopModal 
         isOpen={isCreatingShop} 
@@ -1277,7 +1245,7 @@ export default function App() {
       {/* Share Overlay */}
       <AnimatePresence>
         {sharingPost && (
-          <div className="absolute inset-0 z-[20000] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[20000] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1376,7 +1344,7 @@ export default function App() {
                 </linearGradient>
               </defs>
             </svg>
-            <header className="flex lg:hidden items-center justify-between px-4 py-3 border-b border-border-primary bg-header-bg z-50">
+            <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border-primary bg-header-bg z-50">
               <div className="flex items-center justify-between w-full relative">
                 {/* Left Side */}
                 <div className="flex items-center gap-4">
@@ -1409,7 +1377,7 @@ export default function App() {
                         }}
                         className="relative flex flex-col items-center gap-0.5 p-1 hover:bg-accent-blue/5 rounded-xl transition-all active:scale-95"
                       >
-                        <RealisticBlueMessageIcon active={true} size={28} />
+                        <MessageCircle size={24} className="text-text-primary" />
                         <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent uppercase tracking-widest mt-0.5">Xabarlar</span>
                         {unreadMessages > 0 && (
                           <motion.div 
@@ -1601,41 +1569,39 @@ export default function App() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="h-full flex justify-center bg-black/5"
+                    className="h-full"
                   >
-                    <div className="w-full h-full lg:max-w-[480px] bg-bg-primary overflow-y-auto scrollbar-hide relative lg:shadow-2xl">
-                      <Profile 
-                        language={language} 
-                        setLanguage={setLanguage} 
-                        savedPosts={postsWithUserStatus.filter(p => p.isSaved)}
-                        subscribedSellers={sellersWithUserStatus.filter(s => s.isSubscribed)}
-                        onToggleLike={toggleLike}
-                        onToggleSave={toggleSave}
-                        onOpenShop={handleOpenShop}
-                        onOpenShopProfile={openShopProfile}
-                        onOpenPostDetails={openPostDetails}
-                        onToggleSubscribe={toggleSubscribe}
-                        onOpenChat={handleOpenChat}
-                        likedPosts={postsWithUserStatus.filter(p => p.isLiked)}
-                        recentlyViewedPosts={recentlyViewedPosts}
-                        hasShop={hasShop}
-                        subView={profileSubView}
-                        setSubView={setProfileSubView}
-                        user={user}
-                        onLogin={signInWithGoogle}
-                        onEmailLogin={handleEmailLogin}
-                        onResetPassword={handleResetPassword}
-                        onLogout={logout}
-                        initialChatSellerId={initialChatSellerId}
-                        initialChatProduct={initialChatProduct}
-                        sentPosts={sentPosts}
-                        setSentPosts={setSentPosts}
-                        onOpenShopSelector={() => setShowShopSelector(true)}
-                        userShops={userShops}
-                        workspace={workspace}
-                        onActiveChatSellerIdChange={setProfileActiveChatSellerId}
-                      />
-                    </div>
+                    <Profile 
+                      language={language} 
+                      setLanguage={setLanguage} 
+                      savedPosts={postsWithUserStatus.filter(p => p.isSaved)}
+                      subscribedSellers={sellersWithUserStatus.filter(s => s.isSubscribed)}
+                      onToggleLike={toggleLike}
+                      onToggleSave={toggleSave}
+                      onOpenShop={handleOpenShop}
+                      onOpenShopProfile={openShopProfile}
+                      onOpenPostDetails={openPostDetails}
+                      onToggleSubscribe={toggleSubscribe}
+                      onOpenChat={handleOpenChat}
+                      likedPosts={postsWithUserStatus.filter(p => p.isLiked)}
+                      recentlyViewedPosts={recentlyViewedPosts}
+                      hasShop={hasShop}
+                      subView={profileSubView}
+                      setSubView={setProfileSubView}
+                      user={user}
+                      onLogin={signInWithGoogle}
+                      onEmailLogin={handleEmailLogin}
+                      onResetPassword={handleResetPassword}
+                      onLogout={logout}
+                      initialChatSellerId={initialChatSellerId}
+                      initialChatProduct={initialChatProduct}
+                      sentPosts={sentPosts}
+                      setSentPosts={setSentPosts}
+                      onOpenShopSelector={() => setShowShopSelector(true)}
+                      userShops={userShops}
+                      workspace={workspace}
+                      onActiveChatSellerIdChange={setProfileActiveChatSellerId}
+                    />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -1652,9 +1618,7 @@ export default function App() {
 
             {/* Bottom Navigation */}
             {workspace === 'Marketplace' && (
-              <div className="lg:hidden block">
-                <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} language={language} user={user} />
-              </div>
+              <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} language={language} user={user} />
             )}
 
             {/* Global Viewers */}
@@ -1770,7 +1734,7 @@ export default function App() {
       {/* Shop Selector Modal */}
       <AnimatePresence>
         {showShopSelector && (
-          <div className="absolute inset-0 z-[20000] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[20000] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
@@ -1921,33 +1885,6 @@ export default function App() {
           margin: 0;
         }
       `}</style>
-      </div>
-
-      <div className="hidden lg:flex flex-col flex-1 h-full items-start justify-start border-l border-border-primary bg-bg-primary p-8 pt-12 overflow-y-auto">
-        <div className="w-[350px] flex flex-col pl-8">
-          <div className="bg-text-primary/5 rounded-[24px] p-6 border border-border-primary/20">
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-primary/70 mb-6 font-cursive">Ommabop ruknlar</h3>
-            <div className="gap-4 flex flex-col">
-              {['Kiyimlar', 'Poyabzallar', 'Aksessuarlar', 'Texnika'].map((cat) => (
-                <div key={cat} className="flex items-center justify-between p-3 rounded-2xl hover:bg-text-primary/5 cursor-pointer transition-colors">
-                   <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-full bg-accent-blue/10 flex items-center justify-center text-accent-blue">
-                       <Compass size={20} />
-                     </div>
-                     <span className="font-bold text-sm tracking-wide">{cat}</span>
-                   </div>
-                   <div className="w-8 h-8 rounded-full bg-bg-primary flex items-center justify-center">
-                     <span className="text-[10px] text-text-secondary font-bold">12k+</span>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 text-center text-text-secondary/50 text-[11px] font-medium leading-relaxed font-sans max-w-[280px] mx-auto">
-            © {new Date().getFullYear()} AlphaSpace | Sizning shaxsiy savdo makoningiz.<br/>
-            Beta versiya.
-          </div>
         </div>
       </div>
     </div>

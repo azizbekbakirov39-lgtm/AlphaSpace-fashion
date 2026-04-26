@@ -376,7 +376,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 lg:left-auto lg:right-4 lg:bottom-4 lg:w-96 lg:rounded-[2.5rem] lg:border z-[1002] p-4 lg:p-6 bg-bg-primary/95 backdrop-blur-3xl border-t border-border-primary rounded-t-[2.5rem] shadow-2xl"
+            className="absolute bottom-0 left-0 right-0 z-[1002] p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] bg-bg-primary/95 backdrop-blur-3xl border-t border-border-primary rounded-t-[2.5rem] shadow-[0_-20px_40px_rgba(0,0,0,0.1)]"
           >
             <div className="w-12 h-1.5 bg-text-primary/10 rounded-full mx-auto mb-6" />
             
@@ -472,7 +472,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[2000] bg-black"
+            className="fixed inset-0 z-[2000] bg-black"
           >
             <video 
               ref={videoRef} 

@@ -145,19 +145,9 @@ export {
 
 export { ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString };
 
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
-    }
-  }
-}
-testConnection();
-
 export const requestNotificationPermission = async (uid?: string) => {
   if (!('Notification' in window)) {
+    console.log('This browser does not support desktop notification');
     return null;
   }
 
@@ -172,6 +162,7 @@ export const requestNotificationPermission = async (uid?: string) => {
       
       const currentToken = await getToken(messaging, { vapidKey });
       if (currentToken) {
+        console.log('FCM Token olindi:', currentToken);
         // Bu tokenni backend (Firestore) ga saqlashingiz mumkin
         if (uid) {
            try {
@@ -182,9 +173,11 @@ export const requestNotificationPermission = async (uid?: string) => {
         }
         return currentToken;
       } else {
+        console.log('Token olinmadi.');
         return null;
       }
     } else {
+      console.log('Bildirishnomalarga ruxsat berilmadi.');
       return null;
     }
   } catch (error) {

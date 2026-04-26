@@ -1,7 +1,6 @@
-import React, { useId } from 'react';
+import React from 'react';
 
-export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isActive?: boolean }) => {
-  const customId = useId().replace(/:/g, ''); return (
+export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isActive?: boolean }) => (
   <svg 
     width={size} 
     height={size} 
@@ -10,11 +9,17 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
     className={`transition-transform duration-500 ${isActive ? 'rotate-[-15deg] scale-110' : 'rotate-0 scale-100'}`}
   >
     <defs>
-      <linearGradient id={`bag-gradient-${customId}`} x1="0" y1="0" x2="1" y2="1">
+      <linearGradient id="bag-gradient" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stopColor="#3B82F6" />
         <stop offset="100%" stopColor="#22D3EE" />
       </linearGradient>
+      <linearGradient id="gold-metallic" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#FFF9C4" />
+        <stop offset="50%" stopColor="#D4AF37" />
+        <stop offset="100%" stopColor="#8B4513" />
+      </linearGradient>
     </defs>
+    
     {/* Side Face (3D connection, behind) */}
     <path 
       d="M19 8L20.5 20L19 21L17.5 9z" 
@@ -24,14 +29,14 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
     {/* Secondary Bag (Behind, Right) */}
     <path 
       d="M10 9h10l-1.5 12H11z" 
-      fill={`url(#bag-gradient-${customId})`} 
+      fill="url(#bag-gradient)" 
       className="opacity-60"
     />
     
     {/* Main Shopping Bag (Blue-Purple) */}
     <path 
       d="M5 8h14l-2 12H7L5 8z" 
-      fill={`url(#bag-gradient-${customId})`} 
+      fill="url(#bag-gradient)" 
     />
     {/* Thin inner white border for highlight */}
     <path 
@@ -50,7 +55,7 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
     />
     <path 
       d="M9.5 8.5v-3a2.5 2.5 0 0 1 5 0v3" 
-      stroke={`url(#bag-gradient-${customId})`} 
+      stroke="url(#bag-gradient)" 
       strokeWidth="1"
       fill="none"
     />
@@ -66,10 +71,9 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
       B
     </text>
   </svg>
-)};
+);
 
-export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor", isActive = false }: { size?: number, strokeWidth?: number, color?: string, isActive?: boolean }) => {
-  const customId = useId().replace(/:/g, ''); return (
+export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor", isActive = false }: { size?: number, strokeWidth?: number, color?: string, isActive?: boolean }) => (
   <svg 
     width={size} 
     height={size} 
@@ -80,16 +84,22 @@ export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor"
     strokeWidth={strokeWidth}
   >
     <defs>
-      <linearGradient id={`live-gradient-${customId}`} x1="0" y1="0" x2="1" y2="1">
+      <linearGradient id="live-gradient" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stopColor="#3B82F6" />
         <stop offset="100%" stopColor="#22D3EE" />
       </linearGradient>
+      <linearGradient id="gold-metallic" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#FFF9C4" />
+        <stop offset="50%" stopColor="#D4AF37" />
+        <stop offset="100%" stopColor="#8B4513" />
+      </linearGradient>
     </defs>
+    
     <g transform="scale(0.85) translate(2, 2)">
       {/* Map Pin Shape */}
       <path 
         d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-        fill={`url(#live-gradient-${customId})`}
+        fill="url(#live-gradient)"
         stroke="white"
         strokeWidth={1.5}
       />
@@ -102,4 +112,4 @@ export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor"
       )}
     </g>
   </svg>
-)};
+);

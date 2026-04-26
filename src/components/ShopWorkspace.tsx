@@ -1621,7 +1621,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="absolute inset-0 z-[9999] flex flex-col bg-bg-primary overflow-hidden"
+                  className="fixed inset-0 z-[9999] flex flex-col bg-bg-primary overflow-hidden"
                 >
                   {/* Chat Header */}
                   <div className="flex flex-col border-b border-border-primary bg-white/80 dark:bg-bg-primary/80 backdrop-blur-xl z-20 pt-[env(safe-area-inset-top)]">
@@ -2025,7 +2025,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                           ) : (
                             <div className="flex items-center gap-0.5">
                               {isVideoRecording && (
-                                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
                                   <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden border-4 border-accent-blue shadow-2xl shadow-accent-blue/20">
                                     <video ref={videoPreviewRef} muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
                                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
@@ -2380,7 +2380,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4"
+            className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -2560,7 +2560,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       {/* Edit Post Modal */}
       <AnimatePresence>
         {editingPost && (
-          <div className="absolute inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2625,7 +2625,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       {/* Location Modal */}
       <AnimatePresence>
         {showMap && localShopData.location && (
-          <div className="absolute inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2706,7 +2706,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       {/* Post Details Modal for Seller */}
       <AnimatePresence>
         {selectedPostDetails && (
-          <div className="absolute inset-0 z-[20000] flex flex-col bg-bg-primary overflow-hidden">
+          <div className="fixed inset-0 z-[20000] flex flex-col bg-bg-primary overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border-primary bg-bg-primary/80 backdrop-blur-md">
               <div className="flex items-center gap-3">
@@ -2845,7 +2845,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       <AnimatePresence>
         {showFreezeModal && (
-          <div className="absolute inset-0 z-[20000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2884,7 +2884,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       {/* Delete Shop Modal */}
       <AnimatePresence>
         {showDeleteModal && (
-          <div className="absolute inset-0 z-[20000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -2997,7 +2997,7 @@ const CreateStoryModal = ({ posts, sellerId, ownerUid, shopData, onClose }: { po
   };
 
   return (
-    <div className="absolute inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
