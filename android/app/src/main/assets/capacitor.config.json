@@ -1,0 +1,8 @@
+{
+	"appId": "com.smartseller.app",
+	"appName": "Smart Seller",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	}
+}
