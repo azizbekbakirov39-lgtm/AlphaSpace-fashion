@@ -30,7 +30,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
   if (isKeyboardOpen) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-bg-primary/80 backdrop-blur-2xl border-t border-border-primary/50 px-2 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[9999] bg-bg-primary/80 backdrop-blur-2xl border-t border-border-primary/50 px-2 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       {/* SVG Gradient Definition */}
       <svg width="0" height="0" className="absolute">
         <defs>

@@ -27,6 +27,7 @@ import { uploadImageToImgBB } from './services/imgbb';
 import { showChatNotification } from './utils/notifications';
 import { requestNotificationPermission, onMessage, messaging } from './firebase';
 import { useChatNotifications } from './hooks/useChatNotifications';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import { 
   auth, 
   onSnapshot, 
@@ -1187,9 +1188,36 @@ export default function App() {
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
 
   return (
-    <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-0 sm:p-4 md:p-8">
-      <div className="h-[100dvh] w-full sm:h-[850px] sm:max-h-[90vh] sm:w-[400px] sm:rounded-[3rem] sm:border-[8px] sm:border-gray-900 sm:shadow-2xl bg-bg-primary text-text-primary font-sans selection:bg-accent-blue/30 overflow-hidden relative flex flex-col">
-        <Toaster position="top-center" richColors />
+    <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex justify-center items-center overflow-hidden">
+      
+      <div className="flex w-full md:max-w-5xl h-[100dvh] md:h-[90vh] md:max-h-[850px] shadow-2xl md:rounded-3xl overflow-hidden bg-bg-primary md:border border-border-primary relative">
+        {/* Desktop Sidebar */}
+        <DesktopSidebar 
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          language={language}
+          user={user}
+          unreadMessages={unreadMessages}
+          workspace={workspace}
+          handleWorkspaceChange={handleWorkspaceChange}
+          userShops={userShops}
+          setShowShopSelector={setShowShopSelector}
+          openMessages={() => {
+            setActiveTab('Profile');
+            setProfileSubView('chats');
+            setUnreadMessages(0);
+            window.history.pushState({ 
+              type: 'profileSubView', 
+              subView: 'chats',
+              workspace,
+              activeTab: 'Profile'
+            }, '');
+          }}
+        />
+
+        {/* Main app container */}
+        <div className="h-full w-full flex-1 md:max-w-[480px] lg:max-w-[540px] md:border-l border-border-primary bg-bg-primary text-text-primary font-sans selection:bg-accent-blue/30 overflow-hidden relative flex flex-col z-10 mx-auto border-0">
+          <Toaster position="top-center" richColors />
       {/* Modals and Overlays */}
       <CreateShopModal 
         isOpen={isCreatingShop} 
@@ -1316,7 +1344,7 @@ export default function App() {
                 </linearGradient>
               </defs>
             </svg>
-            <header className="flex items-center justify-between px-4 py-3 border-b border-border-primary bg-header-bg z-50">
+            <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border-primary bg-header-bg z-50">
               <div className="flex items-center justify-between w-full relative">
                 {/* Left Side */}
                 <div className="flex items-center gap-4">
@@ -1857,6 +1885,7 @@ export default function App() {
           margin: 0;
         }
       `}</style>
+        </div>
       </div>
     </div>
   );
