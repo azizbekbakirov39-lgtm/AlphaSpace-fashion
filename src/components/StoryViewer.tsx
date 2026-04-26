@@ -285,7 +285,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       initial={{ opacity: 0, scale: 1.1 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
-      className="absolute inset-0 z-[30000] bg-black flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[30000] bg-black flex items-center justify-center overflow-hidden"
     >
       {isVideoUrl(currentStory.videoUrl) ? (
         <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
@@ -631,7 +631,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="absolute bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
+            className="fixed bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
           >
             <Check size={16} className="text-green-400" />
             {toastMessage}

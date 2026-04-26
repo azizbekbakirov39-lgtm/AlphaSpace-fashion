@@ -98,7 +98,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="absolute inset-0 z-[60000] bg-bg-primary flex flex-col"
+      className="fixed inset-0 z-[60000] bg-bg-primary flex flex-col"
     >
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between pointer-events-none">
@@ -452,7 +452,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
       {/* Location Modal */}
       <AnimatePresence>
         {showMap && seller.location && (
-          <div className="absolute inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -528,7 +528,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="absolute bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
+            className="fixed bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
           >
             <Check size={16} className="text-green-400" />
             {toastMessage}
