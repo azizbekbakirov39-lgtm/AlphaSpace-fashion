@@ -1,9 +1,8 @@
 import React from 'react';
-import { Home, MapPin, User as UserIcon } from 'lucide-react';
+import { Home, MapPin, User as UserIcon, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { BrandsIcon, LiveIcon } from './CustomIcons';
 import SmartSellerLogo from './SmartSellerLogo';
 import Logo from './Logo';
 import { User } from '../types';
@@ -21,9 +20,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
   
   const tabs = [
     { name: 'Home', label: t.home, isLogo: true },
-    { name: 'Brands', icon: BrandsIcon, label: t.brands, isLogo: false },
+    { name: 'Brands', icon: Store, label: t.brands, isLogo: false },
     { name: 'Search', label: t.ai, isLogo: true },
-    { name: 'Live', icon: LiveIcon, label: t.live, isLogo: false },
+    { name: 'Live', icon: MapPin, label: t.live, isLogo: false },
     { name: 'Profile', icon: UserIcon, label: t.profile, isLogo: false },
   ];
 
@@ -62,8 +61,6 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
               >
                 {tab.name === 'Search' ? (
                   <SmartSellerLogo width={61} showText={true} className="-mt-3" />
-                ) : tab.name === 'Brands' ? (
-                  <BrandsIcon size={40} isActive={isActive} />
                 ) : tab.name === 'Home' ? (
                   <div className="mt-[-4px]">
                     <Logo width={63} showText={true} />
@@ -76,7 +73,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                   />
                 ) : (
                   <Icon 
-                    size={tab.name === 'Live' ? 40 : 22} 
+                    size={22} 
                     strokeWidth={isActive ? 2 : 1.5} 
                     stroke={isActive ? "url(#nav-gradient)" : "currentColor"}
                     className={`transition-colors duration-300 ${isActive ? '' : 'text-text-primary/50'}`}

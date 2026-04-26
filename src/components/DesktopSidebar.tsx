@@ -1,11 +1,9 @@
 import React from 'react';
-import { Home, User as UserIcon, LogOut } from 'lucide-react';
+import { Home, User as UserIcon, LogOut, Store, MapPin, MessageCircle } from 'lucide-react';
 import { Language, translations } from '../translations';
 import { User, Seller } from '../types';
 import Logo from './Logo';
 import SmartSellerLogo from './SmartSellerLogo';
-import { BrandsIcon, LiveIcon } from './CustomIcons';
-import { RealisticBlueMessageIcon } from './RealisticBlueMessageIcon';
 
 interface DesktopSidebarProps {
   activeTab: string;
@@ -37,8 +35,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const tabs = [
     { name: 'Home', label: t.home, icon: Home },
     { name: 'Search', label: t.ai, isSmartObject: true },
-    { name: 'Brands', label: t.brands, isBrandsIcon: true },
-    { name: 'Live', label: t.live, isLiveIcon: true },
+    { name: 'Brands', label: t.brands, icon: Store },
+    { name: 'Live', label: t.live, icon: MapPin },
     { name: 'Profile', label: t.profile, icon: UserIcon },
   ];
 
@@ -74,10 +72,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <div className="flex items-center justify-center w-[30px] h-[30px]">
                   {tab.isSmartObject ? (
                     <SmartSellerLogo width={40} showText={false} />
-                  ) : tab.isBrandsIcon ? (
-                    <BrandsIcon size={30} isActive={isActive} />
-                  ) : tab.isLiveIcon ? (
-                    <LiveIcon size={30} isActive={isActive} />
                   ) : tab.name === 'Profile' && user?.photoURL ? (
                     <img 
                       src={user.photoURL} 
@@ -100,14 +94,14 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             className={`flex items-center gap-4 p-3 rounded-2xl transition-all hover:bg-text-primary/5`}
           >
             <div className="relative flex items-center justify-center w-[30px] h-[30px]">
-              <RealisticBlueMessageIcon active={activeTab === 'Profile' && unreadMessages > -100} size={28} />
+              <MessageCircle size={26} className={activeTab === 'Profile' ? 'text-accent-blue' : 'text-text-primary'} />
               {unreadMessages > 0 && (
                 <div className="absolute -top-1 -right-2 min-w-[20px] h-[20px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-bg-primary shadow-lg">
                   {unreadMessages > 99 ? '99+' : unreadMessages}
                 </div>
               )}
             </div>
-            <span className="text-base font-bold text-text-primary">Xabarlar</span>
+            <span className={`text-base font-bold ${activeTab === 'Profile' ? 'text-accent-blue' : 'text-text-primary' }`}>Xabarlar</span>
           </button>
         </div>
       )}
