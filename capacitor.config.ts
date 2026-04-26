@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Smart Seller',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    url: 'https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app',
+    cleartext: true
   }
 };
 

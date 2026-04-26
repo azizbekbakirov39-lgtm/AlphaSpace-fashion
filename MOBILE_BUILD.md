@@ -1,35 +1,15 @@
-# Mobile App Build (Smart Seller)
+# Mobile App Build (Smart Seller) - DYNAMIC VERSION
 
-Sizning web-ilovangiz Capacitor orqali Android ilovaga tayyorlandi.
+Sizning ilovangiz hozir **"Live Sync"** rejimiga o'tkazildi. Bu degani:
+- Men bu yerda (AI Studio) kodni o'zgartirsam, APK o'rnatilgan telefonlarda ham **avtomatik o'zgaradi**.
+- Siz qayta-qayta APK chiqarib yurishingiz shart emas.
 
-## APK fayl chiqarish uchun qadamlar:
+## APK fayl chiqarish uchun yangilangan qadamlar:
 
-1. **Loyihani yuklab oling:** 
-   - AI Studio menyusidan **"Export to ZIP"** tugmasini bosing.
-   - ZIP-ni o'z kompyuteringizda oching.
+1. **Yangi ZIP-ni yuklab oling:** 
+   - Chunki `capacitor.config.ts` o'zgardi.
 
-2. **Dasturlarni o'rnating:**
-   - Kompyuteringizda [Node.js](https://nodejs.org/) o'rnatilgan bo'lishi kerak.
-   - [Android Studio](https://developer.android.com/studio)ni o'rnating.
+2. **Android Studio-da oching va APK chiqaring.**
 
-3. **Kompyuterda terminalni ochib quyidagilarni yozing:**
-   ```bash
-   npm install
-   npm run build
-   npx cap sync
-   ```
-
-4. **Android Studio-da oching:**
-   ```bash
-   npx cap open android
-   ```
-   *Bu Android Studio-ni avtomatik ochadi.*
-
-5. **Build APK:**
-   - Android Studio-da: **Build > Build Bundle(s) / APK(s) > Build APK(s)** ni bosing.
-   - Tayyor bo'lgach, ekranda "Locate" degan yozuv chiqadi, o'sha yerda sizning `.apk` faylingiz bo'ladi.
-
-## Galaxy Store uchun muhim:
-Samsung Galaxy Store uchun sizga "Release Key" kerak bo'ladi (Android Studio ichida **Generate Signed Bundle/APK** orqali yaratiladi).
-
-Siz hozir ZIP-ni yuklab olib, Android Studio-da ochsangiz kifoya!
+## Bu qanday ishlaydi?
+Ilova ochilishi bilan bizning jonli serverimizga (`https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app`) ulanadi. Siz saytda nima o'zgartirsangiz, ilova o'sha zahoti yangi ko'rinishda ochiladi.
