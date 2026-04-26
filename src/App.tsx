@@ -15,7 +15,7 @@ import ProductDetails from './components/ProductDetails';
 import SplashScreen from './components/SplashScreen';
 import CreateShopModal from './components/CreateShopModal';
 import ShopConstruction from './components/ShopConstruction';
-import { RealisticBlueMessageIcon } from './components/RealisticBlueMessageIcon';
+import { RealisticBlueMessageIcon } from './components/CustomIcons';
 import DownloadPage from './components/DownloadPage';
 import { motion, AnimatePresence } from 'motion/react';
 import { Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2, MessageCircle } from 'lucide-react';

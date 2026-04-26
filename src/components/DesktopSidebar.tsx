@@ -1,7 +1,7 @@
 import React from 'react';
 import { Home, User as UserIcon, LogOut, Store, MapPin, MessageCircle } from 'lucide-react';
 import { BrandsIcon, LiveIcon } from './CustomIcons';
-import { RealisticBlueMessageIcon } from './RealisticBlueMessageIcon';
+import { RealisticBlueMessageIcon } from './CustomIcons';
 import { Language, translations } from '../translations';
 import { User, Seller } from '../types';
 import Logo from './Logo';
