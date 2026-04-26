@@ -436,7 +436,7 @@ const ReelItem: React.FC<{
             initial={{ opacity: 0, y: 50, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 50, x: '-50%' }}
-            className="fixed bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
+            className="absolute bottom-32 left-1/2 z-[12000] px-6 py-3 bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl"
           >
             <Check size={16} className="text-green-400" />
             {toastMessage}
@@ -540,7 +540,7 @@ const ReelsViewer: React.FC<ReelsViewerProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[80000] bg-black"
+      className="absolute inset-0 z-[80000] bg-black"
     >
       {/* Close Button */}
       <motion.button 
