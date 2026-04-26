@@ -29,6 +29,8 @@ import { showChatNotification } from './utils/notifications';
 import { requestNotificationPermission, onMessage, messaging } from './firebase';
 import { useChatNotifications } from './hooks/useChatNotifications';
 import { 
+  handleFirestoreError,
+  OperationType,
   auth, 
   onSnapshot, 
   doc, 
@@ -366,7 +368,6 @@ export default function App() {
     // Add foreground message listener
     if (messaging) {
       const unsubMessaging = onMessage(messaging, (payload) => {
-        console.log('FCM Foreground message: ', payload);
         showChatNotification(payload.notification?.title || 'Yangi xabar', payload.notification?.body || '');
       });
       // Optionally attach it to window to prevent being garbage collected or trace
@@ -381,20 +382,24 @@ export default function App() {
         if (!user || user.uid !== firebaseUser.uid) {
           // Check if user exists in Firestore once to initialize
           const userDoc = doc(db, 'users', firebaseUser.uid);
-          const docSnap = await getDoc(userDoc);
-          if (!docSnap.exists()) {
-            const newUser: User = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-              role: 'buyer',
-              hasShop: false
-            };
-            await setDoc(userDoc, newUser);
-            setUser(newUser);
-          } else {
-            setUser(docSnap.data() as User);
+          try {
+            const docSnap = await getDoc(userDoc);
+            if (!docSnap.exists()) {
+              const newUser: User = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                role: 'buyer',
+                hasShop: false
+              };
+              await setDoc(userDoc, newUser);
+              setUser(newUser);
+            } else {
+              setUser(docSnap.data() as User);
+            }
+          } catch (error) {
+            handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
           }
         }
       } else {

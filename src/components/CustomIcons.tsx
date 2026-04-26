@@ -1,8 +1,7 @@
 import React, { useId } from 'react';
 
 export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isActive?: boolean }) => {
-  const customId = useId().replace(/:/g, '');
-  return (
+  const customId = useId().replace(/:/g, ''); return (
   <svg 
     width={size} 
     height={size} 
@@ -15,13 +14,7 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
         <stop offset="0%" stopColor="#3B82F6" />
         <stop offset="100%" stopColor="#22D3EE" />
       </linearGradient>
-      <linearGradient id={`gold-metallic-${customId}`} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#FFF9C4" />
-        <stop offset="50%" stopColor="#D4AF37" />
-        <stop offset="100%" stopColor="#8B4513" />
-      </linearGradient>
     </defs>
-    
     {/* Side Face (3D connection, behind) */}
     <path 
       d="M19 8L20.5 20L19 21L17.5 9z" 
@@ -76,8 +69,7 @@ export const BrandsIcon = ({ size = 48, isActive = false }: { size?: number, isA
 )};
 
 export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor", isActive = false }: { size?: number, strokeWidth?: number, color?: string, isActive?: boolean }) => {
-  const customId = useId().replace(/:/g, '');
-  return (
+  const customId = useId().replace(/:/g, ''); return (
   <svg 
     width={size} 
     height={size} 
@@ -92,13 +84,7 @@ export const LiveIcon = ({ size = 128, strokeWidth = 1.5, color = "currentColor"
         <stop offset="0%" stopColor="#3B82F6" />
         <stop offset="100%" stopColor="#22D3EE" />
       </linearGradient>
-      <linearGradient id={`gold-metallic-${customId}`} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#FFF9C4" />
-        <stop offset="50%" stopColor="#D4AF37" />
-        <stop offset="100%" stopColor="#8B4513" />
-      </linearGradient>
     </defs>
-    
     <g transform="scale(0.85) translate(2, 2)">
       {/* Map Pin Shape */}
       <path 
