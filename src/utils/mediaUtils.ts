@@ -101,7 +101,7 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "No error body");
-      console.error(`API Error (${response.status}):`, errorText);
+      // console.error(`API Error (${response.status}):`, errorText); // Silent for cleaner UX
       return null;
     }
     const result = await response.json();
@@ -115,7 +115,7 @@ export const refreshMediaUrl = async (instagramUrl: string): Promise<string | nu
     }
     return null;
   } catch (error: any) {
-    console.error("Link refresh network error:", error.message, error);
+    // console.error("Link refresh network error:", error.message, error); // Silent for cleaner UX
     return null;
   }
 };

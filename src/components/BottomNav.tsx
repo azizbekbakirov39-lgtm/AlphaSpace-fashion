@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, MapPin, User as UserIcon, Store } from 'lucide-react';
+import { BrandsIcon, LiveIcon } from './CustomIcons';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -20,9 +21,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
   
   const tabs = [
     { name: 'Home', label: t.home, isLogo: true },
-    { name: 'Brands', icon: Store, label: t.brands, isLogo: false },
+    { name: 'Brands', icon: BrandsIcon, label: t.brands, isLogo: false, isCustom: true },
     { name: 'Search', label: t.ai, isLogo: true },
-    { name: 'Live', icon: MapPin, label: t.live, isLogo: false },
+    { name: 'Live', icon: LiveIcon, label: t.live, isLogo: false, isCustom: true },
     { name: 'Profile', icon: UserIcon, label: t.profile, isLogo: false },
   ];
 
@@ -70,6 +71,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                     src={user.photoURL} 
                     alt={user.displayName || 'Profile'} 
                     className="w-[28px] h-[28px] rounded-full border border-border-primary object-cover" 
+                  />
+                ) : tab.isCustom ? (
+                  <Icon 
+                    size={42} 
+                    isActive={isActive}
                   />
                 ) : (
                   <Icon 

@@ -108,29 +108,29 @@ interface ShopWorkspaceProps {
 const RealisticBlueShopIcon = ({ active, size = 26 }: { active: boolean, size?: number }) => {
   return (
     <div style={{ width: size, height: size, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: active ? 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.4))' : 'grayscale(100%) opacity(60%)', transform: active ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.3s' }}>
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 4px 6px rgba(0, 149, 255, 0.4))', transform: active ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.3s' }}>
         {/* Base building */}
-        <path d="M8 28V56C8 58.2091 9.79086 60 12 60H52C54.2091 60 56 58.2091 56 56V28H8Z" fill="#EBF5FF"/>
+        <path d="M8 28V56C8 58.2091 9.79086 60 12 60H52C54.2091 60 56 58.2091 56 56V28H8Z" fill="#E6F7FF"/>
         {/* Windows */}
-        <rect x="14" y="32" width="12" height="14" rx="2" fill="#93C5FD"/>
-        <rect x="38" y="32" width="12" height="14" rx="2" fill="#93C5FD"/>
+        <rect x="14" y="32" width="12" height="14" rx="2" fill="#BAE7FF"/>
+        <rect x="38" y="32" width="12" height="14" rx="2" fill="#BAE7FF"/>
         <path d="M14 39H26M20 32V46M38 39H50M44 32V46" stroke="#FFFFFF" strokeWidth="2"/>
         {/* Door */}
-        <path d="M26 44H38V60H26V44Z" fill="#3B82F6"/>
+        <path d="M26 44H38V60H26V44Z" fill="#0095FF"/>
         <path d="M34 52H36" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round"/>
         {/* Awning */}
-        <path d="M4 28L10 14H54L60 28H4Z" fill="#1D4ED8"/>
-        <path d="M10 28L14 14H18L14 28H10Z" fill="#3B82F6"/>
-        <path d="M18 28L22 14H26L22 28H18Z" fill="#60A5FA"/>
-        <path d="M26 28L30 14H34L30 28H26Z" fill="#3B82F6"/>
-        <path d="M34 28L38 14H42L38 28H34Z" fill="#60A5FA"/>
-        <path d="M42 28L46 14H50L46 28H42Z" fill="#3B82F6"/>
-        <path d="M50 28L54 14H58L54 28H50Z" fill="#60A5FA"/>
+        <path d="M4 28L10 14H54L60 28H4Z" fill="#004E92"/>
+        <path d="M10 28L14 14H18L14 28H10Z" fill="#0095FF"/>
+        <path d="M18 28L22 14H26L22 28H18Z" fill="#00D2FF"/>
+        <path d="M26 28L30 14H34L30 28H26Z" fill="#0095FF"/>
+        <path d="M34 28L38 14H42L38 28H34Z" fill="#00D2FF"/>
+        <path d="M42 28L46 14H50L46 28H42Z" fill="#0095FF"/>
+        <path d="M50 28L54 14H58L54 28H50Z" fill="#00D2FF"/>
         {/* Scalloped edge of awning */}
-        <path d="M4 28C6 32 8 32 10 28C12 32 14 32 16 28C18 32 20 32 22 28C24 32 26 32 28 28C30 32 32 32 34 28C36 32 38 32 40 28C42 32 44 32 46 28C48 32 50 32 52 28C54 32 56 32 58 28C60 28 60 28 60 28M4 28Z" fill="#1D4ED8"/>
+        <path d="M4 28C6 32 8 32 10 28C12 32 14 32 16 28C18 32 20 32 22 28C24 32 26 32 28 28C30 32 32 32 34 28C36 32 38 32 40 28C42 32 44 32 46 28C48 32 50 32 52 28C54 32 56 32 58 28C60 28 60 28 60 28M4 28Z" fill="#004E92"/>
         {/* Sign board */}
-        <rect x="20" y="4" width="24" height="10" rx="2" fill="#EBF5FF" stroke="#3B82F6" strokeWidth="2"/>
-        <circle cx="32" cy="9" r="2" fill="#3B82F6"/>
+        <rect x="20" y="4" width="24" height="10" rx="2" fill="#E6F7FF" stroke="#0095FF" strokeWidth="2"/>
+        <circle cx="32" cy="9" r="2" fill="#0095FF"/>
       </svg>
     </div>
   )

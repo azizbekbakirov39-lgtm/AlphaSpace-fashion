@@ -1377,7 +1377,7 @@ export default function App() {
                         }}
                         className="relative flex flex-col items-center gap-0.5 p-1 hover:bg-accent-blue/5 rounded-xl transition-all active:scale-95"
                       >
-                        <MessageCircle size={24} className="text-text-primary" />
+                        <RealisticBlueMessageIcon active={true} size={36} />
                         <span className="text-[8px] font-bold bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent uppercase tracking-widest mt-0.5">Xabarlar</span>
                         {unreadMessages > 0 && (
                           <motion.div 

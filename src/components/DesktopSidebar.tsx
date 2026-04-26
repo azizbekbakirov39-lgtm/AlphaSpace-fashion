@@ -1,5 +1,7 @@
 import React from 'react';
 import { Home, User as UserIcon, LogOut, Store, MapPin, MessageCircle } from 'lucide-react';
+import { BrandsIcon, LiveIcon } from './CustomIcons';
+import { RealisticBlueMessageIcon } from './RealisticBlueMessageIcon';
 import { Language, translations } from '../translations';
 import { User, Seller } from '../types';
 import Logo from './Logo';
@@ -35,13 +37,22 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const tabs = [
     { name: 'Home', label: t.home, icon: Home },
     { name: 'Search', label: t.ai, isSmartObject: true },
-    { name: 'Brands', label: t.brands, icon: Store },
-    { name: 'Live', label: t.live, icon: MapPin },
+    { name: 'Brands', label: t.brands, icon: BrandsIcon, isCustom: true },
+    { name: 'Live', label: t.live, icon: LiveIcon, isCustom: true },
     { name: 'Profile', label: t.profile, icon: UserIcon },
   ];
 
   return (
     <div className="hidden md:flex flex-col w-[260px] lg:w-[300px] h-full border-r border-border-primary bg-bg-primary py-8 px-6 overflow-y-auto">
+      {/* SVG Gradient Definition */}
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <linearGradient id="nav-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0095FF" />
+            <stop offset="100%" stopColor="#5AC8FA" />
+          </linearGradient>
+        </defs>
+      </svg>
       {/* Logo */}
       <div 
         className="flex items-center gap-3 mb-10 cursor-pointer"
@@ -78,6 +89,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                       alt="" 
                       className="w-full h-full rounded-full object-cover border border-border-primary"
                     />
+                  ) : tab.isCustom ? (
+                    <Icon size={48} isActive={isActive} />
                   ) : Icon ? (
                     <Icon size={26} className={isActive ? 'text-accent-blue' : 'text-text-primary'} />
                   ) : null}
@@ -94,7 +107,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             className={`flex items-center gap-4 p-3 rounded-2xl transition-all hover:bg-text-primary/5`}
           >
             <div className="relative flex items-center justify-center w-[30px] h-[30px]">
-              <MessageCircle size={26} className={activeTab === 'Profile' ? 'text-accent-blue' : 'text-text-primary'} />
+              <RealisticBlueMessageIcon active={true} size={32} />
               {unreadMessages > 0 && (
                 <div className="absolute -top-1 -right-2 min-w-[20px] h-[20px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-bg-primary shadow-lg">
                   {unreadMessages > 99 ? '99+' : unreadMessages}
