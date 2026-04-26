@@ -1245,7 +1245,7 @@ export default function App() {
       {/* Share Overlay */}
       <AnimatePresence>
         {sharingPost && (
-          <div className="fixed inset-0 z-[20000] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="absolute inset-0 z-[20000] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1734,7 +1734,7 @@ export default function App() {
       {/* Shop Selector Modal */}
       <AnimatePresence>
         {showShopSelector && (
-          <div className="fixed inset-0 z-[20000] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[20000] flex items-end justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}

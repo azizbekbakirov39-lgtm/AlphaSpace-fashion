@@ -1057,7 +1057,7 @@ const Profile: React.FC<ProfileProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
               >
                 <motion.div 
                   initial={{ scale: 0.9, y: 20 }}
@@ -2269,7 +2269,7 @@ const Profile: React.FC<ProfileProps> = ({
   );
 
   return (
-    <div className={`flex flex-col bg-bg-primary overflow-hidden ${(subView === 'chats' && activeChatSeller) ? 'fixed inset-0 z-[9999]' : 'h-full'}`}>
+    <div className={`flex flex-col bg-bg-primary overflow-hidden ${(subView === 'chats' && activeChatSeller) ? 'absolute inset-0 z-[9999]' : 'h-full'}`}>
       {/* Sub-view Header */}
       <div className={`flex items-center gap-4 px-4 py-4 border-b border-border-primary bg-header-bg ${(subView === 'chats' && activeChatSeller) ? 'pt-[calc(1rem+env(safe-area-inset-top))]' : ''}`}>
         {subView !== 'main' && (
@@ -2388,7 +2388,7 @@ const Profile: React.FC<ProfileProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}
