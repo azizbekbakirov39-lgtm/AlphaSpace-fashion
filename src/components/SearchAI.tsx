@@ -198,7 +198,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
       for (let i = 0; i < retries; i++) {
         try {
           return await ai.models.generateContent({
-            model: 'gemini-flash-latest',
+            model: 'gemini-3-flash-preview',
             contents: contents,
             config: config
           });

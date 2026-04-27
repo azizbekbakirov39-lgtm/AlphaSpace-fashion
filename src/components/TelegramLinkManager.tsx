@@ -73,7 +73,7 @@ export default function TelegramLinkManager() {
       If no product is found, return an empty object or best guess.`;
 
       const result = await genAI.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3-flash-preview",
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
       });
 

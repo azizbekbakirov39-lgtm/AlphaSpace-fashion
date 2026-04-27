@@ -16,7 +16,7 @@ export async function analyzeProductImage(imageUrl: string) {
       Faqat JSON qaytar.
     `;
 
-    const model = 'gemini-flash-latest';
+    const model = 'gemini-3-flash-preview';
     
     // We need to pass the image data as inlineData in the SDK
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
