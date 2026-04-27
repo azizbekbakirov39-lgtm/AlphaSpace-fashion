@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const fullEnv = { ...process.env, ...env };
   return {
+    base: './',
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(fullEnv.GEMINI_API_KEY || ''),

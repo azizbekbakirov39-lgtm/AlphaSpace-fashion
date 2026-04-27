@@ -114,6 +114,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       onMarkViewed(currentStory.id);
       setProgress(0);
       if (videoRef.current) {
+        videoRef.current.load();
         videoRef.current.currentTime = 0;
         if (!showProductDetails && !showComments) {
           safePlayVideo(videoRef.current);
