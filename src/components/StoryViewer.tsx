@@ -324,6 +324,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           )}
 
           <video
+            key={currentStory.id + currentStory.videoUrl}
             ref={videoRef}
             src={proxiedUrl}
             className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}

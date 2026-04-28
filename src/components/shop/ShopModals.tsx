@@ -19,10 +19,11 @@ import {
   Share2,
   Bookmark,
   Plus,
-  Grid
+  Grid,
+  Video
 } from 'lucide-react';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { Seller } from '../../types';
+import { Seller, PostData } from '../../types';
 import { Language } from '../../translations';
 
 interface ShopModalsProps {
@@ -42,6 +43,12 @@ interface ShopModalsProps {
   handleDeleteShop: () => void;
   showInstagramImportModal: boolean;
   setShowInstagramImportModal: (show: boolean) => void;
+  showCreateStoryModal: boolean;
+  setShowCreateStoryModal: (show: boolean) => void;
+  isCreatingStory: boolean;
+  handleCreateStory: (file: File, price?: string) => Promise<void>;
+  handleCreateStoryFromPost: (post: PostData) => Promise<void>;
+  posts: PostData[];
   instagramLink: string;
   setInstagramLink: (link: string) => void;
   isImporting: boolean;
@@ -74,6 +81,12 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
   handleDeleteShop,
   showInstagramImportModal,
   setShowInstagramImportModal,
+  showCreateStoryModal,
+  setShowCreateStoryModal,
+  isCreatingStory,
+  handleCreateStory,
+  handleCreateStoryFromPost,
+  posts,
   instagramLink,
   setInstagramLink,
   isImporting,
@@ -88,6 +101,35 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
   handleUpdatePost,
   handleDeletePost
 }) => {
+  const [storyFile, setStoryFile] = React.useState<File | null>(null);
+  const [storyVideoPreview, setStoryVideoPreview] = React.useState<string | null>(null);
+  const [storyPrice, setStoryPrice] = React.useState('');
+  const [storyTab, setStoryTab] = React.useState<'existing' | 'new'>('existing');
+
+  const handleStoryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setStoryFile(file);
+      setStoryVideoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleStorySubmit = async () => {
+    if (!storyFile) return;
+    await handleCreateStory(storyFile, storyPrice);
+    setStoryFile(null);
+    setStoryVideoPreview(null);
+    setStoryPrice('');
+  };
+
+  React.useEffect(() => {
+    if (!showCreateStoryModal) {
+      setStoryFile(null);
+      setStoryVideoPreview(null);
+      setStoryPrice('');
+    }
+  }, [showCreateStoryModal]);
+
   return (
     <>
       <AnimatePresence>
@@ -172,6 +214,97 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
                     </div>
                     <button onClick={confirmImport} disabled={isUploading} className="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">{isUploading ? <><RefreshCw size={18} className="animate-spin" /><span>Yuklanmoqda...</span></> : <span>Do'konga qo'shish</span>}</button>
                   </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCreateStoryModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-lg bg-bg-primary rounded-[40px] border border-white/10 overflow-hidden shadow-2xl">
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg"><Plus size={28} /></div>
+                    <div><h3 className="text-2xl font-black text-text-primary tracking-tight">Story Qo'shish</h3><p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest">Yangi story yuklash</p></div>
+                  </div>
+                  <button onClick={() => setShowCreateStoryModal(false)} className="w-12 h-12 bg-text-primary/5 rounded-full flex items-center justify-center text-text-primary/40 hover:text-text-primary transition-colors"><X size={24} /></button>
+                </div>
+
+                <div className="flex gap-4 mb-6 border-b border-text-primary/10">
+                  <button 
+                    className={`pb-2 px-1 text-[12px] font-black uppercase tracking-widest ${storyTab === 'existing' ? 'text-text-primary border-b-2 border-text-primary' : 'text-text-primary/40 hover:text-text-primary'}`}
+                    onClick={() => setStoryTab('existing')}
+                  >Mavjud postlar</button>
+                  <button 
+                    className={`pb-2 px-1 text-[12px] font-black uppercase tracking-widest ${storyTab === 'new' ? 'text-text-primary border-b-2 border-text-primary' : 'text-text-primary/40 hover:text-text-primary'}`}
+                    onClick={() => setStoryTab('new')}
+                  >Yangi video</button>
+                </div>
+
+                {storyTab === 'existing' ? (
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-hide">
+                    {posts.length === 0 ? (
+                      <div className="py-8 text-center text-text-primary/40 text-[10px] font-black uppercase tracking-widest">
+                        Qo'shilgan postlar yo'q
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        {posts.map(post => (
+                          <div 
+                            key={post.id} 
+                            onClick={() => !isCreatingStory && handleCreateStoryFromPost(post)}
+                            className={`aspect-square rounded-2xl overflow-hidden relative cursor-pointer group bg-black ${isCreatingStory ? 'opacity-50 pointer-events-none' : ''}`}
+                          >
+                            {post.mediaType === 'video' ? (
+                              <video src={post.mediaUrls[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                            ) : (
+                              <img src={post.mediaUrls[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                              <p className="text-[8px] text-white font-bold truncate">{post.outfitName || 'Post'}</p>
+                            </div>
+                            {post.mediaType === 'video' && (
+                              <div className="absolute top-2 right-2 w-5 h-5 bg-black/50 backdrop-blur pb-px rounded-full flex items-center justify-center text-[10px] text-white font-black"><Video size={10} /></div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isCreatingStory && (
+                      <div className="mt-4 flex items-center justify-center text-orange-500 font-bold text-xs gap-2">
+                        <RefreshCw size={14} className="animate-spin" /> Yuklanmoqda...
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {!storyVideoPreview ? (
+                      <div className="space-y-6">
+                        <label className="flex flex-col items-center justify-center w-full h-48 bg-text-primary/5 border-2 border-dashed border-text-primary/20 rounded-2xl cursor-pointer hover:bg-text-primary/10 transition-colors">
+                          <Plus size={32} className="text-text-primary/40 mb-2" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-text-primary/40">Video tanlang</span>
+                          <input type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleStoryFileChange} />
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="space-y-6 max-h-[60vh] overflow-y-auto scrollbar-hide pr-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="aspect-[9/16] rounded-2xl overflow-hidden border border-text-primary/5 relative bg-black">
+                            <video src={storyVideoPreview} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                          </div>
+                          <div className="space-y-4">
+                            <div className="space-y-1"><label className="text-[8px] font-black uppercase tracking-widest text-text-primary/40">Narxi (Optional)</label><input type="text" value={storyPrice} onChange={(e) => setStoryPrice(e.target.value)} placeholder="Masalan: 150,000 so'm" className="w-full bg-text-primary/5 border border-text-primary/10 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-orange-500/50" /></div>
+                            <button onClick={() => setStoryFile(null)} className="text-[10px] text-red-500 font-bold uppercase hover:underline">Boshqa video tanlash</button>
+                          </div>
+                        </div>
+                        <button onClick={handleStorySubmit} disabled={isCreatingStory} className="w-full py-5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-[12px] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">{isCreatingStory ? <><RefreshCw size={18} className="animate-spin" /><span>Yuklanmoqda...</span></> : <span>Story qo'shish</span>}</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </motion.div>

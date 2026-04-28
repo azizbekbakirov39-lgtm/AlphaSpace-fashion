@@ -25,6 +25,7 @@ import {
   addDoc,
   serverTimestamp 
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Modular components
 import { MyShopTab } from './shop/MyShopTab';
@@ -82,6 +83,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteCode, setDeleteCode] = useState('');
   const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
+  const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
+  const [isCreatingStory, setIsCreatingStory] = useState(false);
   const [instagramLink, setInstagramLink] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<any>(null);
@@ -142,6 +145,88 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     // Logic for logo upload...
   };
 
+  const handleCreateStory = async (file: File, price?: string) => {
+    if (!user) return;
+    setIsCreatingStory(true);
+    try {
+      const extension = file.name.split('.').pop();
+      const fileName = `stories/${shopData.id}_${Date.now()}.${extension}`;
+      const fileRef = ref(storage, fileName);
+      
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+
+      const storyData = {
+        sellerId: shopData.id,
+        seller: {
+          id: shopData.id,
+          name: shopData.name,
+          logo: shopData.logo,
+          hasStory: true,
+          followers: shopData.followers || 0,
+          categories: shopData.categories || []
+        },
+        videoUrl: url,
+        price: price || '',
+        likes: 0,
+        comments: 0,
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(db, 'stories'), storyData);
+      
+      // Update shop hasStory property
+      await updateDoc(doc(db, 'shops', shopData.id), { hasStory: true });
+      
+      setShowCreateStoryModal(false);
+      toast.success("Story muvaffaqiyatli qo'shildi!");
+      onUpdateShop({ ...localShopData, hasStory: true });
+    } catch (error) {
+      console.error("Story creation error:", error);
+      toast.error("Story yuklashda xatolik yuz berdi");
+    } finally {
+      setIsCreatingStory(false);
+    }
+  };
+
+  const handleCreateStoryFromPost = async (post: PostData) => {
+    if (!user) return;
+    setIsCreatingStory(true);
+    try {
+      const isVideo = post.mediaType === 'video';
+      const storyData = {
+        sellerId: shopData.id,
+        seller: {
+          id: shopData.id,
+          name: shopData.name,
+          logo: shopData.logo,
+          hasStory: true,
+          followers: shopData.followers || 0,
+          categories: shopData.categories || []
+        },
+        videoUrl: isVideo ? post.mediaUrls[0] : '',
+        imageUrl: isVideo ? '' : post.mediaUrls[0],
+        price: post.price || '',
+        likes: 0,
+        comments: 0,
+        createdAt: serverTimestamp(),
+        sourcePostId: post.id // optional tracking
+      };
+
+      await addDoc(collection(db, 'stories'), storyData);
+      await updateDoc(doc(db, 'shops', shopData.id), { hasStory: true });
+      
+      setShowCreateStoryModal(false);
+      toast.success("Story muvaffaqiyatli yaratildi!");
+      onUpdateShop({ ...localShopData, hasStory: true });
+    } catch (error) {
+      console.error("Story creation error:", error);
+      toast.error("Story yaratishda xatolik yuz berdi");
+    } finally {
+      setIsCreatingStory(false);
+    }
+  };
+
   const handleSaveShopInfo = async () => {
     try {
       await updateDoc(doc(db, 'shops', shopData.id), { ...localShopData });
@@ -180,7 +265,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 handleInstagramClick={() => window.open(`https://instagram.com/${localShopData.instagram?.replace('@', '')}`)}
                 setShowMap={setShowMap}
                 setShowInstagramImportModal={setShowInstagramImportModal}
-                setShowCreateStoryModal={() => {}}
+                setShowCreateStoryModal={setShowCreateStoryModal}
                 setSelectedPostDetails={setSelectedPostDetails}
                 detectLocation={() => {}}
                 coverVideoRef={coverVideoRef}
@@ -301,6 +386,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         handleDeleteShop={() => {}}
         showInstagramImportModal={showInstagramImportModal}
         setShowInstagramImportModal={setShowInstagramImportModal}
+        showCreateStoryModal={showCreateStoryModal}
+        setShowCreateStoryModal={setShowCreateStoryModal}
+        isCreatingStory={isCreatingStory}
+        handleCreateStory={handleCreateStory}
+        handleCreateStoryFromPost={handleCreateStoryFromPost}
+        posts={posts}
         instagramLink={instagramLink}
         setInstagramLink={setInstagramLink}
         isImporting={isImporting}
