@@ -134,12 +134,21 @@ export default function App() {
     });
 
     const storiesQuery = query(
-      collection(db, 'stories'),
-      where('expiresAt', '>', Timestamp.now())
+      collection(db, 'stories')
     );
 
     const unsubStories = onSnapshot(storiesQuery, (snapshot) => {
-      const storiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Story));
+      const now = Date.now();
+      const storiesData = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Story))
+        .filter(story => {
+           // Allow stories without expiresAt, or check if expiresAt is in the future
+           if (!story.expiresAt) return true;
+           const expiresAtMs = typeof story.expiresAt.toMillis === 'function' 
+             ? story.expiresAt.toMillis() 
+             : (story.expiresAt as any instanceof Date ? (story.expiresAt as any).getTime() : 0);
+           return expiresAtMs > now;
+        });
       setStories(storiesData);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'stories');

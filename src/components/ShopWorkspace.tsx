@@ -24,7 +24,8 @@ import {
   getDoc, 
   setDoc, 
   addDoc,
-  serverTimestamp 
+  serverTimestamp,
+  Timestamp
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -173,6 +174,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         likes: 0,
         comments: 0,
         createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000)
       };
 
       await addDoc(collection(db, 'stories'), storyData);
@@ -213,6 +215,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         likes: 0,
         comments: 0,
         createdAt: serverTimestamp(),
+        expiresAt: Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000),
         sourcePostId: post.id // optional tracking
       };
 
