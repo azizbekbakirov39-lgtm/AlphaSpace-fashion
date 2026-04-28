@@ -42,7 +42,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const messaging = getMessaging(app);
 
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true
+}, firebaseConfig.firestoreDatabaseId || '(default)');
 
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();

@@ -85,12 +85,19 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
 
   // Aggressive cleanup to focus bandwidth on active video
   useEffect(() => {
-    if (!shouldLoad && videoRef.current) {
-      videoRef.current.src = "";
-      videoRef.current.load(); // Forces browser to drop connections immediately
-      setIsPlaying(false);
+    if (videoRef.current) {
+      if (shouldLoad) {
+        if (videoRef.current.getAttribute('src') !== proxiedUrl) {
+           videoRef.current.src = proxiedUrl;
+           videoRef.current.load();
+        }
+      } else {
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load(); // Forces browser to drop connections immediately
+        setIsPlaying(false);
+      }
     }
-  }, [shouldLoad]);
+  }, [shouldLoad, proxiedUrl]);
 
   return (
     <div className="relative w-full h-full bg-black">
@@ -107,7 +114,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
       <video 
         ref={videoRef}
         src={shouldLoad ? proxiedUrl : undefined}
-        className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+        className="absolute inset-0 w-full h-full object-cover z-10"
         loop
         muted={isMuted}
         autoPlay={isActive && !isGlobalPaused}
@@ -118,9 +125,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
         onWaiting={() => setIsPlaying(false)}
         onLoadedData={(e) => {
           setIsPlaying(true);
-          if (shouldLoad) {
-            handleMediaSuccess(e.currentTarget);
-          }
+          handleMediaSuccess(e.currentTarget);
         }}
         onCanPlay={() => setIsPlaying(true)}
         onError={(e) => handleMediaError(e.currentTarget)}
@@ -369,6 +374,20 @@ const Post: React.FC<PostProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      if (shouldLoad) {
+        if (videoRef.current.getAttribute('src') !== proxiedUrl) {
+           videoRef.current.src = proxiedUrl;
+           videoRef.current.load();
+        }
+      } else {
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load();
+      }
+    }
+  }, [shouldLoad, proxiedUrl]);
+
   // Handle active state changes for main video
   useEffect(() => {
     if (post.mediaType === 'video' && videoRef.current) {
@@ -515,7 +534,7 @@ const Post: React.FC<PostProps> = ({
             <video
               ref={videoRef}
               src={shouldLoad ? proxiedUrl : undefined}
-              className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 ease-out ${!videoLoading ? 'opacity-100' : 'opacity-0'}`}
+              className="absolute inset-0 w-full h-full object-cover z-10"
               loop
               muted={isMuted || !isActive} // Force mute if not active to prevent sound overlap
               autoPlay={isActive && !isPaused}
@@ -523,15 +542,13 @@ const Post: React.FC<PostProps> = ({
               onContextMenu={(e) => e.preventDefault()}
               preload={isActive ? "auto" : (isNext || isUpcoming ? "metadata" : "none")}
               onLoadedData={(e) => {
-                if (shouldLoad) {
-                  handleMediaSuccess(e.currentTarget);
-                }
+                handleMediaSuccess(e.currentTarget);
               }}
               onCanPlay={(e) => {
-                if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                handleMediaSuccess(e.currentTarget);
               }}
               onPlaying={(e) => {
-                if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                handleMediaSuccess(e.currentTarget);
               }}
               onError={(e) => handleMediaError(e.currentTarget)}
             />

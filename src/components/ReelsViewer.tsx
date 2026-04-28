@@ -204,8 +204,20 @@ const ReelItem: React.FC<{
     return () => video.removeEventListener('timeupdate', updateProgress);
   }, []);
 
-  // Removed old aggressive cleanup `useEffect(() => { ... videoRef.current.src = "" ... })`
-  // as it is handled by `useMediaController` now
+  useEffect(() => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      if (shouldLoad) {
+        if (video.getAttribute('src') !== proxiedUrl) {
+           video.src = proxiedUrl;
+           video.load();
+        }
+      } else {
+        video.removeAttribute('src');
+        video.load();
+      }
+    }
+  }, [shouldLoad, proxiedUrl]);
 
   const handleMediaClick = (e: React.MouseEvent) => {
     const now = Date.now();
@@ -334,21 +346,22 @@ const ReelItem: React.FC<{
                 )}
 
                 <video
+                  key={realPost.id + url}
                   ref={videoRef}
                   src={shouldLoad ? proxiedUrl : undefined}
-                  className={`absolute inset-0 h-full w-full object-cover pointer-events-none z-10 transition-opacity duration-200 ease-out ${!isMediaLoading ? 'opacity-100' : 'opacity-0'}`}
+                  className="absolute inset-0 h-full w-full object-cover pointer-events-none z-10"
                   loop
                   playsInline
                   muted={isMuted}
                   preload={isActive ? "auto" : "none"}
                   onLoadedData={(e) => {
-                    if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                    handleMediaSuccess(e.currentTarget);
                   }}
                   onCanPlay={(e) => {
-                    if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                    handleMediaSuccess(e.currentTarget);
                   }}
                   onPlaying={(e) => {
-                    if (shouldLoad) handleMediaSuccess(e.currentTarget);
+                    handleMediaSuccess(e.currentTarget);
                   }}
                   onError={(e) => handleMediaError(e.currentTarget)}
                 />

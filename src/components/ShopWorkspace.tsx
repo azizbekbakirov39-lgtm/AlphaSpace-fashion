@@ -5,7 +5,8 @@ import {
   Store, 
   MessageSquare, 
   Settings as SettingsIcon, 
-  Grid 
+  Grid,
+  ChevronLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Seller, PostData, User } from '../types';
@@ -157,6 +158,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const url = await getDownloadURL(fileRef);
 
       const storyData = {
+        ownerUid: user.uid,
         sellerId: shopData.id,
         seller: {
           id: shopData.id,
@@ -195,6 +197,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     try {
       const isVideo = post.mediaType === 'video';
       const storyData = {
+        ownerUid: user.uid,
         sellerId: shopData.id,
         seller: {
           id: shopData.id,
@@ -246,6 +249,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
   return (
     <div className="fixed inset-0 bg-bg-primary z-[1000] flex flex-col overflow-hidden">
+      <div className="absolute top-4 left-4 z-[2000]">
+        <button 
+          onClick={onBackToMarketplace}
+          className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg border border-white/20 hover:bg-black/60 active:scale-95 transition-all"
+        >
+          <ChevronLeft size={24} />
+        </button>
+      </div>
+
       {/* Content Area */}
       <div className="flex-1 relative overflow-hidden">
         <AnimatePresence mode="wait">
