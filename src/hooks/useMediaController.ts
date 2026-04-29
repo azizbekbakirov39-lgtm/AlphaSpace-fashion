@@ -132,7 +132,7 @@ export const useMediaController = ({ url: initialUrl, post, mediaIndex = 0, isAc
         if (isLoading) {
           handleMediaError(null);
         }
-      }, 20000); // 20 second timeout for video loading
+      }, 12000); // 12 second timeout for video loading
     }
     return () => clearLoadingTimeout();
   }, [isLoading, hasError, isActive, currentUrl, handleMediaError, clearLoadingTimeout]);

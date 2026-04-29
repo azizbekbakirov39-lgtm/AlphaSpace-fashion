@@ -88,16 +88,18 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
     if (videoRef.current) {
       if (shouldLoad) {
         if (videoRef.current.getAttribute('src') !== proxiedUrl) {
+           videoRef.current.preload = isActive ? "auto" : "metadata";
            videoRef.current.src = proxiedUrl;
            videoRef.current.load();
         }
       } else {
         videoRef.current.removeAttribute('src');
-        videoRef.current.load(); // Forces browser to drop connections immediately
+        videoRef.current.preload = "none";
+        videoRef.current.load(); 
         setIsPlaying(false);
       }
     }
-  }, [shouldLoad, proxiedUrl]);
+  }, [shouldLoad, proxiedUrl, isActive]);
 
   return (
     <div className="relative w-full h-full bg-black">
@@ -113,7 +115,6 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
       )}
       <video 
         ref={videoRef}
-        src={shouldLoad ? proxiedUrl : undefined}
         className="absolute inset-0 w-full h-full object-cover z-10"
         loop
         muted={isMuted}
@@ -378,15 +379,17 @@ const Post: React.FC<PostProps> = ({
     if (videoRef.current) {
       if (shouldLoad) {
         if (videoRef.current.getAttribute('src') !== proxiedUrl) {
+           videoRef.current.preload = isActive ? "auto" : "metadata";
            videoRef.current.src = proxiedUrl;
            videoRef.current.load();
         }
       } else {
         videoRef.current.removeAttribute('src');
+        videoRef.current.preload = "none";
         videoRef.current.load();
       }
     }
-  }, [shouldLoad, proxiedUrl]);
+  }, [shouldLoad, proxiedUrl, isActive]);
 
   // Handle active state changes for main video
   useEffect(() => {
@@ -533,7 +536,6 @@ const Post: React.FC<PostProps> = ({
 
             <video
               ref={videoRef}
-              src={shouldLoad ? proxiedUrl : undefined}
               className="absolute inset-0 w-full h-full object-cover z-10"
               loop
               muted={isMuted || !isActive} // Force mute if not active to prevent sound overlap

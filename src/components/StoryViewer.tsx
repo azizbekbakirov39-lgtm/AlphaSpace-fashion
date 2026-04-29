@@ -97,6 +97,26 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     isActive: !showProductDetails && !showComments && isVideoUrl(currentStory?.videoUrl || '')
   });
 
+  // Aggressive video source management to prevent connection leaks
+  useEffect(() => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const isVideo = isVideoUrl(currentStory?.videoUrl || "");
+      
+      if (isVideo) {
+        if (video.getAttribute('src') !== proxiedUrl) {
+          video.preload = "auto"; // Stories should always preload auto as they are short and immediate
+          video.src = proxiedUrl;
+          video.load();
+        }
+      } else {
+        video.removeAttribute('src');
+        video.preload = "none";
+        video.load();
+      }
+    }
+  }, [proxiedUrl, currentStory?.id]);
+
   // Pause/Resume video when details or comments are open
   useEffect(() => {
     const video = videoRef.current;
@@ -324,9 +344,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           )}
 
           <video
-            key={currentStory.id + currentStory.videoUrl}
             ref={videoRef}
-            src={proxiedUrl}
             className="absolute inset-0 w-full h-full object-cover z-10"
             onEnded={handleNext}
             playsInline

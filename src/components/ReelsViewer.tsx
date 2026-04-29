@@ -209,15 +209,17 @@ const ReelItem: React.FC<{
       const video = videoRef.current;
       if (shouldLoad) {
         if (video.getAttribute('src') !== proxiedUrl) {
+           video.preload = isActive ? "auto" : "metadata";
            video.src = proxiedUrl;
            video.load();
         }
       } else {
         video.removeAttribute('src');
+        video.preload = "none";
         video.load();
       }
     }
-  }, [shouldLoad, proxiedUrl]);
+  }, [shouldLoad, proxiedUrl, isActive]);
 
   const handleMediaClick = (e: React.MouseEvent) => {
     const now = Date.now();
@@ -346,9 +348,7 @@ const ReelItem: React.FC<{
                 )}
 
                 <video
-                  key={realPost.id + url}
                   ref={videoRef}
-                  src={shouldLoad ? proxiedUrl : undefined}
                   className="absolute inset-0 h-full w-full object-cover pointer-events-none z-10"
                   loop
                   playsInline
