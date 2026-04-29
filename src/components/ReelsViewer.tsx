@@ -209,7 +209,7 @@ const ReelItem: React.FC<{
       const video = videoRef.current;
       if (shouldLoad) {
         if (video.getAttribute('src') !== proxiedUrl) {
-           video.preload = isActive ? "auto" : "metadata";
+          video.preload = "auto"; // Preload next and previous videos automatically
            video.src = proxiedUrl;
            video.load();
         }
@@ -579,7 +579,7 @@ const ReelsViewer: React.FC<ReelsViewerProps> = ({
             key={post.id}
             post={post}
             isActive={idx === activeIndex}
-            shouldLoad={idx >= activeIndex - 1 && idx <= activeIndex + 1}
+            shouldLoad={idx >= activeIndex - 1 && idx <= activeIndex + 2}
             onToggleLike={() => onToggleLike(post.id)}
             onToggleSave={() => onToggleSave(post.id)}
             onToggleSubscribe={() => onToggleSubscribe(post.seller.id)}

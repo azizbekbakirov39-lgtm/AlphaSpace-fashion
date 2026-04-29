@@ -88,7 +88,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
     if (videoRef.current) {
       if (shouldLoad) {
         if (videoRef.current.getAttribute('src') !== proxiedUrl) {
-           videoRef.current.preload = isActive ? "auto" : "metadata";
+           videoRef.current.preload = "auto";
            videoRef.current.src = proxiedUrl;
            videoRef.current.load();
         }
@@ -379,7 +379,7 @@ const Post: React.FC<PostProps> = ({
     if (videoRef.current) {
       if (shouldLoad) {
         if (videoRef.current.getAttribute('src') !== proxiedUrl) {
-           videoRef.current.preload = isActive ? "auto" : "metadata";
+           videoRef.current.preload = "auto";
            videoRef.current.src = proxiedUrl;
            videoRef.current.load();
         }

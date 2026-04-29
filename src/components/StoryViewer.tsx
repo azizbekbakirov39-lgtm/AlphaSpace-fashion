@@ -368,16 +368,23 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             }}
           />
           
-          {/* Preload Next Story Video if available */}
-          {currentIndex < stories.length - 1 && isVideoUrl(stories[currentIndex + 1].videoUrl) && (
-            <video
-              src={getProxiedUrl(stories[currentIndex + 1].videoUrl, 0)}
-              className="hidden w-0 h-0 absolute pointer-events-none"
-              preload="metadata"
-              muted
-              playsInline
-            />
-          )}
+          {/* Preload Next Story Videos if available */}
+          {[1, 2].map((offset) => {
+            const nextIndex = currentIndex + offset;
+            if (nextIndex < stories.length && isVideoUrl(stories[nextIndex].videoUrl)) {
+              return (
+                <video
+                  key={`preload-${nextIndex}`}
+                  src={getProxiedUrl(stories[nextIndex].videoUrl, 0)}
+                  className="hidden w-0 h-0 absolute pointer-events-none"
+                  preload="auto"
+                  muted
+                  playsInline
+                />
+              );
+            }
+            return null;
+          })}
         </div>
       ) : (
         <img

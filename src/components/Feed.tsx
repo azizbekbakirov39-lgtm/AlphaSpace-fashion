@@ -247,7 +247,7 @@ const Feed: React.FC<FeedProps> = ({
           <Post 
             post={post} 
             isActive={index === activeIndex && !isGlobalPaused} 
-            shouldLoad={index >= activeIndex - 1 && index <= activeIndex + 1}
+            shouldLoad={index >= activeIndex - 1 && index <= activeIndex + 2}
             onToggleLike={() => onToggleLike(post.id)}
             onToggleSave={() => onToggleSave(post.id)}
             onOpenReels={() => onOpenReels(filteredPosts, index)}
