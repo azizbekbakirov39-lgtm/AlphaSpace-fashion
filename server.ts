@@ -151,15 +151,23 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     const isApiError = (res: any) => {
       if (!res || !res.data) return true;
       const data = res.data;
-      const dataStr = JSON.stringify(data).toLowerCase();
       
-      // Status 200 but contains error indicators
-      return res.status !== 200 || 
-             data.response === 4 || 
-             dataStr.includes('not found') ||
-             dataStr.includes('private') ||
-             dataStr.includes('invalid url') ||
-             (data.error && !data.urls && !data.media);
+      // Look for specific error fields or codes rather than searching the entire JSON string.
+      // E.g. `data.error` or `data.response === 4` or `data.status === 'failed'`
+      
+      if (res.status !== 200) return true;
+      if (data.response === 4) return true;
+      if (data.status === 'failed') return true;
+      
+      const errorMsg = (typeof data.error === 'string' ? data.error : '').toLowerCase();
+      const msg = (typeof data.message === 'string' ? data.message : '').toLowerCase();
+      
+      if (errorMsg.includes('not found') || msg.includes('not found')) return true;
+      if (errorMsg.includes('private') || msg.includes('private')) return true;
+      if (errorMsg.includes('invalid url') || msg.includes('invalid url')) return true;
+      
+      // If none of these specific error strings indicate an error, and we have urls or media, it's valid
+      return false;
     };
 
     const tryFetch = async (targetUrl: string) => {
