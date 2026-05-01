@@ -9,28 +9,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: 'npm'
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
+      - name: Install dependencies
+        run: npm install
 
       - name: Build Web App
-        run: |
-          npm install
-          npm run build
+        run: npm run build
 
-      # Bu qadamda Bubblewrap orqali APK/AAB generatsiya qilinadi.
-      # Buning uchun sizga 'twa-manifest.json' fayli kerak bo'ladi.
-      # Hozircha faqat tushuntirish beraman, chunki sign qilish uchun keystore kerak.
-      - name: Build Android Package
+      - name: Build Android Package (Simulated)
         run: |
-          # Haqiqiy build jarayonini simulyatsiya qilish va fayl yaratish
           mkdir -p output
+          # Kelajakda haqiqiy AAB yaratish uchun:
+          # npx @bubblewrap/cli build --no-interactive
           echo "Bu ilovangizning AAB fayli bo'ladi. Uni Play Marketga yuklash uchun imzolash kerak." > output/app-release-bundle.aab
 
       - name: Upload AAB Artifact
