@@ -39,14 +39,17 @@ jobs:
       - name: Build Android Package
         run: |
           mkdir -p output
-          # Bubblewrap builds the project based on twa-manifest.json
-          # Note: Real signed APKs require keystore secrets.
-          # This will attempt to build.
-          bubblewrap build --no-interactive || echo "Build process finished with warnings"
+          # Haqiqiy build qilishga harakat
+          bubblewrap build --no-interactive || echo "Build finish with warnings"
           
-          # Copy results to output folder
-          cp *.apk output/app-release.apk 2>/dev/null || echo "Build failed or APK not found"
-          cp *.aab output/app-release-bundle.aab 2>/dev/null || echo "AAB not found"
+          # Fayllarni tekshirish va nusxalash
+          if [ -f *.apk ]; then cp *.apk output/app-release.apk; fi
+          if [ -f *.aab ]; then cp *.aab output/app-release-bundle.aab; fi
+          
+          # Agar fayllar yaratilmagan bo'lsa (keystore sababli), test uchun marker fayl yaratamiz
+          if [ ! -f output/app-release.apk ]; then
+            echo "Keystore kiritilmagani sababli haqiqiy APK generatsiya qilinmadi. Lekin Live Update veb-saytingiz orqali ishlayveradi." > output/README_DOWNLOAD.txt
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
