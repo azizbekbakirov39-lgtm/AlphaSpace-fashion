@@ -14,11 +14,15 @@ workflows:
         script: npm install -g @bubblewrap/cli
       - name: Build Android Package
         script: |
-          # Unsigned build for testing
-          yes | bubblewrap build --no-interactive || echo "Build finished"
+          # Build jarayoni
+          bubblewrap build --no-interactive
+          # Qaysi fayllar yaratilganini tekshirish (Debug)
+          ls -R
     artifacts:
       - "*.apk"
       - "*.aab"
+      - "app-release.apk"
+      - "app-release-bundle.aab"
     publishing:
       email:
         recipients:
