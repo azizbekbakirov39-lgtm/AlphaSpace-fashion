@@ -148,8 +148,18 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
       return res.status(500).json({ error: "API Key missing" });
     }
 
+    const isApiError = (res: any) => {
+      const data = res.data || {};
+      // Status 200 but contains error indicators
+      return res.status !== 200 || 
+             data.response === 4 || 
+             (typeof data === 'string' && data.includes('not found')) ||
+             (data.error && !data.urls);
+    };
+
     const tryFetch = async (targetUrl: string) => {
-      return axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+      // Primary Host: instagram120
+      const primaryResponse = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
         { url: targetUrl },
         {
           headers: {
@@ -157,14 +167,43 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
             'x-rapidapi-host': 'instagram120.p.rapidapi.com',
             'x-rapidapi-key': RAPIDAPI_KEY
           },
-          validateStatus: () => true 
+          validateStatus: () => true,
+          timeout: 10000
         }
       );
-    };
 
-    const isApiError = (res: any) => {
-      const data = res.data || {};
-      return res.status !== 200 || data.response === 4 || JSON.stringify(data).includes('not found');
+      if (primaryResponse.status === 200 && !isApiError(primaryResponse)) {
+        return primaryResponse;
+      }
+
+      console.warn(`Primary RapidAPI failed (${primaryResponse.status}), trying fallback...`);
+
+      // Fallback Host: instagram-media-downloader (More robust for some links)
+      try {
+        const fallbackResponse = await axios.get(`https://instagram-media-downloader.p.rapidapi.com/api/index`, {
+          params: { url: targetUrl },
+          headers: {
+            'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com',
+            'x-rapidapi-key': RAPIDAPI_KEY
+          },
+          validateStatus: () => true,
+          timeout: 10000
+        });
+
+        if (fallbackResponse.status === 200 && fallbackResponse.data && (fallbackResponse.data.media || fallbackResponse.data.url)) {
+          // Normalize fallback response to match expected structure
+          const data = fallbackResponse.data;
+          const normalizedData = {
+            urls: [{ url: data.media || data.url }],
+            thumbnail_url: data.thumbnail
+          };
+          return { ...fallbackResponse, data: normalizedData };
+        }
+      } catch (fallbackError) {
+        console.error("Fallback RapidAPI error:", fallbackError);
+      }
+
+      return primaryResponse; // Return original error if fallback also fails
     };
 
     // Try types in order of likelihood
@@ -175,15 +214,26 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
 
     let response: any;
     for (const currentType of typesToTry) {
-      response = await tryFetch(`https://www.instagram.com/${currentType}/${shortcode}/`);
-      if (!isApiError(response)) {
-        break; // Found valid data
+      // Try with and without trailing slash as some APIs are picky
+      const urls = [
+        `https://www.instagram.com/${currentType}/${shortcode}/`,
+        `https://www.instagram.com/${currentType}/${shortcode}`
+      ];
+      
+      for (const url of urls) {
+        response = await tryFetch(url);
+        if (!isApiError(response)) break;
       }
+      
+      if (response && !isApiError(response)) break;
     }
 
-    if (isApiError(response)) {
-      console.error("RapidAPI Final Error:", response.status, response.data);
-      return res.status(response.status === 200 ? 500 : response.status).json({ error: response.data || 'Link not found' });
+    if (!response || isApiError(response)) {
+      console.error("RapidAPI Final Error:", response?.status, response?.data);
+      return res.status(response?.status === 200 || !response ? 500 : response.status).json({ 
+        error: response?.data || 'Link not found',
+        message: "RapidAPI failed to fetch media. Please check your API key or the post status."
+      });
     }
 
     res.json(response.data);
