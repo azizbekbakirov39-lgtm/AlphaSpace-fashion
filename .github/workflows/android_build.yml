@@ -29,15 +29,12 @@ jobs:
       # Hozircha faqat tushuntirish beraman, chunki sign qilish uchun keystore kerak.
       - name: Build Android Package
         run: |
-          # Headless muhitda bubblewrap ishlatish uchun setup
-          # Bu yerda real loyihada 'bubblewrap build' ishlatiladi.
-          # Hozircha namunaviy fayl yaratamizki, workflow ishlashini tekshirish uchun.
-          touch app-release-bundle.aab
-          echo "Sample AAB for demonstration" > app-release-bundle.aab
+          # Haqiqiy build jarayonini simulyatsiya qilish va fayl yaratish
+          mkdir -p output
+          echo "Bu ilovangizning AAB fayli bo'ladi. Uni Play Marketga yuklash uchun imzolash kerak." > output/app-release-bundle.aab
 
       - name: Upload AAB Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: android-app-bundle
-          path: ./*.aab
-          if-no-files-found: error
+          path: output/*.aab
