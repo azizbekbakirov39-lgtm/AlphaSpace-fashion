@@ -326,6 +326,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       }
 
       const postData = {
+        ownerUid: user.uid,
         sellerId: shopData.id,
         seller: {
           id: shopData.id,

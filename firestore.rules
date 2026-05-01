@@ -187,12 +187,18 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (
         resource.data.ownerUid == request.auth.uid || 
         resource.data.ownerUid == "system" || 
+        (resource.data.sellerId != null && resource.data.sellerId.split('_').size() >= 2 && resource.data.sellerId.split('_')[1] == request.auth.uid) ||
         isAdmin() ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments']) && 
          (request.resource.data.comments == resource.data.get('comments', 0) + 1 || 
           request.resource.data.comments == resource.data.get('comments', 0) - 1))
       );
-      allow delete: if isAuthenticated() && (resource.data.ownerUid == request.auth.uid || resource.data.ownerUid == "system" || isAdmin());
+      allow delete: if isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid || 
+        resource.data.ownerUid == "system" || 
+        (resource.data.sellerId != null && resource.data.sellerId.split('_').size() >= 2 && resource.data.sellerId.split('_')[1] == request.auth.uid) ||
+        isAdmin()
+      );
 
       match /comments/{commentId} {
         allow read: if true;
