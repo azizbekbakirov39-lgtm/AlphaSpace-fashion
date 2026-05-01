@@ -26,12 +26,13 @@ jobs:
       - name: Build Android Package (Simulated)
         run: |
           mkdir -p output
-          # Kelajakda haqiqiy AAB yaratish uchun:
-          # npx @bubblewrap/cli build --no-interactive
-          echo "Bu ilovangizning AAB fayli bo'ladi. Uni Play Marketga yuklash uchun imzolash kerak." > output/app-release-bundle.aab
+          # AAB fayli (Play Market uchun)
+          echo "Bu AAB fayli (Play Market uchun)" > output/app-release-bundle.aab
+          # APK fayli (Telegram/Direct install uchun)
+          echo "Bu APK fayli (Telegram orqali tarqatish uchun)" > output/app-release.apk
 
-      - name: Upload AAB Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-app-bundle
-          path: output/*.aab
+          name: android-build-assets
+          path: output/*
