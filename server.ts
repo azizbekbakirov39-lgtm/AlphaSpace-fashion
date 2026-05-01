@@ -175,13 +175,13 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           {
             headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram120.p.rapidapi.com' },
             validateStatus: () => true,
-            timeout: 10000
+            timeout: 15000
           }
         );
         if (primaryResponse.status === 200 && !isApiError(primaryResponse)) return primaryResponse;
         console.warn(`Primary RapidAPI failed (${primaryResponse.status}) for ${targetUrl}`);
-      } catch (e) {
-        console.error("Primary API Request Error:", e);
+      } catch (e: any) {
+        console.warn(`Primary API Request Error: ${e.message}`);
       }
 
       // 2. Fallback 1: instagram-media-downloader
@@ -190,7 +190,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           params: { url: targetUrl },
           headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com' },
           validateStatus: () => true,
-          timeout: 10000
+          timeout: 15000
         });
 
         if (fallback1.status === 200 && fallback1.data && (fallback1.data.media || fallback1.data.url)) {
@@ -204,8 +204,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           };
         }
         console.warn(`Fallback 1 failed (${fallback1.status})`);
-      } catch (e) {
-        console.error("Fallback 1 Request Error:", e);
+      } catch (e: any) {
+        console.warn(`Fallback 1 Request Error: ${e.message}`);
       }
 
       // 3. Fallback 2: rocketapi-for-instagram (Very reliable)
@@ -215,7 +215,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           {
             headers: { ...commonHeaders, 'x-rapidapi-host': 'rocketapi-for-instagram.p.rapidapi.com' },
             validateStatus: () => true,
-            timeout: 12000
+            timeout: 15000
           }
         );
 
@@ -235,8 +235,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           }
         }
         console.warn(`Fallback 2 (RocketAPI) failed (${fallback2.status})`);
-      } catch (e) {
-        console.error("Fallback 2 Request Error:", e);
+      } catch (e: any) {
+        console.warn(`Fallback 2 Request Error: ${e.message}`);
       }
 
       // 4. Fallback 3: social-media-video-downloader (Last resort)
@@ -245,7 +245,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           params: { url: targetUrl },
           headers: { ...commonHeaders, 'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com' },
           validateStatus: () => true,
-          timeout: 10000
+          timeout: 15000
         });
 
         if (fallback3.status === 200 && fallback3.data && (fallback3.data.url || fallback3.data.media)) {
@@ -258,8 +258,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           };
         }
         console.warn(`Fallback 3 failed (${fallback3.status})`);
-      } catch (e) {
-        console.error("Fallback 3 Request Error:", e);
+      } catch (e: any) {
+        console.warn(`Fallback 3 Request Error: ${e.message}`);
       }
 
       return null;
