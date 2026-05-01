@@ -12,7 +12,7 @@
   "iconUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/logo.png",
   "splashScreenFadeOutDuration": 300,
   "shortcuts": [],
-  "webManifestUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/manifest.webmanifest",
+  "webManifestUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/app.webmanifest",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": true,
