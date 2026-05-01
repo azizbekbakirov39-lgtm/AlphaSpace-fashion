@@ -179,9 +179,9 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           }
         );
         if (primaryResponse.status === 200 && !isApiError(primaryResponse)) return primaryResponse;
-        console.warn(`Primary RapidAPI failed (${primaryResponse.status}) for ${targetUrl}`);
+        console.log(`Primary RapidAPI failed (${primaryResponse.status}) for ${targetUrl}`);
       } catch (e: any) {
-        console.warn(`Primary API Request Error: ${e.message}`);
+        console.log(`Primary API Request Error: ${e.message}`);
       }
 
       // 2. Fallback 1: instagram-media-downloader
@@ -203,9 +203,9 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
             }
           };
         }
-        console.warn(`Fallback 1 failed (${fallback1.status})`);
+        console.log(`Fallback 1 failed (${fallback1.status})`);
       } catch (e: any) {
-        console.warn(`Fallback 1 Request Error: ${e.message}`);
+        console.log(`Fallback 1 Request Error: ${e.message}`);
       }
 
       // 3. Fallback 2: rocketapi-for-instagram (Very reliable)
@@ -234,9 +234,9 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
             };
           }
         }
-        console.warn(`Fallback 2 (RocketAPI) failed (${fallback2.status})`);
+        console.log(`Fallback 2 (RocketAPI) failed (${fallback2.status})`);
       } catch (e: any) {
-        console.warn(`Fallback 2 Request Error: ${e.message}`);
+        console.log(`Fallback 2 Request Error: ${e.message}`);
       }
 
       // 4. Fallback 3: social-media-video-downloader (Last resort)
@@ -257,9 +257,9 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
             }
           };
         }
-        console.warn(`Fallback 3 failed (${fallback3.status})`);
+        console.log(`Fallback 3 failed (${fallback3.status})`);
       } catch (e: any) {
-        console.warn(`Fallback 3 Request Error: ${e.message}`);
+        console.log(`Fallback 3 Request Error: ${e.message}`);
       }
 
       return null;
@@ -290,8 +290,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     if (!response || isApiError(response)) {
       const lastStatus = response?.status || 500;
       const lastData = response?.data || { error: 'All RapidAPI providers failed' };
-      console.error("RapidAPI Final Error:", lastStatus, lastData);
-      return res.status(lastStatus === 200 ? 500 : lastStatus).json({ 
+      console.log("RapidAPI Final Error:", lastStatus, lastData);
+      return res.status(lastStatus === 200 ? 404 : lastStatus).json({ 
         error: lastData,
         message: "None of the RapidAPI providers could fetch this media. The post might be private, deleted, or the API key is invalid."
       });

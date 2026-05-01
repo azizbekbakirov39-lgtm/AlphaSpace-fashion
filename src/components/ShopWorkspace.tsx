@@ -243,6 +243,139 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     }
   };
 
+  const handleInstagramImport = async () => {
+    if (!instagramLink) return toast.error("Iltimos, post linkini kiriting");
+    setIsImporting(true);
+    
+    try {
+      const urlMatch = instagramLink.match(/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+      if (!urlMatch) {
+         toast.error("Noto'g'ri Instagram linki");
+         setIsImporting(false);
+         return;
+      }
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${API_BASE}/api/refresh-instagram-url`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ shortcode: urlMatch[2], type: urlMatch[1] })
+      });
+
+      if (!response.ok) throw new Error("API xatosi yuz berdi");
+      
+      const result = await response.json();
+      
+      let mediaUrls: string[] = [];
+      let isVideo = false;
+
+      if (result.urls && Array.isArray(result.urls)) {
+        mediaUrls = result.urls.map((u: any) => u.url);
+        // Oddiy tekshiruv
+        if (mediaUrls[0] && (mediaUrls[0].includes('mp4') || instagramLink.includes('reel'))) {
+          isVideo = true;
+        }
+      } else {
+        const singleUrl = result.pictureUrl || result.display_url || result.thumbnail_url;
+        if (singleUrl) mediaUrls = [singleUrl];
+      }
+
+      if (mediaUrls.length === 0) {
+        throw new Error("Media ma'lumotlari topilmadi");
+      }
+
+      setImportPreview({
+        mediaType: isVideo ? 'video' : 'image',
+        mediaUrls: mediaUrls,
+        outfitName: 'Instagram Post',
+        price: '',
+        instagramUrl: instagramLink
+      });
+
+    } catch (error) {
+      console.error(error);
+      toast.error("Xatolik: Post topilmadi yoki yopiq (Private)");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importPreview || !user) return;
+    setIsUploading(true);
+    
+    try {
+      let finalMediaUrls = [...importPreview.mediaUrls];
+      
+      // Agar Video bo'lsa uni backend orqali Cloudflare R2 ga siqib yuklaymiz
+      if (importPreview.mediaType === 'video' && finalMediaUrls[0]) {
+        toast.message("Video yuklanmoqda va siqilmoqda (bu biroz vaqt olishi mumkin)...");
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+        const uploadRes = await fetch(`${API_BASE}/api/import-to-r2`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ videoUrl: finalMediaUrls[0] })
+        });
+        
+        if (!uploadRes.ok) throw new Error("R2 siqish va yuklashda xatolik");
+        
+        const r2Data = await uploadRes.json();
+        if (r2Data.publicUrl) {
+          finalMediaUrls[0] = r2Data.publicUrl; // Update with R2 URL
+        }
+      }
+
+      const postData = {
+        sellerId: shopData.id,
+        seller: {
+          id: shopData.id,
+          name: shopData.name,
+          logo: shopData.logo,
+          hasStory: shopData.hasStory || false,
+          followers: shopData.followers || 0,
+          categories: shopData.categories || [],
+          isSubscribed: false
+        },
+        outfitName: importPreview.outfitName,
+        price: importPreview.price || '',
+        priceMessage: importPreview.price ? '' : 'Narxini bilish',
+        description: '',
+        mediaUrls: finalMediaUrls,
+        mediaType: importPreview.mediaType,
+        likes: 0,
+        comments: 0,
+        isLiked: false,
+        isSaved: false,
+        createdAt: serverTimestamp(),
+        instagramUrl: importPreview.instagramUrl
+      };
+
+      await addDoc(collection(db, 'posts'), postData);
+      
+      toast.success("Post Cloudflare R2 orqali muvaffaqiyatli saqlandi!");
+      setShowInstagramImportModal(false);
+      setInstagramLink('');
+      setImportPreview(null);
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Saqlashda xatolik yuz berdi");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUpdatePost = async () => {};
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await deleteDoc(doc(db, 'posts', postId));
+      toast.success("Post muvaffaqiyatli o'chirildi!");
+      setSelectedPostDetails(null);
+    } catch (error) {
+      console.error("O'chirishda xatolik:", error);
+      toast.error("O'chirishda xatolik yuz berdi");
+    }
+  };
+
   const handleSendMessage = async (type: string, url?: string) => {
     // Logic for message sending...
   };
@@ -410,16 +543,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         instagramLink={instagramLink}
         setInstagramLink={setInstagramLink}
         isImporting={isImporting}
-        handleInstagramImport={() => {}}
+        handleInstagramImport={handleInstagramImport}
         importPreview={importPreview}
-        confirmImport={() => {}}
+        confirmImport={confirmImport}
         isUploading={isUploading}
         selectedPostDetails={selectedPostDetails}
         setSelectedPostDetails={setSelectedPostDetails}
         postDetailsTab={postDetailsTab}
         setPostDetailsTab={setPostDetailsTab}
-        handleUpdatePost={() => {}}
-        handleDeletePost={() => {}}
+        handleUpdatePost={handleUpdatePost}
+        handleDeletePost={handleDeletePost}
       />
     </div>
   );
