@@ -1,0 +1,28 @@
+{
+  "packageId": "com.reelsmarket.app",
+  "host": "ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app",
+  "name": "Reels Market",
+  "launcherName": "Reels Market",
+  "display": "standalone",
+  "themeColor": "#000000",
+  "navigationColor": "#000000",
+  "backgroundColor": "#000000",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/logo.png",
+  "splashScreenFadeOutDuration": 300,
+  "shortcuts": [],
+  "webManifestUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": true,
+    "playBilling": false
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "signingKey": {
+    "path": "release.keystore",
+    "alias": "android"
+  }
+}
