@@ -1,15 +1,16 @@
 {
-  "packageId": "com.reelsmarket.app",
+  "packageId": "com.alphaspace.fashion",
   "host": "ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app",
-  "name": "Reels Market",
-  "launcherName": "Reels Market",
+  "name": "AlphaSpace",
+  "launcherName": "AlphaSpace",
   "display": "standalone",
   "themeColor": "#000000",
   "navigationColor": "#000000",
   "backgroundColor": "#000000",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/logo.png",
+  "iconUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/app-logo.png",
+  "maskableIconUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/app-logo.png",
   "splashScreenFadeOutDuration": 300,
   "shortcuts": [],
   "webManifestUrl": "https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app/app.webmanifest",
@@ -20,9 +21,5 @@
   },
   "alphaDependencies": {
     "enabled": false
-  },
-  "signingKey": {
-    "path": "release.keystore",
-    "alias": "android"
   }
 }
