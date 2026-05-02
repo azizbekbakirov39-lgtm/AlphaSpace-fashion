@@ -1,38 +1,31 @@
 workflows:
-  android-twa-workflow:
-    name: Android TWA Build
+  android-capacitor-workflow:
+    name: Android Capacitor Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
       node: 20
+      java: 17
     scripts:
       - name: Install dependencies
         script: npm install
       - name: Build Web App
         script: npm run build
-      - name: Install Bubblewrap CLI
-        script: npm install -g @bubblewrap/cli
-      - name: Build Android Package
+      - name: Sync Capacitor Android
+        script: npx cap sync android
+      - name: Build Android APK
         script: |
-          # Bubblewrap build jarayoni
-          yes | bubblewrap init --manifest=twa-manifest.json || echo "Init skip"
-          bubblewrap build --no-interactive
-          
-          # Fayllarni topish va asosiy papkaga nusxalash (Codemagic ularni ko'rishi uchun)
-          echo "Hosil bo'lgan fayllarni qidirish..."
-          find . -maxdepth 4 -name "*.apk" -exec cp {} . \;
-          find . -maxdepth 4 -name "*.aab" -exec cp {} . \;
-          
-          # Natijani tekshirish
-          echo "Asosiy papkadagi fayllar listi:"
-          ls -lh *.apk *.aab || echo "Xato: Fayllar topilmadi!"
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      - name: Build Android App Bundle (AAB)
+        script: |
+          cd android
+          ./gradlew bundleRelease
+        
     artifacts:
-      - "*.apk"
-      - "*.aab"
-      - "**/*.apk"
-      - "**/*.aab"
-      - "**/*.apk"
-      - "**/*.aab"
+      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/*.aab
     publishing:
       email:
         recipients:
