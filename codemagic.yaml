@@ -16,6 +16,7 @@ workflows:
       - name: Build Android APK
         script: |
           cd android
+          gradle wrapper
           chmod +x gradlew
           ./gradlew assembleDebug
         
