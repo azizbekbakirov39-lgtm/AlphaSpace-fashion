@@ -27,14 +27,16 @@ workflows:
           # Build jarayoni
           bubblewrap build --no-interactive
           
-          # Qaysi fayllar yaratilganini tekshirish (Debug)
-          echo "Build natijasida hosil bo'lgan fayllar:"
-          find . -name "*.apk" -o -name "*.aab"
+          # Qaysi fayllar yaratilganini ko'rish va ularni rootga nusxalash
+          echo "Quyidagi fayllar topildi:"
+          find . -maxdepth 4 -name "*.apk" -o -name "*.aab"
+          cp $(find . -name "*.apk") . || echo "APK topilmadi"
+          cp $(find . -name "*.aab") . || echo "AAB topilmadi"
     artifacts:
-      - "**/*.apk"
-      - "**/*.aab"
       - "*.apk"
       - "*.aab"
+      - "**/*.apk"
+      - "**/*.aab"
     publishing:
       email:
         recipients:
