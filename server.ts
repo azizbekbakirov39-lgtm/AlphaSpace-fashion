@@ -319,6 +319,11 @@ app.post("/api/import-to-r2", async (req, res) => {
     const { videoUrl, fileName } = req.body;
     if (!videoUrl) return res.status(400).json({ error: "videoUrl required" });
 
+    if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
+      console.error("R2 Config Missing");
+      return res.status(500).json({ error: "R2 configuration is missing" });
+    }
+
     // 1. Download the video to a temporary file
     console.log(`Downloading video from: ${videoUrl}`);
     const response = await axios({
@@ -337,8 +342,6 @@ app.post("/api/import-to-r2", async (req, res) => {
     tempFiles.push(inputPath);
 
     // 2. Compress the video using FFmpeg
-    // Using CRF 20 for high quality, and preset slow for better compression efficiency
-    // This preserves high quality (effectively visually lossless) while reducing file size
     console.log(`Compressing video...`);
     await new Promise((resolve, reject) => {
       ffmpeg(inputPath)
@@ -350,7 +353,10 @@ app.post("/api/import-to-r2", async (req, res) => {
           "-movflags +faststart", // Optimize for web streaming
         ])
         .on("end", resolve)
-        .on("error", reject)
+        .on("error", (err) => {
+          console.error("FFmpeg Error:", err);
+          reject(err);
+        })
         .save(outputPath);
     });
     tempFiles.push(outputPath);

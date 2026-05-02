@@ -234,19 +234,21 @@ export default function App() {
     };
   }, [user]);
 
-  const handleEmailLogin = async (email: string, pass: string, name?: string) => {
+  const handleEmailLogin = async (email: string, pass: string, name?: string, isRegistering?: boolean) => {
     try {
       let result;
-      if (name) {
+      if (isRegistering) {
         // Register
         result = await registerWithEmail(email, pass);
-        await updateUserName(name);
+        if (name) {
+          await updateUserName(name);
+        }
         
         // Create user doc
         const userDoc = doc(db, 'users', result.user.uid);
         await setDoc(userDoc, {
           uid: result.user.uid,
-          displayName: name,
+          displayName: name || '',
           email: email,
           photoURL: null,
           role: 'buyer',

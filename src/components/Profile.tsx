@@ -74,7 +74,7 @@ interface ProfileProps {
   user: User | null;
   onLogin: () => void;
   onLogout: () => void;
-  onEmailLogin?: (email: string, pass: string, name?: string) => Promise<void>;
+  onEmailLogin?: (email: string, pass: string, name?: string, isRegistering?: boolean) => Promise<void>;
   onResetPassword?: (email: string) => Promise<void>;
   onBackToHome?: () => void;
   onOpenAdminDashboard?: () => void;
@@ -935,7 +935,7 @@ const Profile: React.FC<ProfileProps> = ({
                         }
                         setAuthLoading(true);
                         try {
-                          await onEmailLogin?.(email, password, isRegistering ? name : undefined);
+                          await onEmailLogin?.(email, password, name, isRegistering);
                         } catch (error: any) {
                           console.error("Login Error Details:", error.code, error.message);
                           

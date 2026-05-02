@@ -262,7 +262,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         body: JSON.stringify({ shortcode: urlMatch[2], type: urlMatch[1] })
       });
 
-      if (!response.ok) throw new Error("API xatosi yuz berdi");
+      if (!response.ok) {
+        let errText = "API xatosi";
+        try { const errJson = await response.json(); errText = errJson.error || errJson.message || errText; } catch(e){}
+        throw new Error(errText);
+      }
       
       const result = await response.json();
       
@@ -292,9 +296,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         instagramUrl: instagramLink
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Xatolik: Post topilmadi yoki yopiq (Private)");
+      toast.error(`Xatolik yuz berdi: ${error.message || "Post topilmadi yoki yopiq"}`);
     } finally {
       setIsImporting(false);
     }
@@ -317,7 +321,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           body: JSON.stringify({ videoUrl: finalMediaUrls[0] })
         });
         
-        if (!uploadRes.ok) throw new Error("R2 siqish va yuklashda xatolik");
+        if (!uploadRes.ok) {
+          let errText = "Yuklashda xatolik";
+          try { const errJson = await uploadRes.json(); errText = errJson.error || errText; } catch(e){}
+          throw new Error(`R2 yuklashda xato: ${errText}`);
+        }
         
         const r2Data = await uploadRes.json();
         if (r2Data.publicUrl) {
@@ -353,13 +361,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       await addDoc(collection(db, 'posts'), postData);
       
-      toast.success("Post Cloudflare R2 orqali muvaffaqiyatli saqlandi!");
+      toast.success("Post yordamida muvaffaqiyatli saqlandi!");
       setShowInstagramImportModal(false);
       setInstagramLink('');
       setImportPreview(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Import error:", error);
-      toast.error("Saqlashda xatolik yuz berdi");
+      toast.error(error.message || "Saqlashda xatolik yuz berdi");
     } finally {
       setIsUploading(false);
     }
