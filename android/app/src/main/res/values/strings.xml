@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Smart Seller</string>
-    <string name="title_activity_main">Smart Seller</string>
-    <string name="package_name">com.smartseller.app</string>
-    <string name="custom_url_scheme">com.smartseller.app</string>
+    <string name="app_name">AlphaSpace</string>
+    <string name="title_activity_main">AlphaSpace</string>
+    <string name="package_name">com.alphaspace.app</string>
+    <string name="custom_url_scheme">com.alphaspace.app</string>
 </resources>

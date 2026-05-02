@@ -1,13 +1,15 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.smartseller.app',
-  appName: 'Smart Seller',
+  appId: 'com.alphaspace.app',
+  appName: 'AlphaSpace',
   webDir: 'dist',
-  server: {
-    url: 'https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app',
-    cleartext: true
-  }
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 0,
+      launchAutoHide: true,
+    },
+  },
 };
 
 export default config;

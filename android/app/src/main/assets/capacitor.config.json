@@ -1,8 +1,11 @@
 {
-	"appId": "com.smartseller.app",
-	"appName": "Smart Seller",
+	"appId": "com.alphaspace.app",
+	"appName": "AlphaSpace",
 	"webDir": "dist",
-	"server": {
-		"androidScheme": "https"
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 0,
+			"launchAutoHide": true
+		}
 	}
 }

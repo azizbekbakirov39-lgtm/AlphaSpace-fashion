@@ -1,4 +1,4 @@
-package com.smartseller.app;
+package com.alphaspace.app;
 
 import com.getcapacitor.BridgeActivity;
 
