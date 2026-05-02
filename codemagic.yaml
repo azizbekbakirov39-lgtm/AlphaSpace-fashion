@@ -14,27 +14,23 @@ workflows:
         script: npm install -g @bubblewrap/cli
       - name: Build Android Package
         script: |
-          # Bubblewrap loyihasini manifest orqali import qilish yoki yangilash
-          # Agar loyiha hali yaratilmagan bo'lsa, uni init qilamiz
-          if [ ! -f "twa-manifest.json" ]; then
-            echo "Xato: twa-manifest.json topilmadi!"
-            exit 1
-          fi
-          
-          # Loyihani yaratish (avtomatik javoblar bilan)
-          yes | bubblewrap init --manifest=twa-manifest.json || echo "Loyiha allaqachon mavjud bo'lishi mumkin"
-          
-          # Build jarayoni
+          # Bubblewrap build jarayoni
+          yes | bubblewrap init --manifest=twa-manifest.json || echo "Init skip"
           bubblewrap build --no-interactive
           
-          # Qaysi fayllar yaratilganini ko'rish va ularni rootga nusxalash
-          echo "Quyidagi fayllar topildi:"
-          find . -maxdepth 4 -name "*.apk" -o -name "*.aab"
-          cp $(find . -name "*.apk") . || echo "APK topilmadi"
-          cp $(find . -name "*.aab") . || echo "AAB topilmadi"
+          # Fayllarni topish va asosiy papkaga nusxalash (Codemagic ularni ko'rishi uchun)
+          echo "Hosil bo'lgan fayllarni qidirish..."
+          find . -maxdepth 4 -name "*.apk" -exec cp {} . \;
+          find . -maxdepth 4 -name "*.aab" -exec cp {} . \;
+          
+          # Natijani tekshirish
+          echo "Asosiy papkadagi fayllar listi:"
+          ls -lh *.apk *.aab || echo "Xato: Fayllar topilmadi!"
     artifacts:
       - "*.apk"
       - "*.aab"
+      - "**/*.apk"
+      - "**/*.aab"
       - "**/*.apk"
       - "**/*.aab"
     publishing:
