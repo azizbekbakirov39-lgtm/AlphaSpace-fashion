@@ -816,6 +816,7 @@ const Profile: React.FC<ProfileProps> = ({
                     Barcha imkoniyatlardan foydalanish uchun tizimga kiring.
                   </p>
                   
+                {!(window as any).Capacitor?.isNativePlatform() && (
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={onLogin}
@@ -841,6 +842,7 @@ const Profile: React.FC<ProfileProps> = ({
                     </svg>
                     Google orqali kirish
                   </motion.button>
+                )}
 
                   <motion.button
                     whileTap={{ scale: 0.95 }}

@@ -320,8 +320,9 @@ app.post("/api/import-to-r2", async (req, res) => {
     if (!videoUrl) return res.status(400).json({ error: "videoUrl required" });
 
     if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
-      console.error("R2 Config Missing");
-      return res.status(500).json({ error: "R2 configuration is missing" });
+      console.error("R2 Config Missing. Skipping R2 upload and falling back to original URL.");
+      // Soft fallback: If we can't compress/upload, just return the original URL rather than crashing the save
+      return res.json({ publicUrl: videoUrl });
     }
 
     // 1. Download the video to a temporary file
