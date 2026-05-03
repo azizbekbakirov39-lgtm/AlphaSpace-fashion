@@ -42,7 +42,7 @@
       </g>
 
       <!-- Re-applied the original linear gradients here -->
-      <path d="M45 15 L20 15 C17.2 15 15 17.2 15 20 L15 45 L55 85 C57.8 87.8 62.2 87.8 65 85 L85 65 C87.8 62.2 87.8 57.8 85 55 L45 15 Z" fill="url(#v3_brandGrad)" />
+      <path d="M45 15 L20 15 C17.2 15 15 17.2 15 20 L15 45 L55 85 C57.8 87.8 62.2 87.8 65 85 L85 65 C87.8 62.2 87.8 57.8 85 55 L45 15 Z" fill="#0066FF" />
       <path d="M43.8 18 L20 18 C18.9 18 18 18.9 18 20 L18 43.8 L55 80.8 C57.8 83.6 62.2 83.6 65 80.8 L80.8 65 C83.6 62.2 83.6 57.8 80.8 55 L43.8 18 Z" stroke="#FFFFFF" stroke-width="1.5" fill="none" />
       <circle cx="28" cy="28" r="4.5" fill="white" />
 
@@ -64,6 +64,6 @@
       <text x="50" y="58" font-family="'Dancing Script', cursive" font-size="28" font-weight="700" fill="white" text-anchor="middle" transform="rotate(45 50 58)">A.S</text>
     </g>
 
-    <text x="60" y="100" font-family="'Dancing Script', cursive" font-size="22" font-weight="700" fill="url(#v3_textGrad)" text-anchor="middle">AlphaSpace</text>
+    <text x="60" y="100" font-family="'Dancing Script', cursive" font-size="22" font-weight="700" fill="#0066FF" text-anchor="middle">AlphaSpace</text>
   </g>
 </svg>
