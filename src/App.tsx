@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Feed from './components/Feed';
 import Brands from './components/Brands';
 import SearchAI from './components/SearchAI';
@@ -55,10 +55,6 @@ import {
 } from './firebase';
 
 export default function App() {
-  if (window.location.pathname === '/download') {
-    return <DownloadPage />;
-  }
-
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<PostData[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
@@ -92,14 +88,6 @@ export default function App() {
   const [userSubscriptions, setUserSubscriptions] = useState<Set<string>>(new Set());
   const [lastViewedPostId, setLastViewedPostId] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (activeReelIndex !== null && activeReelList[activeReelIndex]) {
-      setLastViewedPostId(activeReelList[activeReelIndex].id);
-    } else if (selectedPostForDetails) {
-      setLastViewedPostId(selectedPostForDetails.id);
-    }
-  }, [activeReelIndex, activeReelList, selectedPostForDetails]);
-
   // Workspace State
   const [workspace, setWorkspace] = useState<'Marketplace' | 'Shop'>('Marketplace');
   const [hasShop, setHasShop] = useState(false);
@@ -108,8 +96,20 @@ export default function App() {
   const [showShopSelector, setShowShopSelector] = useState(false);
   const [profileActiveChatSellerId, setProfileActiveChatSellerId] = useState<string | undefined>(undefined);
 
+  // Shop Workspace Internal Navigation (Lifted for history management)
+  const [shopWorkspaceTab, setShopWorkspaceTab] = useState('MyShop');
+  const [shopWorkspaceChatId, setShopWorkspaceChatId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeReelIndex !== null && activeReelList[activeReelIndex]) {
+      setLastViewedPostId(activeReelList[activeReelIndex].id);
+    } else if (selectedPostForDetails) {
+      setLastViewedPostId(selectedPostForDetails.id);
+    }
+  }, [activeReelIndex, activeReelList, selectedPostForDetails]);
+
   // Check for ImgBB API Key on startup
-  React.useEffect(() => {
+  useEffect(() => {
     const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
     if (!apiKey && userShop) {
       toast.error("ImgBB API kaliti topilmadi. Rasmlar yuklashda muammo bo'lishi mumkin.");
@@ -117,7 +117,7 @@ export default function App() {
   }, [userShop]);
   
   // Firestore Real-time Listeners
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubSellers = onSnapshot(collection(db, 'shops'), (snapshot) => {
       const sellersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
       setSellers(sellersData);
@@ -159,10 +159,10 @@ export default function App() {
       unsubPosts();
       unsubStories();
     };
-  }, [user?.uid]); // Only depend on user.uid, not sellers.length
+  }, [user?.uid]);
 
   // User-specific data listeners
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) {
       setUserLikes(new Set());
       setUserSaves(new Set());
@@ -182,8 +182,6 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, 'saved_items');
     });
 
-    // Subscriptions logic (if we had a collection for it)
-    // For now, let's assume it's in a 'subscriptions' collection
     const unsubSubs = onSnapshot(query(collection(db, 'subscriptions'), where('uid', '==', user.uid)), (snapshot) => {
       setUserSubscriptions(new Set(snapshot.docs.map(doc => doc.data().sellerId)));
     }, (error) => {
@@ -199,11 +197,9 @@ export default function App() {
         const activeShops = shopsData.filter(s => s.status !== 'frozen');
         
         if (activeShops.length > 0) {
-          // Set active shop to the first one if not set
           if (!userShop) {
             setUserShop(activeShops[0]);
           } else {
-            // Update active shop if it's in the list
             const updatedActiveShop = activeShops.find(s => s.id === userShop.id);
             if (updatedActiveShop) {
               setUserShop(updatedActiveShop);
@@ -213,7 +209,6 @@ export default function App() {
           }
           setHasShop(true);
         } else {
-          // User only has frozen shops
           setUserShop(null);
           setHasShop(false);
         }
@@ -238,13 +233,11 @@ export default function App() {
     try {
       let result;
       if (isRegistering) {
-        // Register
         result = await registerWithEmail(email, pass);
         if (name) {
           await updateUserName(name);
         }
         
-        // Create user doc
         const userDoc = doc(db, 'users', result.user.uid);
         await setDoc(userDoc, {
           uid: result.user.uid,
@@ -257,20 +250,12 @@ export default function App() {
         });
         toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
       } else {
-        // Login
-        try {
-          result = await loginWithEmail(email, pass);
-          toast.success("Xush kelibsiz!");
-        } catch (loginError: any) {
-          // If login fails with user-not-found, and we are in OTP flow (implied by name being split of email later)
-          // we might want to re-throw to let Profile.tsx handle registration
-          throw loginError;
-        }
+        result = await loginWithEmail(email, pass);
+        toast.success("Xush kelibsiz!");
       }
       return result;
     } catch (error: any) {
       console.error("Auth Error:", error);
-      // Re-throw for Profile.tsx to handle if it's an OTP flow
       throw error;
     }
   };
@@ -282,16 +267,10 @@ export default function App() {
     }
     try {
       await resetPassword(email);
-      toast.success("Parolni tiklash havolasi pochtangizga yuborildi. Iltimos, Spam (Keraksiz xatlar) papkasini ham tekshiring.");
+      toast.success("Parolni tiklash havolasi pochtangizga yuborildi.");
     } catch (error: any) {
       console.error("Reset Password Error:", error.code, error.message);
-      if (error.code === 'auth/user-not-found') {
-        toast.error("Bunday email bilan foydalanuvchi topilmadi.");
-      } else if (error.code === 'auth/invalid-email') {
-        toast.error("Email manzili noto'g'ri.");
-      } else {
-        toast.error("Xatolik: " + (error.message || "Havola yuborishda muammo yuz berdi"));
-      }
+      toast.error("Xatolik: " + (error.message || "Havola yuborishda muammo yuz berdi"));
     }
   };
 
@@ -299,7 +278,6 @@ export default function App() {
   const postsWithUserStatus = React.useMemo(() => {
     return posts
       .map(post => {
-        // Prioritize fresh seller data from the real-time sellers list
         const postSellerId = post.seller?.id || (post as any).sellerId;
         const freshSeller = sellers.find(s => s.id === postSellerId);
         const sellerObj = freshSeller || post.seller;
@@ -312,7 +290,6 @@ export default function App() {
         };
       })
       .filter(post => {
-        // If we are in Shop workspace, we might want to see our own posts even if seller status is not yet loaded
         if (!post.seller) return true; 
         return post.seller.status !== 'frozen';
       })
@@ -328,7 +305,6 @@ export default function App() {
   const storiesWithUserStatus = React.useMemo(() => {
     return stories
       .map(story => {
-        // Prioritize fresh seller data from the real-time sellers list
         const storySellerId = story.seller?.id || (story as any).sellerId;
         const freshSeller = sellers.find(s => s.id === storySellerId);
         const sellerObj = freshSeller || story.seller;
@@ -350,7 +326,6 @@ export default function App() {
   }, [stories, sellers, userLikes, userSubscriptions]);
 
   const sellersWithUserStatus = React.useMemo(() => {
-    // Merge user-owned shops into the main list just in case they aren't synced globally yet
     const allSellers = [...sellers];
     userShops.forEach(uShop => {
       if (!allSellers.some(s => s.id === uShop.id)) {
@@ -373,24 +348,17 @@ export default function App() {
   const [newShopData, setNewShopData] = useState<{name: string, logoFile: File | null, logoPreview: string | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }, region: string} | null>(null);
 
   // Firebase Auth Listener
-  React.useEffect(() => {
-    // Add foreground message listener
+  useEffect(() => {
     if (messaging) {
-      const unsubMessaging = onMessage(messaging, (payload) => {
-        console.log('FCM Foreground message: ', payload);
+      onMessage(messaging, (payload) => {
         showChatNotification(payload.notification?.title || 'Yangi xabar', payload.notification?.body || '');
       });
-      // Optionally attach it to window to prevent being garbage collected or trace
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        requestNotificationPermission(firebaseUser.uid); // Muloqot xabarnomalari kelishi uchun so'rash
-        
-        // Just set the basic user info first to trigger other effects
-        // The real-time profile listener will handle the rest
+        requestNotificationPermission(firebaseUser.uid);
         if (!user || user.uid !== firebaseUser.uid) {
-          // Check if user exists in Firestore once to initialize
           const userDoc = doc(db, 'users', firebaseUser.uid);
           const docSnap = await getDoc(userDoc);
           if (!docSnap.exists()) {
@@ -417,14 +385,13 @@ export default function App() {
   }, []);
 
   // Real-time User Profile Listener
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user?.uid) return;
 
     const userDoc = doc(db, 'users', user.uid);
     const unsubUser = onSnapshot(userDoc, (docSnap) => {
       if (docSnap.exists()) {
         const userData = docSnap.data() as User;
-        // Only update if data actually changed to avoid loops
         setUser(prev => {
           if (JSON.stringify(prev) === JSON.stringify(userData)) return prev;
           return userData;
@@ -432,13 +399,6 @@ export default function App() {
       }
     });
 
-    // Unread messages listener
-    let shopIds: string[] = [];
-    if (userShops && userShops.length > 0) {
-      shopIds = userShops.map(s => s.id);
-    }
-    
-    // As a buyer
     const qBuyer = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid));
     const unsubBuyerChats = onSnapshot(qBuyer, (snapshot) => {
       let unread = 0;
@@ -480,11 +440,11 @@ export default function App() {
     }
   };
 
-  // Shop Workspace Internal Navigation (Lifted for history management)
-  const [shopWorkspaceTab, setShopWorkspaceTab] = React.useState('MyShop');
-  const [shopWorkspaceChatId, setShopWorkspaceChatId] = useState<string | null>(null);
-
   useChatNotifications(user, userShop, activeTab, shopWorkspaceChatId, profileActiveChatSellerId, profileSubView);
+
+  if (window.location.pathname === '/download') {
+    return <DownloadPage />;
+  }
 
   const t = translations[language];
 
