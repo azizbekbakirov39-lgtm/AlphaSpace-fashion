@@ -85,6 +85,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteCode, setDeleteCode] = useState('');
   const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
+  const [showManualPostModal, setShowManualPostModal] = useState(false);
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [isCreatingStory, setIsCreatingStory] = useState(false);
   const [instagramLink, setInstagramLink] = useState('');
@@ -392,6 +393,64 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     }
   };
 
+  const handleManualPostUpload = async (files: File[], data: { title: string, price: string, description: string }) => {
+    if (!user || files.length === 0) return;
+    setIsUploading(true);
+    const toastId = toast.loading("Media yuklanmoqda...");
+
+    try {
+      const formData = new FormData();
+      files.forEach(file => formData.append('files', file));
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${API_BASE}/api/upload-to-r2`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error("Yuklashda xatolik yuz berdi");
+      
+      const result = await response.json();
+      const mediaUrls = result.urls.map((u: any) => u.url);
+      const isVideo = result.urls.some((u: any) => u.type === 'video');
+
+      const postData = {
+        ownerUid: user.uid,
+        sellerId: shopData.id,
+        seller: {
+          id: shopData.id,
+          name: shopData.name,
+          logo: shopData.logo,
+          hasStory: shopData.hasStory || false,
+          followers: shopData.followers || 0,
+          categories: shopData.categories || [],
+          isSubscribed: false
+        },
+        outfitName: data.title,
+        price: data.price || '',
+        priceMessage: data.price ? '' : 'Narxini bilish',
+        description: data.description || '',
+        mediaUrls: mediaUrls,
+        mediaType: isVideo ? 'video' : 'image',
+        likes: 0,
+        comments: 0,
+        isLiked: false,
+        isSaved: false,
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, 'posts'), postData);
+      
+      toast.success("Post muvaffaqiyatli yaratildi!", { id: toastId });
+      setShowManualPostModal(false);
+    } catch (error: any) {
+      console.error("Manual post error:", error);
+      toast.error(error.message || "Xatolik yuz berdi", { id: toastId });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleUpdatePost = async () => {};
   const handleDeletePost = async (postId: string) => {
     try {
@@ -441,6 +500,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 handleInstagramClick={() => window.open(`https://instagram.com/${localShopData.instagram?.replace('@', '')}`)}
                 setShowMap={setShowMap}
                 setShowInstagramImportModal={setShowInstagramImportModal}
+                setShowManualPostModal={setShowManualPostModal}
                 setShowCreateStoryModal={setShowCreateStoryModal}
                 setSelectedPostDetails={setSelectedPostDetails}
                 detectLocation={() => {}}
@@ -562,6 +622,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         handleDeleteShop={() => {}}
         showInstagramImportModal={showInstagramImportModal}
         setShowInstagramImportModal={setShowInstagramImportModal}
+        showManualPostModal={showManualPostModal}
+        setShowManualPostModal={setShowManualPostModal}
+        handleManualPostUpload={handleManualPostUpload}
         showCreateStoryModal={showCreateStoryModal}
         setShowCreateStoryModal={setShowCreateStoryModal}
         isCreatingStory={isCreatingStory}

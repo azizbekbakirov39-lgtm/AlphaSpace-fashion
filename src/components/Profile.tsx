@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { 
@@ -138,7 +138,7 @@ const Profile: React.FC<ProfileProps> = ({
   const [showInAppGuideModal, setShowInAppGuideModal] = useState(false);
   const [activeChatSeller, setActiveChatSeller] = useState<Seller | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (onActiveChatSellerIdChange) {
       onActiveChatSellerIdChange(activeChatSeller?.id);
     }
@@ -153,7 +153,7 @@ const Profile: React.FC<ProfileProps> = ({
   const [authLoading, setAuthLoading] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<{[key: string]: ChatMessage[]}>({});
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -168,12 +168,12 @@ const Profile: React.FC<ProfileProps> = ({
   }, [chatMessages, activeChatSeller, subView]);
   
   // Firestore Chat Listeners
-  const messageUnsubs = React.useRef<{ [chatId: string]: () => void }>({});
+  const messageUnsubs = useRef<{ [chatId: string]: () => void }>({});
 
   const [downloadCount, setDownloadCount] = useState<number>(0);
 
   // Realtime listener for app downloads
-  React.useEffect(() => {
+  useEffect(() => {
     const unsub = onSnapshot(doc(db, 'stats', 'appTracker'), (docSnap) => {
       if (docSnap.exists()) {
         setDownloadCount(docSnap.data().downloads || 0);
@@ -182,7 +182,7 @@ const Profile: React.FC<ProfileProps> = ({
     return () => unsub();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) return;
 
     // Listen for all chats where user is a participant
@@ -222,7 +222,7 @@ const Profile: React.FC<ProfileProps> = ({
     };
   }, [user?.uid]);
 
-  const chatSellers = React.useMemo(() => {
+  const chatSellers = useMemo(() => {
     const sellersMap = new Map<string, Seller>();
     
     // Add subscribed sellers
@@ -285,7 +285,7 @@ const Profile: React.FC<ProfileProps> = ({
   // Audio Playback State
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [audioProgress, setAudioProgress] = useState<{[key: string]: number}>({});
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [activeClosetCategory, setActiveClosetCategory] = useState<'all' | 'clothing' | 'outfits' | 'other'>('all');
 
@@ -306,26 +306,26 @@ const Profile: React.FC<ProfileProps> = ({
   const [recordedAudio, setRecordedAudio] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [isVideoRecording, setIsVideoRecording] = useState(false);
   const [videoPreviewRef] = useState(() => React.createRef<HTMLVideoElement>());
   const [isHoldingRecord, setIsHoldingRecord] = useState(false);
   const [recordType, setRecordType] = useState<'voice' | 'video' | null>(null);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [isCancelAreaHovered, setIsCancelAreaHovered] = useState(false);
-  const isCancelAreaHoveredRef = React.useRef(false);
+  const isCancelAreaHoveredRef = useRef(false);
   const [dragX, setDragX] = useState(0);
-  const dragXRef = React.useRef(0);
-  const dragStartRef = React.useRef<number | null>(null);
+  const dragXRef = useRef(0);
+  const dragStartRef = useRef<number | null>(null);
   const [stagedImage, setStagedImage] = useState<string | null>(null);
   const [stagedVideo, setStagedVideo] = useState<string | null>(null);
   const [stagedLocation, setStagedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const isSendingRef = React.useRef(false);
+  const isSendingRef = useRef(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-  const recordButtonRef = React.useRef<HTMLButtonElement>(null);
-  const cancelAreaRef = React.useRef<HTMLDivElement>(null);
+  const recordButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelAreaRef = useRef<HTMLDivElement>(null);
 
   const startRecording = async () => {
     try {

@@ -12,11 +12,19 @@ import { promisify } from "util";
 import os from "os";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "ffmpeg-static";
+import multer from "multer";
 
 // Set ffmpeg path
 if (ffmpegInstaller) {
   ffmpeg.setFfmpegPath(ffmpegInstaller);
 }
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB max
+  }
+});
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
@@ -380,6 +388,94 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
 });
 
 // New endpoint to import video to Cloudflare R2 with compression
+// New endpoint to handle manual uploads directly to R2
+app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
+  if (!r2Client) {
+    return res.status(500).json({ error: "Cloudflare R2 not configured" });
+  }
+
+  const files = req.files as Express.Multer.File[];
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: "No files uploaded" });
+  }
+
+  const results = [];
+  const tempFiles: string[] = [];
+
+  try {
+    for (const file of files) {
+      const isVideo = file.mimetype.startsWith("video/");
+      const isImage = file.mimetype.startsWith("image/");
+      const extension = file.originalname.split(".").pop() || (isVideo ? "mp4" : "jpg");
+      let finalBuffer = file.buffer;
+      let contentType = file.mimetype;
+      const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
+
+      if (isVideo) {
+        // Compress video
+        const tempDir = os.tmpdir();
+        const inputPath = path.join(tempDir, `manual-in-${crypto.randomBytes(8).toString("hex")}.${extension}`);
+        const outputPath = path.join(tempDir, `manual-out-${crypto.randomBytes(8).toString("hex")}.mp4`);
+        
+        await writeFile(inputPath, file.buffer);
+        tempFiles.push(inputPath);
+
+        await new Promise((resolve, reject) => {
+          ffmpeg(inputPath)
+            .outputOptions([
+              "-c:v libx264",
+              "-crf 23", // Slightly higher CRF for speed in manual uploads
+              "-preset medium",
+              "-c:a aac",
+              "-b:a 128k",
+              "-movflags +faststart"
+            ])
+            .on("end", resolve)
+            .on("error", reject)
+            .save(outputPath);
+        });
+        tempFiles.push(outputPath);
+        finalBuffer = await readFile(outputPath);
+        contentType = "video/mp4";
+      }
+
+      const command = new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key,
+        Body: finalBuffer,
+        ContentType: contentType,
+      });
+
+      await r2Client.send(command);
+      
+      let publicDomain = process.env.R2_PUBLIC_DOMAIN || "";
+      if (publicDomain && !publicDomain.startsWith('http')) {
+        publicDomain = `https://${publicDomain}`;
+      }
+      
+      results.push({
+        url: `${publicDomain}/${key}`,
+        type: isVideo ? "video" : "image"
+      });
+    }
+
+    // Cleanup temp files
+    for (const f of tempFiles) {
+      try { await unlink(f); } catch (e) {}
+    }
+
+    res.json({ urls: results });
+
+  } catch (error: any) {
+    console.error("Manual Upload Error:", error);
+    // Cleanup temp files on error
+    for (const f of tempFiles) {
+      try { await unlink(f); } catch (e) {}
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/api/import-to-r2", async (req, res) => {
   const tempFiles: string[] = [];
   try {

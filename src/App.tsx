@@ -275,7 +275,7 @@ export default function App() {
   };
 
   // Merge user-specific data into posts/stories
-  const postsWithUserStatus = React.useMemo(() => {
+  const postsWithUserStatus = useMemo(() => {
     return posts
       .map(post => {
         const postSellerId = post.seller?.id || (post as any).sellerId;
@@ -302,7 +302,7 @@ export default function App() {
       }));
   }, [posts, sellers, userLikes, userSaves, userSubscriptions]);
 
-  const storiesWithUserStatus = React.useMemo(() => {
+  const storiesWithUserStatus = useMemo(() => {
     return stories
       .map(story => {
         const storySellerId = story.seller?.id || (story as any).sellerId;
@@ -325,7 +325,7 @@ export default function App() {
       }));
   }, [stories, sellers, userLikes, userSubscriptions]);
 
-  const sellersWithUserStatus = React.useMemo(() => {
+  const sellersWithUserStatus = useMemo(() => {
     const allSellers = [...sellers];
     userShops.forEach(uShop => {
       if (!allSellers.some(s => s.id === uShop.id)) {
@@ -420,7 +420,7 @@ export default function App() {
   }, [user?.uid, userShops]);
 
   // History tracking to prevent double pushes
-  const isPoppingState = React.useRef(false);
+  const isPoppingState = useRef(false);
 
   const handleSearchActive = (active: boolean) => {
     if (active) {

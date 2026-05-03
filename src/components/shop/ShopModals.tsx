@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
@@ -43,6 +43,9 @@ interface ShopModalsProps {
   handleDeleteShop: () => void;
   showInstagramImportModal: boolean;
   setShowInstagramImportModal: (show: boolean) => void;
+  showManualPostModal: boolean;
+  setShowManualPostModal: (show: boolean) => void;
+  handleManualPostUpload: (files: File[], data: { title: string, price: string, description: string }) => Promise<void>;
   showCreateStoryModal: boolean;
   setShowCreateStoryModal: (show: boolean) => void;
   isCreatingStory: boolean;
@@ -93,6 +96,9 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
   handleInstagramImport,
   importPreview,
   confirmImport,
+  showManualPostModal,
+  setShowManualPostModal,
+  handleManualPostUpload,
   isUploading,
   selectedPostDetails,
   setSelectedPostDetails,
@@ -101,16 +107,58 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
   handleUpdatePost,
   handleDeletePost
 }) => {
-  const [storyFile, setStoryFile] = React.useState<File | null>(null);
-  const [storyVideoPreview, setStoryVideoPreview] = React.useState<string | null>(null);
-  const [storyPrice, setStoryPrice] = React.useState('');
-  const [storyTab, setStoryTab] = React.useState<'existing' | 'new'>('existing');
+  const [storyFile, setStoryFile] = useState<File | null>(null);
+  const [storyVideoPreview, setStoryVideoPreview] = useState<string | null>(null);
+  const [storyPrice, setStoryPrice] = useState('');
+  const [storyTab, setStoryTab] = useState<'existing' | 'new'>('existing');
+
+  // Manual Post States
+  const [manualFiles, setManualFiles] = useState<File[]>([]);
+  const [manualPreviews, setManualPreviews] = useState<string[]>([]);
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualPrice, setManualPrice] = useState('');
+  const [manualDescription, setManualDescription] = useState('');
+
+  const handleManualFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const newPreviews = filesArray.map((file: File) => URL.createObjectURL(file as Blob));
+      setManualFiles(prev => [...prev, ...filesArray]);
+      setManualPreviews(prev => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removeManualFile = (index: number) => {
+    setManualFiles(prev => prev.filter((_, i) => i !== index));
+    setManualPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleManualPostSubmit = async () => {
+    if (manualFiles.length === 0 || !manualTitle) return;
+    await handleManualPostUpload(manualFiles, {
+      title: manualTitle,
+      price: manualPrice,
+      description: manualDescription
+    });
+    // Reset after success is handled in ShopWorkspace if it closes, 
+    // but we can preemptively clear here too if needed.
+  };
+
+  useEffect(() => {
+    if (!showManualPostModal) {
+      setManualFiles([]);
+      setManualPreviews([]);
+      setManualTitle('');
+      setManualPrice('');
+      setManualDescription('');
+    }
+  }, [showManualPostModal]);
 
   const handleStoryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setStoryFile(file);
-      setStoryVideoPreview(URL.createObjectURL(file));
+      setStoryVideoPreview(URL.createObjectURL(file as Blob));
     }
   };
 
@@ -122,7 +170,7 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
     setStoryPrice('');
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!showCreateStoryModal) {
       setStoryFile(null);
       setStoryVideoPreview(null);
@@ -177,6 +225,110 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
               <div className="flex flex-col gap-3">
                 <button onClick={handleDeleteShop} disabled={isDeleting} className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-red-600/20">{isDeleting ? "O'chirilmoqda..." : "Ha, butunlay o'chirish"}</button>
                 <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 bg-text-primary/5 text-text-primary rounded-2xl font-black uppercase tracking-widest">Bekor qilish</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showManualPostModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-lg bg-bg-primary rounded-[40px] border border-white/10 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+              <div className="p-8 border-b border-white/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                      <Plus size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-text-primary tracking-tight">Post yaratish</h3>
+                      <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest">Galereyadan media tanlash</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowManualPostModal(false)} className="w-12 h-12 bg-text-primary/5 rounded-full flex items-center justify-center text-text-primary/40 hover:text-text-primary transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 pt-6 space-y-6 scrollbar-hide">
+                {/* Media Selection */}
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Media (Rasm yoki Video)</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {manualPreviews.map((preview, index) => (
+                      <div key={index} className="aspect-square rounded-2xl overflow-hidden relative group">
+                        {manualFiles[index]?.type.startsWith('video') ? (
+                          <video src={preview} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={preview} className="w-full h-full object-cover" />
+                        )}
+                        <button 
+                          onClick={() => removeManualFile(index)}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {manualFiles.length < 10 && (
+                      <label className="aspect-square rounded-2xl border-2 border-dashed border-text-primary/10 flex flex-col items-center justify-center hover:bg-text-primary/5 transition-colors cursor-pointer">
+                        <Plus size={24} className="text-text-primary/20" />
+                        <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualFilesChange} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Mahsulot nomi</label>
+                    <input 
+                      type="text" 
+                      value={manualTitle}
+                      onChange={(e) => setManualTitle(e.target.value)}
+                      placeholder="Masalan: Erkaklar kostyumi" 
+                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all font-medium" 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Narxi</label>
+                    <input 
+                      type="text" 
+                      value={manualPrice}
+                      onChange={(e) => setManualPrice(e.target.value)}
+                      placeholder="Masalan: 120,000" 
+                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all font-medium" 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Tavsif (Optional)</label>
+                    <textarea 
+                      value={manualDescription}
+                      onChange={(e) => setManualDescription(e.target.value)}
+                      placeholder="Mahsulot haqida batafsil..." 
+                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all font-medium min-h-[100px] resize-none" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-white/5 bg-text-primary/5">
+                <button 
+                  onClick={handleManualPostSubmit}
+                  disabled={isUploading || manualFiles.length === 0 || !manualTitle}
+                  className="w-full py-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-3"
+                >
+                  {isUploading ? (
+                    <><RefreshCw size={18} className="animate-spin" /><span>Yuklanmoqda...</span></>
+                  ) : (
+                    <span>Post yaratish</span>
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 export const BrandsIcon = ({ size = 42, isActive = false }: { size?: number, isActive?: boolean }) => {
-  const id = React.useId().replace(/:/g, '');
+  const id = useId().replace(/:/g, '');
   const gradientId = `brands-bag-gradient-${id}`;
   const accentBlue = "#0066FF";
   const accentDeep = "#003399";
@@ -104,7 +104,7 @@ export const BrandsIcon = ({ size = 42, isActive = false }: { size?: number, isA
 };
 
 export const LiveIcon = ({ size = 42, isActive = false }: { size?: number, isActive?: boolean }) => {
-  const id = React.useId().replace(/:/g, '');
+  const id = useId().replace(/:/g, '');
   const gradientId = `live-marker-gradient-${id}`;
   const accentBlue = "#0066FF";
   const accentLight = "#00D2FF";
@@ -200,7 +200,7 @@ export const LiveIcon = ({ size = 42, isActive = false }: { size?: number, isAct
 };
 
 export const RealisticBlueMessageIcon = ({ active, size = 26 }: { active: boolean, size?: number }) => {
-  const id = React.useId().replace(/:/g, '');
+  const id = useId().replace(/:/g, '');
   return (
     <div style={{ width: size, height: size, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.4))', transform: active ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.3s' }}>

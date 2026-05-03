@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import Post from './Post';
 import StoryBar from './StoryBar';
 import SearchOverlay from './SearchOverlay';
@@ -75,7 +75,7 @@ const Feed: React.FC<FeedProps> = ({
     onSearchActive(false);
   };
 
-  const filteredPosts = React.useMemo(() => {
+  const filteredPosts = useMemo(() => {
     if (!searchQuery) return posts;
     
     const matches = posts.filter(post => 

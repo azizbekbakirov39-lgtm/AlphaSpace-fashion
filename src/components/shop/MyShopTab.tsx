@@ -34,6 +34,7 @@ interface MyShopTabProps {
   handleInstagramClick: () => void;
   setShowMap: (show: boolean) => void;
   setShowInstagramImportModal: (show: boolean) => void;
+  setShowManualPostModal: (show: boolean) => void;
   setShowCreateStoryModal: (show: boolean) => void;
   onOpenReels?: (posts: PostData[], index: number) => void;
   setSelectedPostDetails: (post: PostData) => void;
@@ -55,6 +56,7 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
   handleInstagramClick,
   setShowMap,
   setShowInstagramImportModal,
+  setShowManualPostModal,
   setShowCreateStoryModal,
   onOpenReels,
   setSelectedPostDetails,
@@ -323,6 +325,13 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
               >
                 <Instagram size={18} />
                 Instagramdan import
+              </button>
+              <button 
+                onClick={() => setShowManualPostModal(true)}
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Qo'lda post yaratish
               </button>
               <button 
                 onClick={() => setShowCreateStoryModal(true)}

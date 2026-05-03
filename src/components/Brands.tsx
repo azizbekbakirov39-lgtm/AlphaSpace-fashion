@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Users, Play, Check, Search, X, Store, BadgeCheck } from 'lucide-react';
 import { Story, Seller, SELLER_CATEGORIES, PostData } from '../types';
@@ -64,11 +64,11 @@ const Brands: React.FC<BrandsProps> = ({
   isSearchActive
 }) => {
   const t = translations[language];
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [pullDistance, setPullDistance] = React.useState(0);
-  const [isPulling, setIsPulling] = React.useState(false);
-  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
-  const [viewMode, setViewMode] = React.useState<'all' | 'subscribed'>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'all' | 'subscribed'>('all');
 
   const handleSearchActive = () => {
     onSearchActive(true);
@@ -78,8 +78,8 @@ const Brands: React.FC<BrandsProps> = ({
     onSearchActive(false);
   };
 
-  const touchStartY = React.useRef(0);
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (containerRef.current?.scrollTop === 0) {
@@ -122,7 +122,7 @@ const Brands: React.FC<BrandsProps> = ({
   };
 
   // Sort stories: live first, then unviewed, then viewed
-  const sortedStories = React.useMemo(() => {
+  const sortedStories = useMemo(() => {
     return [...stories].sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
@@ -152,7 +152,7 @@ const Brands: React.FC<BrandsProps> = ({
     }
   };
 
-  const filteredSellers = React.useMemo(() => {
+  const filteredSellers = useMemo(() => {
     let baseSellers = sellers;
     if (viewMode === 'subscribed') {
       baseSellers = sellers.filter(s => s.isSubscribed);
