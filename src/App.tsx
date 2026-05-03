@@ -192,28 +192,28 @@ export default function App() {
     const unsubUserShop = onSnapshot(query(collection(db, 'shops'), where('ownerUid', '==', user.uid)), (snapshot) => {
       if (!snapshot.empty) {
         const shopsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
-        setUserShops(shopsData);
+        
+        setUserShops(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(shopsData)) return prev;
+          return shopsData;
+        });
         
         const activeShops = shopsData.filter(s => s.status !== 'frozen');
         
         if (activeShops.length > 0) {
-          if (!userShop) {
-            setUserShop(activeShops[0]);
-          } else {
-            const updatedActiveShop = activeShops.find(s => s.id === userShop.id);
-            if (updatedActiveShop) {
-              setUserShop(updatedActiveShop);
-            } else {
-              setUserShop(activeShops[0]);
-            }
-          }
+          setUserShop(prev => {
+            const updatedActiveShop = activeShops.find(s => s.id === prev?.id);
+            const nextShop = updatedActiveShop || activeShops[0];
+            if (JSON.stringify(prev) === JSON.stringify(nextShop)) return prev;
+            return nextShop;
+          });
           setHasShop(true);
         } else {
           setUserShop(null);
           setHasShop(false);
         }
       } else {
-        setUserShops([]);
+        setUserShops(prev => prev.length === 0 ? prev : []);
         setUserShop(null);
         setHasShop(false);
       }
@@ -355,6 +355,21 @@ export default function App() {
       });
     }
 
+    const handleRedirect = async () => {
+      try {
+        const { getRedirectResult } = await import('firebase/auth');
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Redirect result user:", result.user.email);
+        }
+      } catch (error: any) {
+        if (error.code !== 'auth/web-storage-unsupported') {
+          console.error("Auth redirect result error:", error);
+        }
+      }
+    };
+    handleRedirect();
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         requestNotificationPermission(firebaseUser.uid);
@@ -392,7 +407,17 @@ export default function App() {
     const unsubUser = onSnapshot(userDoc, (docSnap) => {
       if (docSnap.exists()) {
         const userData = docSnap.data() as User;
-        setUser(userData);
+        setUser(prev => {
+          // Use selective comparison to avoid circular structure issues if any
+          if (prev?.uid === userData.uid && 
+              prev?.hasShop === userData.hasShop && 
+              prev?.role === userData.role &&
+              prev?.displayName === userData.displayName &&
+              prev?.photoURL === userData.photoURL) {
+            return prev;
+          }
+          return userData;
+        });
       }
     });
 

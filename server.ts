@@ -499,9 +499,17 @@ setupVite();
 export default app;
 
 // Start Server
-const PORT = process.env.PORT || 3000;
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
-  console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`[${new Date().toISOString()}] RapidAPI Key configured: ${!!RAPIDAPI_KEY}`);
+async function startServer() {
+  await setupVite();
+  
+  const PORT = process.env.PORT || 3000;
+  app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
+    console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`[${new Date().toISOString()}] RapidAPI Key configured: ${!!RAPIDAPI_KEY}`);
+  });
+}
+
+startServer().catch(err => {
+  console.error("Failed to start server:", err);
 });
