@@ -248,15 +248,20 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     setIsImporting(true);
     
     try {
-      // Improved regex to catch more Instagram URL variations
+      // Allow shorter codes just in case, but check for common formats
       const urlMatch = instagramLink.match(/(?:instagram\.com\/(?:p|reel|tv|reels)\/)([A-Za-z0-9_-]+)/);
       if (!urlMatch) {
-         toast.error("Noto'g'ri Instagram linki. Iltimos, to'liq linkni kiriting.");
+         toast.error("Format noto'g'ri. Link quyidagicha bo'lishi kerak: https://www.instagram.com/reel/CODE/");
          setIsImporting(false);
          return;
       }
 
       const shortcode = urlMatch[1];
+      if (shortcode.length < 3) {
+         toast.error("Instagram kodi juda qisqa. Iltimos, to'liq linkni kiriting.");
+         setIsImporting(false);
+         return;
+      }
       // Determine type, default to 'p' but check if 'reel' or 'tv' is in URL
       let importType = 'p';
       if (instagramLink.includes('/reel/') || instagramLink.includes('/reels/')) importType = 'reel';
