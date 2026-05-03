@@ -392,10 +392,7 @@ export default function App() {
     const unsubUser = onSnapshot(userDoc, (docSnap) => {
       if (docSnap.exists()) {
         const userData = docSnap.data() as User;
-        setUser(prev => {
-          if (JSON.stringify(prev) === JSON.stringify(userData)) return prev;
-          return userData;
-        });
+        setUser(userData);
       }
     });
 

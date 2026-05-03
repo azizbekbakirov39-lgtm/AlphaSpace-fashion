@@ -12,8 +12,7 @@ async function generateIcons() {
   const accentBlue = "#0066FF";
   const accentBlueBright = "#00D2FF";
   
-  // SVG Template based on Logo.tsx but optimized for App Icon (1024x1024)
-  // Scaled up subject by 1.2x
+  // Scaled up subject by 1.4x for better fill
   const svg = `
     <svg width="1024" height="1024" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -23,11 +22,8 @@ async function generateIcons() {
           <stop offset="100%" stop-color="${accentBlueBright}" />
         </linearGradient>
         <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.3" />
+          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.3" />
         </filter>
-        <clipPath id="appIconClip">
-          <rect x="0" y="0" width="120" height="120" rx="24" />
-        </clipPath>
         <linearGradient id="chainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#BF953F" />
           <stop offset="25%" stop-color="#FCF6BA" />
@@ -39,9 +35,9 @@ async function generateIcons() {
 
       <rect x="0" y="0" width="120" height="120" fill="white" />
       
-      <!-- Scaled Group (1.2x larger) -->
-      <g transform="translate(60, 60) scale(1.2) translate(-60, -60)">
-        <g transform="translate(10, 10)">
+      <!-- Scaled Group (1.4x larger to fill the space better) -->
+      <g transform="translate(60, 60) scale(1.4) translate(-60, -60)">
+        <g transform="translate(10, 5)">
           <!-- Chain Strands -->
           <g stroke-width="0.8" fill="none">
             <ellipse cx="28" cy="28" rx="3.5" ry="1.5" stroke="url(#chainGradient)" stroke-width="1.2" transform="rotate(45 28 28)" />
@@ -55,12 +51,12 @@ async function generateIcons() {
           
           <circle cx="28" cy="28" r="4.5" fill="white" />
           
-          <text x="50" y="58" font-family="cursive" font-size="24" font-weight="700" fill="white" text-anchor="middle" transform="rotate(45 50 58)">
+          <text x="50" y="58" font-family="cursive, serif" font-size="24" font-weight="900" fill="white" text-anchor="middle" transform="rotate(45 50 58)">
             A.S
           </text>
         </g>
         
-        <text x="60" y="105" font-family="cursive" font-size="18" font-weight="700" fill="${accentBlue}" text-anchor="middle">
+        <text x="60" y="108" font-family="cursive, serif" font-size="14" font-weight="900" fill="${accentBlue}" text-anchor="middle">
           AlphaSpace
         </text>
       </g>
