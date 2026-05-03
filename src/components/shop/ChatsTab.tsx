@@ -22,7 +22,7 @@ import {
   Mic, 
   Zap 
 } from 'lucide-react';
-import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
+import { Map, Placemark } from '@pbe/react-yandex-maps';
 import { isVideoUrl, safePlayVideo } from '../../utils/mediaUtils';
 import { PostData } from '../../types';
 
@@ -105,7 +105,7 @@ interface ChatsTabProps {
   onOpenReels?: (posts: PostData[], index: number) => void;
 }
 
-export const ChatsTab: React.FC<ChatsTabProps> = ({
+export const ChatsTab = ({
   chats,
   activeChatId,
   chatSearchQuery,
@@ -153,7 +153,7 @@ export const ChatsTab: React.FC<ChatsTabProps> = ({
   setDragX,
   dragStartRef,
   onOpenReels
-}) => {
+}: ChatsTabProps) => {
   const activeChat = chats.find(c => c.id === activeChatId);
   const filteredChats = chats.filter(chat => 
     chat.customerName.toLowerCase().includes(chatSearchQuery.toLowerCase()) || 
@@ -342,11 +342,9 @@ export const ChatsTab: React.FC<ChatsTabProps> = ({
                           )}
                           {msg.type === 'location' && msg.location && (
                             <div className="w-48 h-32 rounded-xl overflow-hidden border border-text-primary/10 relative group text-black">
-                              <YMaps query={{ lang: 'en_US' }}>
-                                <Map state={{ center: [msg.location.lat, msg.location.lng], zoom: 15 }} width="100%" height="100%" options={{ suppressMapOpenBlock: true }}>
-                                  <Placemark geometry={[msg.location.lat, msg.location.lng]} />
-                                </Map>
-                              </YMaps>
+                              <Map state={{ center: [msg.location.lat, msg.location.lng], zoom: 15 }} width="100%" height="100%" options={{ suppressMapOpenBlock: true }}>
+                                <Placemark geometry={[msg.location.lat, msg.location.lng]} />
+                              </Map>
                               <div className="absolute inset-0 bg-transparent" />
                               <button className="absolute bottom-2 right-2 p-2 bg-white dark:bg-bg-primary rounded-lg shadow-lg text-accent-blue opacity-0 group-hover:opacity-100 transition-opacity"><Navigation size={14} /></button>
                             </div>

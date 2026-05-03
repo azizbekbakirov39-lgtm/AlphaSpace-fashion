@@ -30,7 +30,6 @@ const PostHeader: React.FC<PostHeaderProps> = ({
                 src={post.seller.logo} 
                 alt={post.seller.name} 
                 className="w-9 h-9 rounded-full object-cover aspect-square"
-                referrerPolicy="no-referrer"
               />
             ) : (
               <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-accent-blue">

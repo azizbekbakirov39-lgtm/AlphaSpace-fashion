@@ -21,7 +21,7 @@ import {
   Grid,
   Video
 } from 'lucide-react';
-import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
+import { Map, Placemark } from '@pbe/react-yandex-maps';
 import { Seller, PostData } from '../../types';
 import { Language } from '../../translations';
 
@@ -58,7 +58,7 @@ interface ShopModalsProps {
   handleDeletePost: (id: string) => void;
 }
 
-export const ShopModals: React.FC<ShopModalsProps> = ({
+export const ShopModals = ({
   language,
   showMap,
   setShowMap,
@@ -89,7 +89,7 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
   setPostDetailsTab,
   handleUpdatePost,
   handleDeletePost
-}) => {
+}: ShopModalsProps) => {
   const [storyFile, setStoryFile] = useState<File | null>(null);
   const [storyVideoPreview, setStoryVideoPreview] = useState<string | null>(null);
   const [storyPrice, setStoryPrice] = useState('');
@@ -171,11 +171,9 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
               <button onClick={() => setShowMap(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white"><X size={24} /></button>
             </div>
             <div className="flex-1 rounded-3xl overflow-hidden border border-white/10">
-              <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
-                <Map state={{ center: [localShopData.location.lat, localShopData.location.lng], zoom: 16 }} width="100%" height="100%">
-                  <Placemark geometry={[localShopData.location.lat, localShopData.location.lng]} />
-                </Map>
-              </YMaps>
+              <Map state={{ center: [localShopData.location.lat, localShopData.location.lng], zoom: 16 }} width="100%" height="100%">
+                <Placemark geometry={[localShopData.location.lat, localShopData.location.lng]} />
+              </Map>
             </div>
           </motion.div>
         )}

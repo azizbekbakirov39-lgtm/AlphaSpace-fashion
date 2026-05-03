@@ -7,7 +7,7 @@ import {
   LogOut, 
   Trash2 
 } from 'lucide-react';
-import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
+import { Map, Placemark } from '@pbe/react-yandex-maps';
 import { Seller, SELLER_CATEGORIES } from '../../types';
 import { Language } from '../../translations';
 
@@ -29,7 +29,7 @@ const DAYS_LABELS: {[key: string]: string} = {
   'Mon': 'Du', 'Tue': 'Se', 'Wed': 'Ch', 'Thu': 'Pa', 'Fri': 'Ju', 'Sat': 'Sh', 'Sun': 'Ya'
 };
 
-export const SettingsTab: React.FC<SettingsTabProps> = ({
+export const SettingsTab = ({
   language,
   localShopData,
   setLocalShopData,
@@ -40,7 +40,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   handleTabChange,
   setShowFreezeModal,
   setShowDeleteModal
-}) => {
+}: SettingsTabProps) => {
   return (
     <div className="h-full overflow-y-auto scrollbar-hide p-4 pb-16 bg-bg-primary">
       <div className="flex items-center gap-4 mb-6">
@@ -138,11 +138,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Joylashuv</label>
             <div className="w-full h-48 rounded-xl overflow-hidden border border-white/10 relative bg-white/5 backdrop-blur-md">
-              <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
-                <Map state={{ center: [localShopData.location?.lat || 41.311081, localShopData.location?.lng || 69.240562], zoom: 15 }} width="100%" height="100%" onClick={(e: any) => { const coords = e.get('coords'); setLocalShopData(prev => ({ ...prev, location: { lat: coords[0], lng: coords[1] } })); }} options={{ suppressMapOpenBlock: true }}>
-                  <Placemark geometry={[localShopData.location?.lat || 41.311081, localShopData.location?.lng || 69.240562]} />
-                </Map>
-              </YMaps>
+              <Map state={{ center: [localShopData.location?.lat || 41.311081, localShopData.location?.lng || 69.240562], zoom: 15 }} width="100%" height="100%" onClick={(e: any) => { const coords = e.get('coords'); setLocalShopData(prev => ({ ...prev, location: { lat: coords[0], lng: coords[1] } })); }} options={{ suppressMapOpenBlock: true }}>
+                <Placemark geometry={[localShopData.location?.lat || 41.311081, localShopData.location?.lng || 69.240562]} />
+              </Map>
               <button type="button" onClick={detectLocation} className="absolute bottom-3 right-3 z-10 p-3 bg-gradient-to-br from-accent-blue to-accent-light text-white rounded-xl shadow-lg active:scale-90 transition-all flex items-center gap-2"><Navigation size={16} /><span className="text-[10px] font-black uppercase tracking-widest">Hozirgi joylashuv</span></button>
             </div>
           </div>

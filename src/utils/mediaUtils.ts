@@ -179,6 +179,8 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     const cache = getCache();
     if (cache[url]) return cache[url];
   }
+  
+  console.log('getProxiedUrl', { url, proxyIndex });
 
   const isVid = isVideoUrl(url) || url.includes('.mp4');
 

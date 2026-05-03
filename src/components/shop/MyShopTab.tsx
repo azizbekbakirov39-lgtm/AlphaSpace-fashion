@@ -5,7 +5,6 @@ import {
   Settings, 
   Phone, 
   Send, 
-  Instagram, 
   MapPin, 
   Navigation, 
   Grid, 
@@ -15,7 +14,7 @@ import {
   PlusCircle,
   Plus
 } from 'lucide-react';
-import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
+import { Map, Placemark } from '@pbe/react-yandex-maps';
 import { isVideoUrl, getProxiedUrl } from '../../utils/mediaUtils';
 import { Seller, PostData } from '../../types';
 import { Language } from '../../translations';
@@ -41,7 +40,7 @@ interface MyShopTabProps {
   coverVideoRef: React.RefObject<HTMLVideoElement>;
 }
 
-export const MyShopTab: React.FC<MyShopTabProps> = ({
+export const MyShopTab = ({
   language,
   shopData,
   localShopData,
@@ -58,8 +57,9 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
   setShowCreateStoryModal,
   onOpenReels,
   setSelectedPostDetails,
+  detectLocation,
   coverVideoRef,
-}) => {
+}: MyShopTabProps) => {
   return (
     <div className="h-full overflow-y-auto scrollbar-hide pb-16">
       {/* Hero Section */}
@@ -170,22 +170,12 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
 
         <button 
           onClick={handleTelegramClick}
-          className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#0088cc]/5 hover:border-[#0088cc]/20 group"
+          className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#0088cc]/5 hover:border-[#0088cc]/20 group flex-1"
         >
           <div className="p-2.5 bg-[#0088cc]/10 text-[#0088cc] rounded-2xl group-hover:bg-[#0088cc] group-hover:text-white transition-colors">
             <Send size={18} />
           </div>
           <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telegram</span>
-        </button>
-
-        <button 
-          onClick={handleInstagramClick}
-          className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#E4405F]/5 hover:border-[#E4405F]/20 group"
-        >
-          <div className="p-2.5 bg-[#E4405F]/10 text-[#E4405F] rounded-2xl group-hover:bg-[#E4405F] group-hover:text-white transition-colors">
-            <Instagram size={18} />
-          </div>
-          <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Instagram</span>
         </button>
       </div>
 
@@ -216,16 +206,14 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
                 className="h-32 rounded-2xl overflow-hidden border border-white/10 cursor-pointer"
                 onClick={() => setShowMap(true)}
               >
-                <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
-                  <Map 
-                    state={{ center: [localShopData.location.lat, localShopData.location.lng], zoom: 15 }}
-                    width="100%"
-                    height="100%"
-                    options={{ suppressMapOpenBlock: true }}
-                  >
-                    <Placemark geometry={[localShopData.location.lat, localShopData.location.lng]} />
-                  </Map>
-                </YMaps>
+                <Map 
+                  state={{ center: [localShopData.location.lat, localShopData.location.lng], zoom: 15 }}
+                  width="100%"
+                  height="100%"
+                  options={{ suppressMapOpenBlock: true }}
+                >
+                  <Placemark geometry={[localShopData.location.lat, localShopData.location.lng]} />
+                </Map>
               </div>
             </div>
           </div>
@@ -374,7 +362,7 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
                       />
                     ) : (
                       <img 
-                        src={post.mediaUrls?.[0] || undefined} 
+                        src={getProxiedUrl(post.mediaUrls?.[0] || '', 0)} 
                         className="w-full h-full object-cover" 
                         alt={post.outfitName} 
                         referrerPolicy="no-referrer" 

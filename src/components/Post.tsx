@@ -144,15 +144,16 @@ const CarouselImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: st
       src={shouldLoad ? proxiedUrl : undefined}
       alt={`${outfitName} - ${index + 1}`}
       className="w-full h-full object-cover block"
-      referrerPolicy="no-referrer"
       loading="lazy"
       onLoad={() => {
         if (shouldLoad) markUrlAsSuccessful(url, proxiedUrl);
       }}
       onError={(e) => {
+        console.error('Image load error', { url, proxyIndex });
         if (!isLastProxy(proxyIndex, url)) {
           setProxyIndex(prev => getNextProxyIndex(prev));
         } else {
+          console.error('Final image load error, URL:', url);
           const target = e.target as HTMLImageElement;
           target.style.display = 'none';
           const parent = target.parentElement;
@@ -529,7 +530,6 @@ const Post: React.FC<PostProps> = ({
                 src={getProxiedUrl(post.thumbnailUrl || getPostThumbnailUrl(post), 0)}
                 alt="Video Thumbnail"
                 className="absolute inset-0 w-full h-full object-cover z-0"
-                referrerPolicy="no-referrer"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             )}

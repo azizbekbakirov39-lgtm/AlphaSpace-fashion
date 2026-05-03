@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { YMaps } from '@pbe/react-yandex-maps';
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -14,6 +15,8 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <YMaps query={{ lang: 'ru_RU', apikey: '' }}>
+      <App />
+    </YMaps>
   </StrictMode>,
 );
