@@ -266,13 +266,20 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const response = await fetch(`${API_BASE}/api/refresh-instagram-url`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ shortcode, type: importType })
+        body: JSON.stringify({ shortcode, type: importType, fullUrl: instagramLink })
       });
 
       if (!response.ok) {
-        let errText = "API xatosi";
-        try { const errJson = await response.json(); errText = errJson.error || errJson.message || errText; } catch(e){}
-        throw new Error(errText);
+        let errText = "Instagramdan ma'lumot olib bo'lmadi. Linkni tekshiring yoki birozdan so'ng urinib ko'ring.";
+        try { 
+          const errJson = await response.json(); 
+          if (errJson.message) errText = errJson.message;
+          else if (typeof errJson.error === 'string') errText = errJson.error;
+          else if (errJson.error && errJson.error.message) errText = errJson.error.message;
+        } catch(e){}
+        toast.error(errText);
+        setIsImporting(false);
+        return;
       }
       
       const result = await response.json();

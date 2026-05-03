@@ -140,8 +140,8 @@ app.post("/api/fetch-telegram-html", async (req, res) => {
 
 app.post("/api/refresh-instagram-url", async (req, res) => {
   try {
-    const { shortcode, type = 'p' } = req.body;
-    if (!shortcode) return res.status(400).json({ error: "Shortcode required" });
+    const { shortcode, type = 'p', fullUrl } = req.body;
+    if (!shortcode && !fullUrl) return res.status(400).json({ error: "Shortcode or fullUrl required" });
     
     if (!RAPIDAPI_KEY) {
       console.error("RAPIDAPI_KEY missing");
@@ -160,7 +160,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
       const hasMedia = (data.urls && data.urls.length > 0) || 
                        data.media || data.url || data.pictureUrl || 
                        data.display_url || data.video_url ||
-                       (data.response && data.response.body);
+                       (data.response && data.response.body) ||
+                       (data.data && (data.data.main_media || data.data.resources));
                        
       return !hasMedia;
     };
@@ -202,7 +203,6 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         if (res.status === 200 && res.data?.response?.body) {
           const body = res.data.response.body;
           const media = Array.isArray(body) ? body[0] : body;
-          // Look for direct video/image URLs
           const vUrl = media.video_versions?.[0]?.url || media.image_versions2?.candidates?.[0]?.url;
           if (vUrl) {
             return { ...res, data: { urls: [{ url: vUrl }], thumbnail_url: media.image_versions2?.candidates?.[0]?.url } };
@@ -210,7 +210,25 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         }
       } catch (e: any) { console.log("RocketAPI Error:", e.message); }
 
-      // 3. Instagram120
+      // 3. Social Media Video Downloader (NEW - Very robust fallback)
+      try {
+        const res = await axios.get(`https://social-media-video-downloader.p.rapidapi.com/smvd/get/instagram`, {
+          params: { url: targetUrl },
+          headers: { ...commonHeaders, 'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com' },
+          timeout: 15000, validateStatus: () => true
+        });
+        if (res.status === 200 && res.data && (res.data.url || res.data.media)) {
+          return {
+            ...res,
+            data: {
+              urls: [{ url: res.data.url || res.data.media }],
+              thumbnail_url: res.data.thumbnail
+            }
+          };
+        }
+      } catch (e: any) { console.log("SMVD Error:", e.message); }
+
+      // 4. Instagram120
       try {
         const res = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
           { url: targetUrl },
@@ -219,54 +237,43 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         if (res.status === 200 && !isApiError(res)) return res;
       } catch (e: any) { console.log("Instagram120 Error:", e.message); }
 
-      // 4. Media Downloader
-      try {
-        const res = await axios.get(`https://instagram-media-downloader.p.rapidapi.com/api/index`, {
-          params: { url: targetUrl },
-          headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com' },
-          timeout: 15000, validateStatus: () => true
-        });
-        if (res.status === 200 && res.data && (res.data.media || res.data.url)) {
-          return { ...res, data: { urls: [{ url: res.data.media || res.data.url }], thumbnail_url: res.data.thumbnail } };
-        }
-      } catch (e: any) { console.log("Media Downloader Error:", e.message); }
-
       return null;
     };
 
-    // Try types in order of likelihood
+    let finalResponse: any = null;
+
+    // Use fullUrl if provided, otherwise try to reconstruct
+    if (fullUrl) {
+      finalResponse = await tryFetch(fullUrl);
+      if (finalResponse && !isApiError(finalResponse)) {
+         return res.json(finalResponse.data);
+      }
+    }
+
+    // Fallback to shortcode reconstruction
     const typesToTry = [type];
     if (type === 'p') typesToTry.push('reel');
     else if (type === 'reel') typesToTry.push('p');
     else if (type === 'tv') typesToTry.push('reel', 'p');
 
-    let response: any;
     for (const currentType of typesToTry) {
-      // Try with and without trailing slash as some APIs are picky
       const urls = [
         `https://www.instagram.com/${currentType}/${shortcode}/`,
         `https://www.instagram.com/${currentType}/${shortcode}`
       ];
       
       for (const url of urls) {
-        response = await tryFetch(url);
-        if (!isApiError(response)) break;
+        finalResponse = await tryFetch(url);
+        if (finalResponse && !isApiError(finalResponse)) {
+           return res.json(finalResponse.data);
+        }
       }
-      
-      if (response && !isApiError(response)) break;
     }
 
-    if (!response || isApiError(response)) {
-      const lastStatus = response?.status || 500;
-      const lastData = response?.data || { error: 'All RapidAPI providers failed' };
-      console.log("RapidAPI Final Error:", lastStatus, lastData);
-      return res.status(lastStatus === 200 ? 404 : lastStatus).json({ 
-        error: lastData,
-        message: "None of the RapidAPI providers could fetch this media. The post might be private, deleted, or the API key is invalid."
-      });
-    }
-
-    res.json(response.data);
+    // If we're here, everything failed
+    res.status(404).json({ 
+      message: "Instagramdan ma'lumot olib bo'lmadi. Post o'chirilgan, profil yopiq yoki API limiti tugagan bo'lishi mumkin." 
+    });
   } catch (error: any) {
     console.error("Backend Proxy Error:", error);
     res.status(500).json({ error: error.message });
