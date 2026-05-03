@@ -26,31 +26,35 @@
       <stop offset="60%" stopColor="#0066FF" />
       <stop offset="100%" stopColor="#00D2FF" />
     </linearGradient>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&amp;display=swap');
+    </style>
   </defs>
 
   <g clipPath="url(#pwa_appIconClip)">
     <rect x="0" y="0" width="120" height="120" rx="28" fill="white" />
 
-    <g transform="translate(60, 42) scale(0.95) translate(-50, -50)">
+    <g transform="translate(60, 60) scale(0.77) translate(-60, -60)">
+      <g transform="translate(60, 42) scale(0.95) translate(-50, -50)">
       <g stroke-width="0.8" fill="none">
-        <ellipse cx="28" cy="28" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(45 28 28)" />
-        <ellipse cx="29.2" cy="27.2" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(-45 29.2 27.2)" />
-        <ellipse cx="30.4" cy="26.4" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(45 30.4 26.4)" />
-        <ellipse cx="31.6" cy="25.6" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(-45 31.6 25.6)" />
-        <ellipse cx="32.8" cy="24.8" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(45 32.8 24.8)" />
-        <ellipse cx="34" cy="24" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(-45 34 24)" />
-        <ellipse cx="35.2" cy="23.2" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(45 35.2 23.2)" />
-        <ellipse cx="36.4" cy="22.4" rx="3" ry="1.2" stroke="url(#pwa_chainGradient)" stroke-width="0.8" transform="rotate(-45 36.4 22.4)" />
+        <ellipse cx="28" cy="28" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(45 28 28)" />
+        <ellipse cx="29.2" cy="27.2" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(-45 29.2 27.2)" />
+        <ellipse cx="30.4" cy="26.4" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(45 30.4 26.4)" />
+        <ellipse cx="31.6" cy="25.6" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(-45 31.6 25.6)" />
+        <ellipse cx="32.8" cy="24.8" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(45 32.8 24.8)" />
+        <ellipse cx="34" cy="24" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(-45 34 24)" />
+        <ellipse cx="35.2" cy="23.2" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(45 35.2 23.2)" />
+        <ellipse cx="36.4" cy="22.4" rx="3" ry="1.2" stroke="#D4AF37" stroke-width="0.8" transform="rotate(-45 36.4 22.4)" />
 
-        <g><ellipse cx="34" cy="34" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(-14 34 34)" /></g>
-        <g><ellipse cx="31" cy="35" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(75 31 35)" /></g>
-        <g><ellipse cx="28" cy="36" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(-14 28 36)" /></g>
-        <g><ellipse cx="25" cy="37" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(75 25 37)" /></g>
-        <g><ellipse cx="22" cy="38" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(-15 22 38)" /></g>
-        <g><ellipse cx="19" cy="39" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(74 19 39)" /></g>
-        <g><ellipse cx="16" cy="40" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(-16 16 40)" /></g>
-        <g><ellipse cx="13" cy="40.7" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(72 13 40.7)" /></g>
-        <g><ellipse cx="10" cy="41.3" rx="3.5" ry="1.5" stroke="url(#pwa_chainGradient)" stroke-width="1.2" transform="rotate(-17 10 41.3)" /></g>
+        <g><ellipse cx="34" cy="34" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(-14 34 34)" /></g>
+        <g><ellipse cx="31" cy="35" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(75 31 35)" /></g>
+        <g><ellipse cx="28" cy="36" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(-14 28 36)" /></g>
+        <g><ellipse cx="25" cy="37" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(75 25 37)" /></g>
+        <g><ellipse cx="22" cy="38" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(-15 22 38)" /></g>
+        <g><ellipse cx="19" cy="39" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(74 19 39)" /></g>
+        <g><ellipse cx="16" cy="40" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(-16 16 40)" /></g>
+        <g><ellipse cx="13" cy="40.7" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(72 13 40.7)" /></g>
+        <g><ellipse cx="10" cy="41.3" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(-17 10 41.3)" /></g>
       </g>
 
       <path d="M45 15 L20 15 C17.2 15 15 17.2 15 20 L15 45 L55 85 C57.8 87.8 62.2 87.8 65 85 L85 65 C87.8 62.2 87.8 57.8 85 55 L45 15 Z" fill="#0066FF" />
@@ -72,9 +76,10 @@
         <g><ellipse cx="7" cy="9.8" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(33.2 7 9.8)" /></g>
       </g>
       
-      <text x="50" y="58" font-family="'Dancing Script', cursive" font-size="28" font-weight="700" fill="white" text-anchor="middle" transform="rotate(45 50 58)">A.S</text>
+      <text x="50" y="58" font-family="'Dancing Script', 'Brush Script MT', 'Lucida Handwriting', 'Segoe Print', cursive" font-size="28" font-weight="700" fill="white" text-anchor="middle" transform="rotate(45 50 58)">A.S</text>
     </g>
 
-    <text x="60" y="100" font-family="'Dancing Script', cursive" font-size="22" font-weight="700" fill="#0066FF" text-anchor="middle">AlphaSpace</text>
+    <text x="60" y="100" font-family="'Dancing Script', 'Brush Script MT', 'Lucida Handwriting', 'Segoe Print', cursive" font-size="22" font-weight="700" fill="#0066FF" text-anchor="middle">AlphaSpace</text>
+    </g>
   </g>
 </svg>
