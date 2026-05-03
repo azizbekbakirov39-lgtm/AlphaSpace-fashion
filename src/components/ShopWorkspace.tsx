@@ -248,18 +248,25 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     setIsImporting(true);
     
     try {
-      const urlMatch = instagramLink.match(/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
+      // Improved regex to catch more Instagram URL variations
+      const urlMatch = instagramLink.match(/(?:instagram\.com\/(?:p|reel|tv|reels)\/)([A-Za-z0-9_-]+)/);
       if (!urlMatch) {
-         toast.error("Noto'g'ri Instagram linki");
+         toast.error("Noto'g'ri Instagram linki. Iltimos, to'liq linkni kiriting.");
          setIsImporting(false);
          return;
       }
+
+      const shortcode = urlMatch[1];
+      // Determine type, default to 'p' but check if 'reel' or 'tv' is in URL
+      let importType = 'p';
+      if (instagramLink.includes('/reel/') || instagramLink.includes('/reels/')) importType = 'reel';
+      if (instagramLink.includes('/tv/')) importType = 'tv';
 
       const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
       const response = await fetch(`${API_BASE}/api/refresh-instagram-url`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ shortcode: urlMatch[2], type: urlMatch[1] })
+        body: JSON.stringify({ shortcode, type: importType })
       });
 
       if (!response.ok) {

@@ -151,23 +151,18 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     const isApiError = (res: any) => {
       if (!res || !res.data) return true;
       const data = res.data;
-      
-      // Look for specific error fields or codes rather than searching the entire JSON string.
-      // E.g. `data.error` or `data.response === 4` or `data.status === 'failed'`
-      
       if (res.status !== 200) return true;
-      if (data.response === 4) return true;
-      if (data.status === 'failed') return true;
       
-      const errorMsg = (typeof data.error === 'string' ? data.error : '').toLowerCase();
-      const msg = (typeof data.message === 'string' ? data.message : '').toLowerCase();
+      // Some APIs return status: 'failed' or success: false
+      if (data.status === 'failed' || data.success === false || data.response === 4) return true;
       
-      if (errorMsg.includes('not found') || msg.includes('not found')) return true;
-      if (errorMsg.includes('private') || msg.includes('private')) return true;
-      if (errorMsg.includes('invalid url') || msg.includes('invalid url')) return true;
-      
-      // If none of these specific error strings indicate an error, and we have urls or media, it's valid
-      return false;
+      // Check if we actually got any media
+      const hasMedia = (data.urls && data.urls.length > 0) || 
+                       data.media || data.url || data.pictureUrl || 
+                       data.display_url || data.video_url ||
+                       (data.response && data.response.body);
+                       
+      return !hasMedia;
     };
 
     const tryFetch = async (targetUrl: string) => {
@@ -176,99 +171,65 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       };
 
-      // 1. Primary: instagram120
+      // 1. Primary: instagram-bulk-scraper-latest (Very powerful)
       try {
-        const primaryResponse = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
-          { url: targetUrl },
-          {
-            headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram120.p.rapidapi.com' },
-            validateStatus: () => true,
-            timeout: 15000
-          }
-        );
-        if (primaryResponse.status === 200 && !isApiError(primaryResponse)) return primaryResponse;
-        console.log(`Primary RapidAPI failed (${primaryResponse.status}) for ${targetUrl}`);
-      } catch (e: any) {
-        console.log(`Primary API Request Error: ${e.message}`);
-      }
-
-      // 2. Fallback 1: instagram-media-downloader
-      try {
-        const fallback1 = await axios.get(`https://instagram-media-downloader.p.rapidapi.com/api/index`, {
+        const res = await axios.get(`https://instagram-bulk-scraper-latest.p.rapidapi.com/media_download_from_url`, {
           params: { url: targetUrl },
-          headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com' },
-          validateStatus: () => true,
-          timeout: 15000
+          headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-bulk-scraper-latest.p.rapidapi.com' },
+          timeout: 15000, validateStatus: () => true
         });
-
-        if (fallback1.status === 200 && fallback1.data && (fallback1.data.media || fallback1.data.url)) {
-          const data = fallback1.data;
-          return {
-            ...fallback1,
-            data: {
-              urls: [{ url: data.media || data.url }],
-              thumbnail_url: data.thumbnail
-            }
-          };
-        }
-        console.log(`Fallback 1 failed (${fallback1.status})`);
-      } catch (e: any) {
-        console.log(`Fallback 1 Request Error: ${e.message}`);
-      }
-
-      // 3. Fallback 2: rocketapi-for-instagram (Very reliable)
-      try {
-        const fallback2 = await axios.post(`https://rocketapi-for-instagram.p.rapidapi.com/instagram/media/get_info`, 
-          { url: targetUrl },
-          {
-            headers: { ...commonHeaders, 'x-rapidapi-host': 'rocketapi-for-instagram.p.rapidapi.com' },
-            validateStatus: () => true,
-            timeout: 15000
-          }
-        );
-
-        if (fallback2.status === 200 && fallback2.data?.response?.body) {
-          const body = fallback2.data.response.body;
-          const media = Array.isArray(body) ? body[0] : body;
-          const videoUrl = media.video_versions?.[0]?.url || media.image_versions2?.candidates?.[0]?.url;
-          
-          if (videoUrl) {
+        if (res.status === 200 && res.data?.data) {
+          const d = res.data.data;
+          const mediaUrl = d.main_media_hd || d.main_media || (d.resources?.[0]?.url);
+          if (mediaUrl) {
             return {
-              ...fallback2,
+              ...res,
               data: {
-                urls: [{ url: videoUrl }],
-                thumbnail_url: media.image_versions2?.candidates?.[0]?.url
+                urls: [{ url: mediaUrl }],
+                thumbnail_url: d.thumbnail_url || d.main_media
               }
             };
           }
         }
-        console.log(`Fallback 2 (RocketAPI) failed (${fallback2.status})`);
-      } catch (e: any) {
-        console.log(`Fallback 2 Request Error: ${e.message}`);
-      }
+      } catch (e: any) { console.log("Bulk Scraper Error:", e.message); }
 
-      // 4. Fallback 3: social-media-video-downloader (Last resort)
+      // 2. RocketAPI (Reliable)
       try {
-        const fallback3 = await axios.get(`https://social-media-video-downloader.p.rapidapi.com/smvd/get/instagram`, {
-          params: { url: targetUrl },
-          headers: { ...commonHeaders, 'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com' },
-          validateStatus: () => true,
-          timeout: 15000
-        });
-
-        if (fallback3.status === 200 && fallback3.data && (fallback3.data.url || fallback3.data.media)) {
-          return {
-            ...fallback3,
-            data: {
-              urls: [{ url: fallback3.data.url || fallback3.data.media }],
-              thumbnail_url: fallback3.data.thumbnail
-            }
-          };
+        const res = await axios.post(`https://rocketapi-for-instagram.p.rapidapi.com/instagram/media/get_info`, 
+          { url: targetUrl },
+          { headers: { ...commonHeaders, 'x-rapidapi-host': 'rocketapi-for-instagram.p.rapidapi.com' }, timeout: 15000, validateStatus: () => true }
+        );
+        if (res.status === 200 && res.data?.response?.body) {
+          const body = res.data.response.body;
+          const media = Array.isArray(body) ? body[0] : body;
+          // Look for direct video/image URLs
+          const vUrl = media.video_versions?.[0]?.url || media.image_versions2?.candidates?.[0]?.url;
+          if (vUrl) {
+            return { ...res, data: { urls: [{ url: vUrl }], thumbnail_url: media.image_versions2?.candidates?.[0]?.url } };
+          }
         }
-        console.log(`Fallback 3 failed (${fallback3.status})`);
-      } catch (e: any) {
-        console.log(`Fallback 3 Request Error: ${e.message}`);
-      }
+      } catch (e: any) { console.log("RocketAPI Error:", e.message); }
+
+      // 3. Instagram120
+      try {
+        const res = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
+          { url: targetUrl },
+          { headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram120.p.rapidapi.com' }, timeout: 15000, validateStatus: () => true }
+        );
+        if (res.status === 200 && !isApiError(res)) return res;
+      } catch (e: any) { console.log("Instagram120 Error:", e.message); }
+
+      // 4. Media Downloader
+      try {
+        const res = await axios.get(`https://instagram-media-downloader.p.rapidapi.com/api/index`, {
+          params: { url: targetUrl },
+          headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-media-downloader.p.rapidapi.com' },
+          timeout: 15000, validateStatus: () => true
+        });
+        if (res.status === 200 && res.data && (res.data.media || res.data.url)) {
+          return { ...res, data: { urls: [{ url: res.data.media || res.data.url }], thumbnail_url: res.data.thumbnail } };
+        }
+      } catch (e: any) { console.log("Media Downloader Error:", e.message); }
 
       return null;
     };
