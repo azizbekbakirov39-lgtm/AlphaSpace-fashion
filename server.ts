@@ -153,18 +153,14 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     const { shortcode, type = 'p', fullUrl } = req.body;
     if (!shortcode && !fullUrl) return res.status(400).json({ error: "Shortcode or fullUrl required" });
     
-    if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'undefined') {
+    if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'undefined' || RAPIDAPI_KEY === '') {
       console.error("RAPIDAPI_KEY is missing or invalid");
-      return res.status(500).json({ error: "API Key (RAPIDAPI_KEY) o'rnatilmagan. Iltimos, RapidAPI kalitini qo'shing." });
+      return res.status(500).json({ error: "RapidAPI kaliti o'rnatilmagan yoki noto'g'ri. Iltimos, RAPIDAPI_KEY sirini (Secret) tekshiring." });
     }
 
     const isApiError = (res: any) => {
       if (!res || !res.data) return true;
       const data = res.data;
-      if (res.status !== 200) return true;
-      
-      // Some APIs return status: 'failed', success: false or response: 4
-      if (data.status === 'failed' || data.success === false || data.response === 4 || data.error) return true;
       
       // Check if we actually got any media
       const hasMedia = (data.urls && data.urls.length > 0) || 
@@ -172,7 +168,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
                        data.display_url || data.video_url ||
                        (data.response && data.response.body) ||
                        (data.data && (data.data.main_media || data.data.resources)) ||
-                       data.download_url;
+                       data.download_url ||
+                       data.links;
                        
       return !hasMedia;
     };
@@ -189,7 +186,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         const res = await axios.get(`https://instagram-bulk-scraper-latest.p.rapidapi.com/media_download_from_url`, {
           params: { url: targetUrl },
           headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-bulk-scraper-latest.p.rapidapi.com' },
-          timeout: 15000, validateStatus: () => true
+          timeout: 10000, validateStatus: () => true
         });
         if (res.status === 200 && res.data?.data) {
           const d = res.data.data;
@@ -198,11 +195,23 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         }
       } catch (e: any) { console.log("Bulk Scraper Error:", e.message); }
 
-      // 2. RocketAPI
+      // 2. instagram-downloader-download-v2
+      try {
+        const res = await axios.get(`https://instagram-downloader-download-v2.p.rapidapi.com/index`, {
+          params: { url: targetUrl },
+          headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-downloader-download-v2.p.rapidapi.com' },
+          timeout: 10000, validateStatus: () => true
+        });
+        if (res.status === 200 && res.data?.media) {
+             return { ...res, data: { urls: [{ url: res.data.media }], thumbnail_url: res.data.thumbnail, title: res.data.title } };
+        }
+      } catch (e: any) { console.log("v2 Downloader Error:", e.message); }
+
+      // 3. RocketAPI
       try {
         const res = await axios.post(`https://rocketapi-for-instagram.p.rapidapi.com/instagram/media/get_info`, 
           { url: targetUrl },
-          { headers: { ...commonHeaders, 'x-rapidapi-host': 'rocketapi-for-instagram.p.rapidapi.com' }, timeout: 15000, validateStatus: () => true }
+          { headers: { ...commonHeaders, 'x-rapidapi-host': 'rocketapi-for-instagram.p.rapidapi.com' }, timeout: 10000, validateStatus: () => true }
         );
         if (res.status === 200 && res.data?.response?.body) {
           const body = res.data.response.body;
@@ -212,24 +221,24 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         }
       } catch (e: any) { console.log("RocketAPI Error:", e.message); }
 
-      // 3. Social Media Video Downloader
+      // 4. Social Media Video Downloader
       try {
         const res = await axios.get(`https://social-media-video-downloader.p.rapidapi.com/smvd/get/instagram`, {
           params: { url: targetUrl },
           headers: { ...commonHeaders, 'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com' },
-          timeout: 15000, validateStatus: () => true
+          timeout: 10000, validateStatus: () => true
         });
         if (res.status === 200 && res.data && (res.data.url || res.data.media)) {
           return { ...res, data: { urls: [{ url: res.data.url || res.data.media }], thumbnail_url: res.data.thumbnail, title: res.data.title } };
         }
       } catch (e: any) { console.log("SMVD Error:", e.message); }
 
-      // 4. Instagram Scraper API
+      // 5. Instagram Scraper API
       try {
         const res = await axios.get(`https://instagram-scraper-api2.p.rapidapi.com/v1/post_info`, {
           params: { url_or_shortcode: targetUrl },
           headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-scraper-api2.p.rapidapi.com' },
-          timeout: 15000, validateStatus: () => true
+          timeout: 10000, validateStatus: () => true
         });
         if (res.status === 200 && res.data?.data) {
           const d = res.data.data;
