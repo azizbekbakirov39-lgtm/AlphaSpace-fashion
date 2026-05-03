@@ -167,6 +167,8 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     url.includes('firebasestorage.googleapis.com') || 
     url.includes('i.ibb.co') || 
     url.includes('r2.dev') || // Cloudflare R2 default domain
+    url.includes('pub-') || // Cloudflare R2 public bucket prefix often starts with pub-
+    url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN || 'alpha-space-storage') ||
     url.includes('scontent') === false && !url.includes('instagram.com')
   ) {
     return url;

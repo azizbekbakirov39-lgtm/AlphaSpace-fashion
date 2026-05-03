@@ -132,6 +132,16 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
 // });
 
 // API Routes
+app.get("/api/check-r2", async (req, res) => {
+  res.json({
+    initialized: !!r2Client,
+    bucket: !!process.env.R2_BUCKET_NAME,
+    domain: !!process.env.R2_PUBLIC_DOMAIN,
+    endpoint: !!process.env.R2_ENDPOINT,
+    publicDomain: process.env.R2_PUBLIC_DOMAIN
+  });
+});
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
@@ -180,6 +190,19 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         'x-rapidapi-key': RAPIDAPI_KEY,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       };
+
+      // 0. A-List: instagram-downloader (By Logic-it)
+      try {
+        const res = await axios.get(`https://instagram-downloader.p.rapidapi.com/index`, {
+          params: { url: targetUrl },
+          headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram-downloader.p.rapidapi.com' },
+          timeout: 10000, validateStatus: () => true
+        });
+        if (res.status === 200 && (res.data?.media || res.data?.url)) {
+           const m = res.data.media || res.data.url;
+           return { ...res, data: { urls: [{ url: m }], thumbnail_url: res.data.thumbnail, title: res.data.title } };
+        }
+      } catch (e: any) { console.log("Logic-it Downloader Error:", e.message); }
 
       // 1. Primary: instagram-bulk-scraper-latest
       try {
@@ -282,7 +305,12 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           url: mediaUrl,
           method: 'GET',
           responseType: 'arraybuffer',
-          timeout: 30000
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.instagram.com/',
+            'Origin': 'https://www.instagram.com'
+          },
+          timeout: 40000
         });
 
         const buffer = Buffer.from(downloadRes.data);
@@ -299,7 +327,13 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           });
 
           await r2Client.send(command);
-          const storageUrl = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+          
+          let publicDomain = process.env.R2_PUBLIC_DOMAIN || "";
+          if (publicDomain && !publicDomain.startsWith('http')) {
+            publicDomain = `https://${publicDomain}`;
+          }
+          
+          const storageUrl = `${publicDomain}/${fileName}`;
           console.log("Uploaded to R2:", storageUrl);
           
           finalData.storageUrl = storageUrl;
@@ -309,7 +343,13 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           if (finalData.thumbnail_url && finalData.thumbnail_url !== mediaUrl) {
             try {
               console.log("Downloading thumbnail for R2 upload...");
-              const thumbRes = await axios({ url: finalData.thumbnail_url, method: 'GET', responseType: 'arraybuffer', timeout: 15000 });
+              const thumbRes = await axios({ 
+                url: finalData.thumbnail_url, 
+                method: 'GET', 
+                responseType: 'arraybuffer', 
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                timeout: 15000 
+              });
               const thumbBuffer = Buffer.from(thumbRes.data);
               const thumbContentType = thumbRes.headers['content-type'] || 'image/jpeg';
               const thumbName = `instagram/thumbs/${shortcode || crypto.randomBytes(8).toString('hex')}_${Date.now()}.jpg`;
@@ -321,7 +361,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
                 ContentType: thumbContentType,
               });
               if (r2Client) await r2Client.send(thumbCommand);
-              finalData.thumbnail_url = `${process.env.R2_PUBLIC_DOMAIN}/${thumbName}`;
+              finalData.thumbnail_url = `${publicDomain}/${thumbName}`;
             } catch (e: any) {
               console.log("Thumbnail upload failed:", e.message);
             }
@@ -358,7 +398,12 @@ app.post("/api/import-to-r2", async (req, res) => {
       url: videoUrl,
       method: "GET",
       responseType: "arraybuffer",
-      timeout: 60000, // 60 seconds for larger videos
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.instagram.com/',
+        'Origin': 'https://www.instagram.com'
+      },
+      timeout: 90000, // 90 seconds for larger videos
     });
 
     const inputBuffer = Buffer.from(response.data);
@@ -407,7 +452,11 @@ app.post("/api/import-to-r2", async (req, res) => {
     await r2Client.send(command);
 
     // 5. Return the public URL
-    const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
+    let publicDomain = process.env.R2_PUBLIC_DOMAIN || "";
+    if (publicDomain && !publicDomain.startsWith('http')) {
+      publicDomain = `https://${publicDomain}`;
+    }
+    const publicUrl = `${publicDomain}/${key}`;
     console.log(`Upload complete: ${publicUrl}`);
     
     res.json({ publicUrl, key, originalSize: inputBuffer.length, compressedSize: compressedBuffer.length });
