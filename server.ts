@@ -184,7 +184,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         if (res.status === 200 && res.data?.data) {
           const d = res.data.data;
           const mediaUrl = d.main_media_hd || d.main_media || (d.resources?.[0]?.url);
-          if (mediaUrl) return { ...res, data: { urls: [{ url: mediaUrl }], thumbnail_url: d.thumbnail_url || d.main_media } };
+          if (mediaUrl) return { ...res, data: { urls: [{ url: mediaUrl }], thumbnail_url: d.thumbnail_url || d.main_media, title: d.title || d.description } };
         }
       } catch (e: any) { console.log("Bulk Scraper Error:", e.message); }
 
@@ -198,7 +198,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           const body = res.data.response.body;
           const media = Array.isArray(body) ? body[0] : body;
           const vUrl = media.video_versions?.[0]?.url || media.image_versions2?.candidates?.[0]?.url;
-          if (vUrl) return { ...res, data: { urls: [{ url: vUrl }], thumbnail_url: media.image_versions2?.candidates?.[0]?.url } };
+          if (vUrl) return { ...res, data: { urls: [{ url: vUrl }], thumbnail_url: media.image_versions2?.candidates?.[0]?.url, title: media.caption?.text } };
         }
       } catch (e: any) { console.log("RocketAPI Error:", e.message); }
 
@@ -210,11 +210,11 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
           timeout: 15000, validateStatus: () => true
         });
         if (res.status === 200 && res.data && (res.data.url || res.data.media)) {
-          return { ...res, data: { urls: [{ url: res.data.url || res.data.media }], thumbnail_url: res.data.thumbnail } };
+          return { ...res, data: { urls: [{ url: res.data.url || res.data.media }], thumbnail_url: res.data.thumbnail, title: res.data.title } };
         }
       } catch (e: any) { console.log("SMVD Error:", e.message); }
 
-      // 4. Instagram Scraper API (Another reliable one)
+      // 4. Instagram Scraper API
       try {
         const res = await axios.get(`https://instagram-scraper-api2.p.rapidapi.com/v1/post_info`, {
           params: { url_or_shortcode: targetUrl },
@@ -224,68 +224,96 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         if (res.status === 200 && res.data?.data) {
           const d = res.data.data;
           const vUrl = d.video_url || d.display_url || (d.carousel_media?.[0]?.video_url);
-          if (vUrl) return { ...res, data: { urls: [{ url: vUrl }], thumbnail_url: d.thumbnail_url || d.display_url } };
+          if (vUrl) return { ...res, data: { urls: [{ url: vUrl }], thumbnail_url: d.thumbnail_url || d.display_url, title: d.caption?.text } };
         }
       } catch (e: any) { console.log("Scraper API 2 Error:", e.message); }
-
-      // 5. Instagram120
-      try {
-        const res = await axios.post(`https://instagram120.p.rapidapi.com/api/instagram/links`, 
-          { url: targetUrl },
-          { headers: { ...commonHeaders, 'x-rapidapi-host': 'instagram120.p.rapidapi.com' }, timeout: 15000, validateStatus: () => true }
-        );
-        if (res.status === 200 && !isApiError(res)) return res;
-      } catch (e: any) { console.log("Instagram120 Error:", e.message); }
-
-      // 6. Scrappie (Very robust fallback)
-      try {
-        const res = await axios.get(`https://scrappie-instagram.p.rapidapi.com/media/download`, {
-          params: { url: targetUrl },
-          headers: { ...commonHeaders, 'x-rapidapi-host': 'scrappie-instagram.p.rapidapi.com' },
-          timeout: 15000, validateStatus: () => true
-        });
-        if (res.status === 200 && res.data?.download_url) {
-          return { ...res, data: { urls: [{ url: res.data.download_url }], thumbnail_url: res.data.thumbnail_url } };
-        }
-      } catch (e: any) { console.log("Scrappie Error:", e.message); }
 
       return null;
     };
 
-    let finalResponse: any = null;
+    let finalData: any = null;
 
-    // Use fullUrl if provided, otherwise try to reconstruct
     if (fullUrl) {
-      finalResponse = await tryFetch(fullUrl);
-      if (finalResponse && !isApiError(finalResponse)) {
-         return res.json(finalResponse.data);
-      }
+      const response = await tryFetch(fullUrl);
+      if (response && !isApiError(response)) finalData = response.data;
     }
 
-    // Fallback to shortcode reconstruction
-    const typesToTry = [type];
-    if (type === 'p') typesToTry.push('reel');
-    else if (type === 'reel') typesToTry.push('p');
-    else if (type === 'tv') typesToTry.push('reel', 'p');
-
-    for (const currentType of typesToTry) {
-      const urls = [
-        `https://www.instagram.com/${currentType}/${shortcode}/`,
-        `https://www.instagram.com/${currentType}/${shortcode}`
-      ];
-      
-      for (const url of urls) {
-        finalResponse = await tryFetch(url);
-        if (finalResponse && !isApiError(finalResponse)) {
-           return res.json(finalResponse.data);
+    if (!finalData) {
+      const typesToTry = [type, 'p', 'reel'];
+      for (const currentType of [...new Set(typesToTry)]) {
+        const url = `https://www.instagram.com/${currentType}/${shortcode}/`;
+        const response = await tryFetch(url);
+        if (response && !isApiError(response)) {
+          finalData = response.data;
+          break;
         }
       }
     }
 
-    // If we're here, everything failed
-    res.status(404).json({ 
-      message: "Instagramdan ma'lumot olib bo'lmadi. Post o'chirilgan, profil yopiq yoki API limiti tugagan bo'lishi mumkin." 
-    });
+    if (!finalData) {
+      return res.status(404).json({ message: "Instagramdan ma'lumot olib bo'lmadi." });
+    }
+
+    // Now DOWNLOAD and UPLOAD to Cloudflare R2
+    try {
+      const mediaUrl = finalData.urls?.[0]?.url || finalData.url;
+      if (mediaUrl) {
+        console.log("Downloading media for R2 storage upload...");
+        const downloadRes = await axios({
+          url: mediaUrl,
+          method: 'GET',
+          responseType: 'arraybuffer',
+          timeout: 30000
+        });
+
+        const buffer = Buffer.from(downloadRes.data);
+        const contentType = downloadRes.headers['content-type'] || (mediaUrl.includes('.mp4') ? 'video/mp4' : 'image/jpeg');
+        const ext = contentType.split('/')[1] || (contentType.includes('video') ? 'mp4' : 'jpg');
+        const fileName = `instagram/${shortcode || crypto.randomBytes(8).toString('hex')}_${Date.now()}.${ext}`;
+
+        if (process.env.R2_BUCKET_NAME) {
+          const command = new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: fileName,
+            Body: buffer,
+            ContentType: contentType,
+          });
+
+          await r2Client.send(command);
+          const storageUrl = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+          console.log("Uploaded to R2:", storageUrl);
+          
+          finalData.storageUrl = storageUrl;
+          finalData.urls = [{ url: storageUrl }];
+
+          // Also upload thumbnail if it exists
+          if (finalData.thumbnail_url && finalData.thumbnail_url !== mediaUrl) {
+            try {
+              console.log("Downloading thumbnail for R2 upload...");
+              const thumbRes = await axios({ url: finalData.thumbnail_url, method: 'GET', responseType: 'arraybuffer', timeout: 15000 });
+              const thumbBuffer = Buffer.from(thumbRes.data);
+              const thumbContentType = thumbRes.headers['content-type'] || 'image/jpeg';
+              const thumbName = `instagram/thumbs/${shortcode || crypto.randomBytes(8).toString('hex')}_${Date.now()}.jpg`;
+              
+              const thumbCommand = new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: thumbName,
+                Body: thumbBuffer,
+                ContentType: thumbContentType,
+              });
+              await r2Client.send(thumbCommand);
+              finalData.thumbnail_url = `${process.env.R2_PUBLIC_DOMAIN}/${thumbName}`;
+            } catch (e: any) {
+              console.log("Thumbnail upload failed:", e.message);
+            }
+          }
+        }
+      }
+    } catch (uploadError: any) {
+      console.error("R2 Upload Error:", uploadError.message);
+    }
+
+    res.json(finalData);
   } catch (error: any) {
     console.error("Backend Proxy Error:", error);
     res.status(500).json({ error: error.message });

@@ -1,6 +1,6 @@
 {
-  "name": "Remix: Remix: Marketplace Platform",
-  "description": "A comprehensive, live-editable marketplace for products and services with real-time updates.",
+  "name": "AlphaSpace Marketplace",
+  "description": "Instagram integratsiyasi bilan jihozlangan do'kon va mahsulotlar boshqaruvi platformasi.",
   "requestFramePermissions": [
     "geolocation",
     "camera",
