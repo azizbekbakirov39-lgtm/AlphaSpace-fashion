@@ -322,9 +322,9 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         });
 
         const buffer = Buffer.from(downloadRes.data);
-        const contentType = downloadRes.headers['content-type'] || (mediaUrl.includes('.mp4') ? 'video/mp4' : 'image/jpeg');
+        const contentType = String(downloadRes.headers['content-type'] || (mediaUrl.includes('.mp4') ? 'video/mp4' : 'image/jpeg'));
         const ext = contentType.split('/')[1] || (contentType.includes('video') ? 'mp4' : 'jpg');
-        const fileName = `instagram/${shortcode || crypto.randomBytes(8).toString('hex')}_${Date.now()}.${ext}`;
+        const fileName = `instagram/${shortcode || Date.now()}_${Date.now()}.${ext}`;
 
         if (process.env.R2_BUCKET_NAME && r2Client) {
           const command = new PutObjectCommand({
@@ -359,8 +359,8 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
                 timeout: 15000 
               });
               const thumbBuffer = Buffer.from(thumbRes.data);
-              const thumbContentType = thumbRes.headers['content-type'] || 'image/jpeg';
-              const thumbName = `instagram/thumbs/${shortcode || crypto.randomBytes(8).toString('hex')}_${Date.now()}.jpg`;
+              const thumbContentType = String(thumbRes.headers['content-type'] || 'image/jpeg');
+              const thumbName = `instagram/thumbs/${shortcode || Date.now()}_${Date.now()}.jpg`;
               
               const thumbCommand = new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
