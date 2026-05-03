@@ -77,19 +77,19 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
             width="120"
             height="120"
             rx="28"
-            fill="white"
+            fill={accentBlue}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
         ) : (
-          <rect x="0" y="0" width="120" height="120" rx="28" fill="white" />
+          <rect x="0" y="0" width="120" height="120" rx="28" fill={accentBlue} />
         )}
 
         {/* Tag Group */}
         <g transform={`translate(60, ${showText ? 42 : 60}) scale(${showText ? 0.95 : 1.1}) translate(-50, -50)`}>
           {/* Back Strands (Behind the hole) */}
-          <g strokeWidth="0.8" fill="none" filter={`url(#${chainShadowId})`}>
+          <g strokeWidth="0.8" fill="none">
             {animated ? (
               <>
                 {[...Array(8)].map((_, i) => {
@@ -100,7 +100,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                     <motion.g
                       key={`back-up-${i}`}
                       initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 0.4, scale: 1 }}
+                      animate={{ opacity: 0.3, scale: 1 }}
                       transition={{ delay: 1.4 + i * 0.03, duration: 0.3 }}
                     >
                       <ellipse
@@ -108,7 +108,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3"
                         ry="1.2"
-                        stroke={`url(#${chainGradientId})`}
+                        stroke={accentLight}
                         strokeWidth="0.8"
                         transform={`rotate(${isEven ? -45 : 45} ${cx} ${cy})`}
                       />
@@ -123,13 +123,13 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                   const cy = 28 - i * 0.8;
                   const isEven = i % 2 === 0;
                   return (
-                    <g key={`back-up-${i}`} opacity="0.4">
+                    <g key={`back-up-${i}`} opacity="0.3">
                       <ellipse
                         cx={cx}
                         cy={cy}
                         rx="3"
                         ry="1.2"
-                        stroke={`url(#${chainGradientId})`}
+                        stroke={accentLight}
                         strokeWidth="0.8"
                         transform={`rotate(${isEven ? -45 : 45} ${cx} ${cy})`}
                       />
@@ -143,7 +143,6 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
             {animated ? (
               <>
                 {[...Array(50)].map((_, i) => {
-                  // Add curve using cosine
                   const curve = Math.cos(i * 0.15) * 6;
                   const cx = 28 - i * 2.5 + curve;
                   const cy = 28 + i * 1.4 + curve;
@@ -153,7 +152,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                     <motion.g
                       key={`middle-${i}`}
                       initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      animate={{ opacity: 0.6, scale: 1 }}
                       transition={{ delay: 1.8 + i * 0.03, duration: 0.3 }}
                     >
                       <ellipse
@@ -161,18 +160,8 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke={`url(#${chainGradientId})`}
+                        stroke={accentLight}
                         strokeWidth="1.2"
-                        transform={`rotate(${isEven ? -20 + curve : 70 + curve} ${cx} ${cy})`}
-                      />
-                      <ellipse
-                        cx={cx}
-                        cy={cy}
-                        rx="2.8"
-                        ry="1"
-                        stroke="white"
-                        strokeWidth="0.4"
-                        opacity="0.5"
                         transform={`rotate(${isEven ? -20 + curve : 70 + curve} ${cx} ${cy})`}
                       />
                     </motion.g>
@@ -188,24 +177,14 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                   const isEven = i % 2 === 0;
                   if (cx < -40 || cy > 140) return null;
                   return (
-                    <g key={`middle-${i}`}>
+                    <g key={`middle-${i}`} opacity="0.6">
                       <ellipse
                         cx={cx}
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke={`url(#${chainGradientId})`}
+                        stroke={accentLight}
                         strokeWidth="1.2"
-                        transform={`rotate(${isEven ? -20 + curve : 70 + curve} ${cx} ${cy})`}
-                      />
-                      <ellipse
-                        cx={cx}
-                        cy={cy}
-                        rx="2.8"
-                        ry="1"
-                        stroke="white"
-                        strokeWidth="0.4"
-                        opacity="0.5"
                         transform={`rotate(${isEven ? -20 + curve : 70 + curve} ${cx} ${cy})`}
                       />
                     </g>
@@ -219,54 +198,28 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
           {animated ? (
             <motion.path
               d={tagPath}
-              fill={`url(#${logoBgId})`}
+              fill="white"
               filter={`url(#${dropShadowId})`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
             />
           ) : (
-            <path d={tagPath} fill={`url(#${logoBgId})`} filter={`url(#${dropShadowId})`} />
+            <path d={tagPath} fill="white" filter={`url(#${dropShadowId})`} />
           )}
 
           {/* Tag Inner Border */}
-          {animated ? (
-            <motion.path
-              d={tagInnerPath}
-              stroke={accentLight}
-              strokeWidth="1.5"
-              fill="none"
-              initial="hidden"
-              animate="visible"
-              variants={pathVariants}
-              transition={{ duration: 1.5, ease: "easeInOut", delay: 0.8 }}
-            />
-          ) : (
-            <path d={tagInnerPath} stroke={accentLight} strokeWidth="1.5" fill="none" />
-          )}
+          <path d={tagInnerPath} stroke={accentBlue} strokeOpacity="0.1" strokeWidth="1.5" fill="none" />
 
           {/* Tag Hole */}
-          {animated ? (
-            <motion.circle
-              cx="28"
-              cy="28"
-              r="4.5"
-              fill="white"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.5, delay: 1.2, type: "spring" }}
-            />
-          ) : (
-            <circle cx="28" cy="28" r="4.5" fill="white" />
-          )}
+          <circle cx="28" cy="28" r="4.5" fill={accentBlue} />
 
           {/* Front Strands (Overlapping the hole) */}
-          <g strokeWidth="0.8" fill="none" filter={`url(#${chainShadowId})`}>
+          <g strokeWidth="0.8" fill="none">
             {/* Upper Strand - Going towards top-left, curved */}
             {animated ? (
               <>
                 {[...Array(35)].map((_, i) => {
-                  // Add curve using sine
                   const curve = Math.sin(i * 0.2) * 4;
                   const cx = 28 - i * 2.2 + curve;
                   const cy = 28 - i * 1.5 - curve * 0.5;
@@ -276,7 +229,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                     <motion.g
                       key={`upper-${i}`}
                       initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      animate={{ opacity: 0.8, scale: 1 }}
                       transition={{ delay: 1.6 + i * 0.03, duration: 0.3 }}
                     >
                       <ellipse
@@ -284,18 +237,8 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke={`url(#${chainGradientId})`}
+                        stroke={accentLight}
                         strokeWidth="1.2"
-                        transform={`rotate(${isEven ? -60 + curve : 30 + curve} ${cx} ${cy})`}
-                      />
-                      <ellipse
-                        cx={cx}
-                        cy={cy}
-                        rx="2.8"
-                        ry="1"
-                        stroke="white"
-                        strokeWidth="0.4"
-                        opacity="0.5"
                         transform={`rotate(${isEven ? -60 + curve : 30 + curve} ${cx} ${cy})`}
                       />
                     </motion.g>
@@ -311,24 +254,14 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
                   const isEven = i % 2 === 0;
                   if (cx < -40 || cy < -40) return null;
                   return (
-                    <g key={`upper-${i}`}>
+                    <g key={`upper-${i}`} opacity="0.8">
                       <ellipse
                         cx={cx}
                         cy={cy}
                         rx="3.5"
                         ry="1.5"
-                        stroke={`url(#${chainGradientId})`}
+                        stroke={accentLight}
                         strokeWidth="1.2"
-                        transform={`rotate(${isEven ? -60 + curve : 30 + curve} ${cx} ${cy})`}
-                      />
-                      <ellipse
-                        cx={cx}
-                        cy={cy}
-                        rx="2.8"
-                        ry="1"
-                        stroke="white"
-                        strokeWidth="0.4"
-                        opacity="0.5"
                         transform={`rotate(${isEven ? -60 + curve : 30 + curve} ${cx} ${cy})`}
                       />
                     </g>
@@ -339,36 +272,18 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
           </g>
 
           {/* A.S Text inside Tag */}
-          {animated ? (
-            <motion.text
-              x="50"
-              y="58"
-              fontFamily="'Dancing Script', cursive"
-              fontSize="24"
-              fontWeight="700"
-              fill="white"
-              textAnchor="middle"
-              transform="rotate(45 50 58)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1, delay: 1.5 }}
-            >
-              A.S
-            </motion.text>
-          ) : (
-            <text
-              x="50"
-              y="58"
-              fontFamily="'Dancing Script', cursive"
-              fontSize="24"
-              fontWeight="700"
-              fill="white"
-              textAnchor="middle"
-              transform="rotate(45 50 58)"
-            >
-              A.S
-            </text>
-          )}
+          <text
+            x="50"
+            y="58"
+            fontFamily="'Dancing Script', cursive"
+            fontSize="24"
+            fontWeight="700"
+            fill={accentBlue}
+            textAnchor="middle"
+            transform="rotate(45 50 58)"
+          >
+            A.S
+          </text>
         </g>
 
         {/* AlphaSpace Text at the bottom */}
@@ -379,7 +294,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', width = 120, height, animat
             fontFamily="'Dancing Script', cursive"
             fontSize="22"
             fontWeight="700"
-            fill={`url(#${textGradientId})`}
+            fill="white"
             textAnchor="middle"
           >
             AlphaSpace
