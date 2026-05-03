@@ -18,6 +18,8 @@ export interface Story {
   isLiked?: boolean;
   isViewed?: boolean;
   isLive?: boolean;
+  imageUrl?: string;
+  thumbnailUrl?: string;
   poll?: {
     question: string;
     options: string[];
@@ -115,6 +117,7 @@ export interface PostData {
   };
   instagramUrl?: string;
   thumbnailUrl?: string;
+  createdAt?: any;
 }
 
 export interface AIMessage {

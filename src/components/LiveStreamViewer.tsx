@@ -235,7 +235,6 @@ const LiveStreamViewer: React.FC<LiveStreamViewerProps> = ({ story, onClose, onO
                           mediaUrls: [story.seller.logo || ''],
                           outfitName: `Mahsulot #${i}`,
                           price: `${150 + i * 50} 000 so'm`,
-                          items: [],
                           likes: 0,
                           comments: 0
                         });

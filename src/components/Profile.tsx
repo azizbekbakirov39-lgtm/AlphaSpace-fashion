@@ -81,6 +81,8 @@ interface ProfileProps {
   onOpenChat: (sellerId: string, product?: PostData | null) => void;
   initialChatSellerId?: string | null;
   initialChatProduct?: PostData | null;
+  sentPosts: Set<string>;
+  setSentPosts: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 export type SubView = 'main' | 'language' | 'subscriptions' | 'chats' | 'saved' | 'style-dna' | 'closet' | 'try-ons' | 'fit-profile' | 'comments' | 'liked-posts' | 'recently-viewed';
@@ -1584,7 +1586,7 @@ const Profile: React.FC<ProfileProps> = ({
                     <div 
                       onClick={(e) => {
                         e.stopPropagation();
-                        onOpenPostDetails(msg.post!);
+                        onOpenPostDetails([msg.post!], 0);
                       }}
                       className={`${msg.text ? 'mb-2' : ''} w-56 max-w-full bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-border-primary shadow-sm cursor-pointer active:scale-95 transition-transform`}
                     >

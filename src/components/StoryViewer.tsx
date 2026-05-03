@@ -294,7 +294,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     const shareData = {
       title: currentStory.seller.name,
       text: "Check out this story on AlphaSpace",
-      url: `${window.location.origin}?shop=${currentStory.sellerId}`,
+      url: `${window.location.origin}?shop=${currentStory.seller.id}`,
     };
     await shareContent(shareData.title, shareData.text, shareData.url);
   };
@@ -565,7 +565,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
-              onOpenShopProfile && onOpenShopProfile(currentStory.sellerId);
+              onOpenShopProfile && onOpenShopProfile(currentStory.seller.id);
             }}
           >
             <img 

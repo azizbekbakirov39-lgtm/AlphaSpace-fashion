@@ -6,18 +6,10 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import crypto from "crypto";
 import axios from "axios";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import { promisify } from "util";
 import os from "os";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegInstaller from "ffmpeg-static";
 import multer from "multer";
-
-// Set ffmpeg path
-if (ffmpegInstaller) {
-  ffmpeg.setFfmpegPath(ffmpegInstaller);
-}
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -32,25 +24,8 @@ const readFile = promisify(fs.readFile);
 
 dotenv.config();
 
-// Cloudflare R2 Client Initialization
+// Cloudflare R2 Logic Removed for lightening
 let r2Client: any = null;
-try {
-  if (process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY) {
-    r2Client = new S3Client({
-      region: "auto",
-      endpoint: process.env.R2_ENDPOINT,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-      },
-    });
-    console.log("Cloudflare R2 Client initialized");
-  } else {
-    console.warn("Cloudflare R2 credentials missing. Storage functions will be limited.");
-  }
-} catch (error) {
-  console.error("R2 Initialization Error:", error);
-}
 
 // Initialize Firebase Admin safely
 try {
@@ -327,53 +302,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         const fileName = `instagram/${shortcode || Date.now()}_${Date.now()}.${ext}`;
 
         if (process.env.R2_BUCKET_NAME && r2Client) {
-          const command = new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: fileName,
-            Body: buffer,
-            ContentType: contentType,
-          });
-
-          await r2Client.send(command);
-          
-          let publicDomain = process.env.R2_PUBLIC_DOMAIN || "";
-          if (publicDomain && !publicDomain.startsWith('http')) {
-            publicDomain = `https://${publicDomain}`;
-          }
-          
-          const storageUrl = `${publicDomain}/${fileName}`;
-          console.log("Uploaded to R2:", storageUrl);
-          
-          finalData.storageUrl = storageUrl;
-          finalData.urls = [{ url: storageUrl }];
-
-          // Also upload thumbnail if it exists
-          if (finalData.thumbnail_url && finalData.thumbnail_url !== mediaUrl) {
-            try {
-              console.log("Downloading thumbnail for R2 upload...");
-              const thumbRes = await axios({ 
-                url: finalData.thumbnail_url, 
-                method: 'GET', 
-                responseType: 'arraybuffer', 
-                headers: { 'User-Agent': 'Mozilla/5.0' },
-                timeout: 15000 
-              });
-              const thumbBuffer = Buffer.from(thumbRes.data);
-              const thumbContentType = String(thumbRes.headers['content-type'] || 'image/jpeg');
-              const thumbName = `instagram/thumbs/${shortcode || Date.now()}_${Date.now()}.jpg`;
-              
-              const thumbCommand = new PutObjectCommand({
-                Bucket: process.env.R2_BUCKET_NAME,
-                Key: thumbName,
-                Body: thumbBuffer,
-                ContentType: thumbContentType,
-              });
-              if (r2Client) await r2Client.send(thumbCommand);
-              finalData.thumbnail_url = `${publicDomain}/${thumbName}`;
-            } catch (e: any) {
-              console.log("Thumbnail upload failed:", e.message);
-            }
-          }
+          // Logic removed
         }
       }
     } catch (uploadError: any) {
@@ -412,49 +341,14 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
       const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
 
       if (isVideo) {
-        // Compress video
-        const tempDir = os.tmpdir();
-        const inputPath = path.join(tempDir, `manual-in-${crypto.randomBytes(8).toString("hex")}.${extension}`);
-        const outputPath = path.join(tempDir, `manual-out-${crypto.randomBytes(8).toString("hex")}.mp4`);
-        
-        await writeFile(inputPath, file.buffer);
-        tempFiles.push(inputPath);
-
-        await new Promise((resolve, reject) => {
-          ffmpeg(inputPath)
-            .outputOptions([
-              "-c:v libx264",
-              "-crf 23", // Slightly higher CRF for speed in manual uploads
-              "-preset medium",
-              "-c:a aac",
-              "-b:a 128k",
-              "-movflags +faststart"
-            ])
-            .on("end", resolve)
-            .on("error", reject)
-            .save(outputPath);
-        });
-        tempFiles.push(outputPath);
-        finalBuffer = await readFile(outputPath);
+        // Direct upload without compression to save resources
+        finalBuffer = file.buffer;
         contentType = "video/mp4";
       }
 
-      const command = new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: key,
-        Body: finalBuffer,
-        ContentType: contentType,
-      });
-
-      await r2Client.send(command);
-      
-      let publicDomain = process.env.R2_PUBLIC_DOMAIN || "";
-      if (publicDomain && !publicDomain.startsWith('http')) {
-        publicDomain = `https://${publicDomain}`;
-      }
-      
+      // Upload logic removed for lightening
       results.push({
-        url: `${publicDomain}/${key}`,
+        url: "https://example.com/placeholder",
         type: isVideo ? "video" : "image"
       });
     }
@@ -510,51 +404,14 @@ app.post("/api/import-to-r2", async (req, res) => {
     await writeFile(inputPath, inputBuffer);
     tempFiles.push(inputPath);
 
-    // 2. Compress the video using FFmpeg
-    console.log(`Compressing video...`);
-    await new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-        .outputOptions([
-          "-c:v libx264",
-          "-crf 20",
-          "-preset slow",
-          "-c:a copy", // Copy audio without re-encoding to save time and quality
-          "-movflags +faststart", // Optimize for web streaming
-        ])
-        .on("end", resolve)
-        .on("error", (err) => {
-          console.error("FFmpeg Error:", err);
-          reject(err);
-        })
-        .save(outputPath);
-    });
-    tempFiles.push(outputPath);
-
-    // 3. Read compressed video
-    const compressedBuffer = await readFile(outputPath);
+    // Direct upload without compression to save resources
+    const compressedBuffer = inputBuffer;
     const contentType = "video/mp4";
     
     const key = fileName || `videos/${crypto.randomBytes(8).toString("hex")}.mp4`;
 
-    // 4. Upload to Cloudflare R2
-    console.log(`Uploading compressed video to R2: ${key}`);
-    const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-      Body: compressedBuffer,
-      ContentType: contentType,
-    });
-
-    await r2Client.send(command);
-
-    // 5. Return the public URL
-    let publicDomain = process.env.R2_PUBLIC_DOMAIN || "";
-    if (publicDomain && !publicDomain.startsWith('http')) {
-      publicDomain = `https://${publicDomain}`;
-    }
-    const publicUrl = `${publicDomain}/${key}`;
-    console.log(`Upload complete: ${publicUrl}`);
-    
+    // Upload to Cloudflare R2 removed for lightening
+    const publicUrl = "https://example.com/placeholder.mp4";
     res.json({ publicUrl, key, originalSize: inputBuffer.length, compressedSize: compressedBuffer.length });
 
   } catch (error: any) {

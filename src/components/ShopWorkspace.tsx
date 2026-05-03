@@ -42,6 +42,11 @@ interface ShopWorkspaceProps {
   posts: PostData[];
   onBackToMarketplace: () => void;
   onUpdateShop: (shop: Seller) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  activeChatId: string | null;
+  setActiveChatId: (id: string | null) => void;
+  onOpenReels: (postsList: any[], index: number) => void;
 }
 
 const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
@@ -50,10 +55,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   user,
   posts,
   onBackToMarketplace,
-  onUpdateShop
+  onUpdateShop,
+  activeTab,
+  setActiveTab,
+  activeChatId,
+  setActiveChatId,
+  onOpenReels
 }) => {
   // Navigation States
-  const [activeTab, setActiveTab] = useState('MyShop');
   const [activeProfileTab, setActiveProfileTab] = useState<'Postlar' | 'Ma\'lumot'>('Postlar');
 
   // Shop Data States
@@ -62,7 +71,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   
   // Chat States
   const [chats, setChats] = useState<any[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);

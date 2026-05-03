@@ -260,12 +260,6 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
                     iconImageHref: logoUrl,
                     iconImageSize: [markerSize, markerSize],
                     iconImageOffset: [offset, offset],
-                    // marker shaklini yumaloq deb belgilash
-                    iconImageShape: {
-                      type: 'Circle',
-                      coordinates: [0, 0],
-                      radius: markerSize / 2
-                    }
                   }}
                   onClick={() => handleSellerClick(seller)}
                 />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Feed from './components/Feed';
 import Brands from './components/Brands';
 import SearchAI from './components/SearchAI';
@@ -17,7 +17,7 @@ import CreateShopModal from './components/CreateShopModal';
 import ShopConstruction from './components/ShopConstruction';
 import { RealisticBlueMessageIcon } from './components/CustomIcons';
 import DownloadPage from './components/DownloadPage';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Store, Mail, X, Zap, CheckCircle2, Check, Plus, Share2, MessageCircle } from 'lucide-react';
 import Logo from './components/Logo';
 import { Language, translations } from './translations';
@@ -1462,8 +1462,7 @@ export default function App() {
                         activeLiveStream !== null || 
                         selectedPostForDetails !== null || 
                         selectedShopId !== null ||
-                        selectedPostForComments !== null ||
-                        (activeTab === 'Profile' && profileSubView !== 'main')
+                        selectedPostForComments !== null
                       }
                     />
                   </motion.div>

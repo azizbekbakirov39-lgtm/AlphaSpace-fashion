@@ -271,8 +271,8 @@ const ReelItem: React.FC<{
     }
   };
 
-  const handleExternalShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleExternalShare = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const shareData = {
       title: realPost.seller.name,
       text: realPost.outfitName,
@@ -385,7 +385,7 @@ const ReelItem: React.FC<{
         onToggleSave={onToggleSave}
         onToggleComment={() => setShowComments(true)}
         onOpenChat={() => onOpenChat && onOpenChat(realPost.seller.id, realPost)}
-        onExternalShare={handleExternalShare}
+        onExternalShare={() => handleExternalShare()}
       />
 
       {/* Right Side Controls Layer */}

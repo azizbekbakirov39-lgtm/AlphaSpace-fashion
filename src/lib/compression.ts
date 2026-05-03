@@ -1,6 +1,4 @@
 import imageCompression from 'browser-image-compression';
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 // Image compression options
 const imageOptions = {
@@ -18,22 +16,6 @@ export async function compressImage(file: File): Promise<File> {
     console.error('Image compression error:', error);
     return file; // Return original if fails
   }
-}
-
-let ffmpeg: FFmpeg | null = null;
-
-async function loadFFmpeg() {
-  if (ffmpeg) return ffmpeg;
-
-  ffmpeg = new FFmpeg();
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-  
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
-
-  return ffmpeg;
 }
 
 export async function compressVideo(

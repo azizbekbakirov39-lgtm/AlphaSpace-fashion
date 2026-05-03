@@ -15,6 +15,7 @@ import {
   signInWithCustomToken,
   User as FirebaseUser 
 } from 'firebase/auth';
+
 import { 
   initializeFirestore,
   getFirestore, 
@@ -56,7 +57,7 @@ export const signInWithGoogle = async () => {
   try {
     if (Capacitor.isNativePlatform()) {
       await signInWithRedirect(auth, googleProvider);
-      return null;
+      return null; // The app will reload and we'll handle the user in onAuthStateChanged
     } else {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
