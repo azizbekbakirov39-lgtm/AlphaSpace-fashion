@@ -341,23 +341,26 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       
       // Agar Video bo'lsa uni backend orqali Cloudflare R2 ga siqib yuklaymiz
       if (importPreview.mediaType === 'video' && finalMediaUrls[0]) {
-        toast.message("Video yuklanmoqda va siqilmoqda (bu biroz vaqt olishi mumkin)...");
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-        const uploadRes = await fetch(`${API_BASE}/api/import-to-r2`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ videoUrl: finalMediaUrls[0] })
-        });
-        
-        if (!uploadRes.ok) {
-          let errText = "Yuklashda xatolik";
-          try { const errJson = await uploadRes.json(); errText = errJson.error || errText; } catch(e){}
-          throw new Error(`R2 yuklashda xato: ${errText}`);
-        }
-        
-        const r2Data = await uploadRes.json();
-        if (r2Data.publicUrl) {
-          finalMediaUrls[0] = r2Data.publicUrl; // Update with R2 URL
+        toast.message("Video yuklanmoqda va tayyorlanmoqda...");
+        try {
+          const response = await fetch('/api/import-to-r2', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ videoUrl: finalMediaUrls[0] })
+          });
+          
+          if (response.ok) {
+            const r2Data = await response.json();
+            if (r2Data.publicUrl) {
+              finalMediaUrls[0] = r2Data.publicUrl;
+            }
+          } else {
+            console.warn("Instagram video could not be imported to R2, using proxy/original URL");
+            // We use the proxy automatically via mediaUtils if needed, 
+            // but for now we keep the original as fallback
+          }
+        } catch (uploadErr) {
+          console.error("R2 import error, using original URL:", uploadErr);
         }
       }
 
@@ -407,20 +410,41 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     const toastId = toast.loading("Media yuklanmoqda...");
 
     try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('files', file));
+      let mediaUrls: string[] = [];
+      let isVideo = false;
 
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-      const response = await fetch(`${API_BASE}/api/upload-to-r2`, {
-        method: 'POST',
-        body: formData
-      });
+      // Try server upload (R2) first
+      try {
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
 
-      if (!response.ok) throw new Error("Yuklashda xatolik yuz berdi");
-      
-      const result = await response.json();
-      const mediaUrls = result.urls.map((u: any) => u.url);
-      const isVideo = result.urls.some((u: any) => u.type === 'video');
+        const response = await fetch('/api/upload-to-r2', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          mediaUrls = result.urls.map((u: any) => u.url);
+          isVideo = result.urls.some((u: any) => u.type === 'video');
+        } else {
+          console.warn("Server upload failed, falling back to Firebase Storage");
+          throw new Error("R2 not available");
+        }
+      } catch (fallbackErr) {
+        // Fallback to Firebase Storage
+        const uploadPromises = files.map(async (file) => {
+          const extension = file.name.split('.').pop() || (file.type.startsWith('video') ? 'mp4' : 'jpg');
+          const fileName = `posts/${shopData.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+          const fileRef = ref(storage, fileName);
+          await uploadBytes(fileRef, file);
+          if (file.type.startsWith('video')) isVideo = true;
+          return getDownloadURL(fileRef);
+        });
+        mediaUrls = await Promise.all(uploadPromises);
+      }
+
+      if (mediaUrls.length === 0) throw new Error("Fayllarni yuklash imkoni bo'lmadi");
 
       const postData = {
         ownerUid: user.uid,

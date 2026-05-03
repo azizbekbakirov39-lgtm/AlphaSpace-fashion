@@ -352,12 +352,20 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
 // New endpoint to handle manual uploads directly to R2
 app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
   if (!r2Client) {
-    return res.status(500).json({ error: "Cloudflare R2 not configured" });
+    const missing = [];
+    if (!process.env.R2_ACCESS_KEY_ID) missing.push("R2_ACCESS_KEY_ID");
+    if (!process.env.R2_SECRET_ACCESS_KEY) missing.push("R2_SECRET_ACCESS_KEY");
+    if (!process.env.R2_ENDPOINT) missing.push("R2_ENDPOINT");
+    
+    return res.status(500).json({ 
+      error: "Cloudflare R2 sozlanmagan. Iltimos, Secret sozlamalarini tekshiring.",
+      details: `Missing: ${missing.join(", ")}`
+    });
   }
 
   const files = req.files as Express.Multer.File[];
   if (!files || files.length === 0) {
-    return res.status(400).json({ error: "No files uploaded" });
+    return res.status(400).json({ error: "Fayllar tanlanmagan" });
   }
 
   const results = [];
@@ -365,20 +373,18 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
 
   try {
     for (const file of files) {
+      console.log(`Processing file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
       const isVideo = file.mimetype.startsWith("video/");
-      const isImage = file.mimetype.startsWith("image/");
       const extension = file.originalname.split(".").pop() || (isVideo ? "mp4" : "jpg");
       let finalBuffer = file.buffer;
       let contentType = file.mimetype;
       const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
 
       if (isVideo) {
-        // Direct upload without compression to save resources
-        finalBuffer = file.buffer;
         contentType = "video/mp4";
       }
 
-      if (process.env.R2_BUCKET_NAME && r2Client) {
+      if (process.env.R2_BUCKET_NAME) {
         await r2Client.send(new PutObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: key,
@@ -386,13 +392,21 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
           ContentType: contentType,
         }));
         
-        const publicDomain = process.env.R2_PUBLIC_DOMAIN || process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "").split("/")[0];
+        let publicUrl = "";
+        if (process.env.R2_PUBLIC_DOMAIN) {
+          publicUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${key}`;
+        } else {
+          // Fallback to endpoint-based URL if no public domain
+          const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");
+          publicUrl = `https://${process.env.R2_BUCKET_NAME}.${endpoint}/${key}`;
+        }
+
         results.push({
-          url: `https://${publicDomain}/${key}`,
+          url: publicUrl,
           type: isVideo ? "video" : "image"
         });
       } else {
-        throw new Error("R2 is not configured properly for manual upload");
+        throw new Error("R2_BUCKET_NAME o'rnatilmagan");
       }
     }
 
