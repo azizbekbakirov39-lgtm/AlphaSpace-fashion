@@ -54,16 +54,22 @@ async function generateIcons() {
 
     // Generate adaptive icon foreground as png as well
     try {
+      const foregroundSize = Math.floor(size * 0.85); // Increased from 0.7 to 0.85 (approx 1.2x)
+      const padding = Math.floor((size - foregroundSize) / 2);
+      
       await image.clone()
-        .resize(Math.floor(size * 0.7), Math.floor(size * 0.7), { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .resize(foregroundSize, foregroundSize, { 
+          fit: 'contain', 
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+          kernel: sharp.kernel.lanczos3 
+        })
         .extend({
-          top: Math.floor(size * 0.15),
-          bottom: Math.floor(size * 0.15),
-          left: Math.floor(size * 0.15),
-          right: Math.floor(size * 0.15),
+          top: padding,
+          bottom: size - (foregroundSize + padding),
+          left: padding,
+          right: size - (foregroundSize + padding),
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
-        .resize(size, size)
         .toFile(foregroundPath);
     } catch(e) { console.error("Error generating foregroundPath", foregroundPath, e); }
 

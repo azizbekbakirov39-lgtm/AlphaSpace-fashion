@@ -40,6 +40,7 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.1",
     "@tailwindcss/vite": "^4.0.0",
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.12",

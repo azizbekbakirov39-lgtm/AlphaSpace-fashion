@@ -194,8 +194,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       setShowCreateStoryModal(false);
       toast.success("Story muvaffaqiyatli qo'shildi!");
       onUpdateShop({ ...localShopData, hasStory: true });
-    } catch (error) {
-      console.error("Story creation error:", error);
+    } catch (error: any) {
+      console.error("Story creation error:", error?.message || error);
       toast.error("Story yuklashda xatolik yuz berdi");
     } finally {
       setIsCreatingStory(false);
@@ -325,7 +325,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       });
 
     } catch (error: any) {
-      console.error(error);
+      console.error(error?.message || error);
       toast.error(`Xatolik yuz berdi: ${error.message || "Post topilmadi yoki yopiq"}`);
     } finally {
       setIsImporting(false);
@@ -394,7 +394,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       setInstagramLink('');
       setImportPreview(null);
     } catch (error: any) {
-      console.error("Import error:", error);
+      console.error("Import error:", error?.message || error);
       toast.error(error.message || "Saqlashda xatolik yuz berdi");
     } finally {
       setIsUploading(false);
@@ -452,7 +452,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       toast.success("Post muvaffaqiyatli yaratildi!", { id: toastId });
       setShowManualPostModal(false);
     } catch (error: any) {
-      console.error("Manual post error:", error);
+      console.error("Manual post error:", error?.message || error);
       toast.error(error.message || "Xatolik yuz berdi", { id: toastId });
     } finally {
       setIsUploading(false);
@@ -465,8 +465,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       await deleteDoc(doc(db, 'posts', postId));
       toast.success("Post muvaffaqiyatli o'chirildi!");
       setSelectedPostDetails(null);
-    } catch (error) {
-      console.error("O'chirishda xatolik:", error);
+    } catch (error: any) {
+      console.error("O'chirishda xatolik:", error?.message || error);
       toast.error("O'chirishda xatolik yuz berdi");
     }
   };

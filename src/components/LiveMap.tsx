@@ -51,7 +51,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             safePlayVideo(videoRef.current);
           }
         })
-        .catch(err => console.error("AR Camera error:", err));
+        .catch(err => console.error("AR Camera error:", err?.message || err));
     }
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
@@ -97,7 +97,7 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
           setError(null);
         },
         (err) => {
-          console.error("Geolocation error:", err);
+          console.error("Geolocation error:", err?.message || err);
           setError(language === 'uz' ? "Joylashuvni aniqlab bo'lmadi. Iltimos, ruxsat bering." : "Could not determine location. Please grant permission.");
           setTimeout(() => setError(null), 3000);
         }
@@ -130,8 +130,8 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             zoomMargin: 80,
             duration: 1000 
           });
-        } catch (err) {
-          console.warn("Could not set bounds:", err);
+        } catch (err: any) {
+          console.warn("Could not set bounds:", err?.message || err);
         }
       }
     }

@@ -66,7 +66,7 @@ export const signInWithGoogle = async () => {
     if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
       return null;
     }
-    console.error("Error signing in with Google", error);
+    console.error("Error signing in with Google", error.message || error);
     throw error;
   }
 };
@@ -191,8 +191,8 @@ export const requestNotificationPermission = async (uid?: string) => {
         if (uid) {
            try {
              await updateDoc(doc(db, 'users', uid), { fcmToken: currentToken });
-           } catch (e) {
-             console.error("Tokenni firestore ga saqlashda xatolik:", e);
+           } catch (e: any) {
+             console.error("Tokenni firestore ga saqlashda xatolik:", e.message || e);
            }
         }
         return currentToken;
@@ -204,8 +204,8 @@ export const requestNotificationPermission = async (uid?: string) => {
       console.log('Bildirishnomalarga ruxsat berilmadi.');
       return null;
     }
-  } catch (error) {
-    console.error('Bildirishnomalarga ruxsat so\'rashda xatolik:', error);
+  } catch (error: any) {
+    console.error('Bildirishnomalarga ruxsat so\'rashda xatolik:', error.message || error);
     return null;
   }
 };

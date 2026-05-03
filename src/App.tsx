@@ -194,7 +194,7 @@ export default function App() {
         const shopsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Seller));
         
         setUserShops(prev => {
-          if (JSON.stringify(prev) === JSON.stringify(shopsData)) return prev;
+          if (prev.length === shopsData.length && prev.every((s, i) => s.id === shopsData[i].id)) return prev;
           return shopsData;
         });
         
@@ -204,7 +204,7 @@ export default function App() {
           setUserShop(prev => {
             const updatedActiveShop = activeShops.find(s => s.id === prev?.id);
             const nextShop = updatedActiveShop || activeShops[0];
-            if (JSON.stringify(prev) === JSON.stringify(nextShop)) return prev;
+            if (prev?.id === nextShop.id && prev?.status === nextShop.status && prev?.name === nextShop.name) return prev;
             return nextShop;
           });
           setHasShop(true);
@@ -255,7 +255,7 @@ export default function App() {
       }
       return result;
     } catch (error: any) {
-      console.error("Auth Error:", error);
+      console.error("Auth Error:", error?.message || error);
       throw error;
     }
   };
@@ -364,7 +364,7 @@ export default function App() {
         }
       } catch (error: any) {
         if (error.code !== 'auth/web-storage-unsupported') {
-          console.error("Auth redirect result error:", error);
+          console.error("Auth redirect result error:", error.message || error);
         }
       }
     };
@@ -542,7 +542,7 @@ export default function App() {
               logoUrl = await uploadImageToImgBB(newShopData.logoFile);
               toast.success("Logo yuklandi!", { id: uploadToastId });
             } catch (uploadError: any) {
-              console.error("ImgBB upload error:", uploadError);
+              console.error("ImgBB upload error:", uploadError?.message || uploadError);
               toast.error(`Logo yuklashda xatolik: ${uploadError.message || 'Noma\'lum xato'}. Do'kon yaratish davom etmoqda...`, { id: uploadToastId });
             }
           }
@@ -582,8 +582,8 @@ export default function App() {
           setWorkspace('Shop');
           toast.success("Do'kon muvaffaqiyatli yaratildi!");
           constructionFinishedRef.current = false; // Reset for next time if needed
-        } catch (error) {
-          console.error("Error creating shop:", error);
+        } catch (error: any) {
+          console.error("Error creating shop:", error?.message || error);
           toast.error("Do'kon yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
           setIsConstructingShop(false);
           constructionFinishedRef.current = false;
@@ -683,8 +683,8 @@ export default function App() {
         await setDoc(likeRef, { uid: user.uid, postId: id, createdAt: new Date().toISOString() });
         await updateDoc(docRef, { likes: increment(1) });
       }
-    } catch (error) {
-      console.error("Error toggling like:", error);
+    } catch (error: any) {
+      console.error("Error toggling like:", error?.message || error);
     }
   }, [user]);
 
@@ -715,8 +715,8 @@ export default function App() {
       } else {
         await setDoc(saveRef, { uid: user.uid, postId, createdAt: new Date().toISOString() });
       }
-    } catch (error) {
-      console.error("Error toggling save:", error);
+    } catch (error: any) {
+      console.error("Error toggling save:", error?.message || error);
     }
   }, [user]);
 
@@ -747,8 +747,8 @@ export default function App() {
       } else {
         await setDoc(subRef, { uid: user.uid, sellerId, createdAt: new Date().toISOString() });
       }
-    } catch (error) {
-      console.error("Error toggling subscription:", error);
+    } catch (error: any) {
+      console.error("Error toggling subscription:", error?.message || error);
     }
   }, [user]);
 
