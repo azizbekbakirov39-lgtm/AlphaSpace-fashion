@@ -13,6 +13,8 @@ workflows:
         script: npm run build
       - name: Sync Capacitor Android
         script: npx cap sync android
+      - name: Generate Custom Icons
+        script: node generate-icons.cjs
       - name: Build Android APK
         script: |
           cd android
