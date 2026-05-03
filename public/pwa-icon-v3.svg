@@ -64,9 +64,9 @@
         <g><ellipse cx="7" cy="9.8" rx="3.5" ry="1.5" stroke="#D4AF37" stroke-width="1.2" transform="rotate(33.2 7 9.8)" /></g>
       </g>
 
-      <text x="50" y="58" font-family="'Dancing Script', 'Brush Script MT', 'Lucida Handwriting', 'Segoe Print', cursive" font-size="28" font-weight="700" fill="white" text-anchor="middle" transform="rotate(45 50 58)">A.S</text>
+      <text x="50" y="58" font-family="'Dancing Script', cursive" font-size="28" font-weight="700" fill="white" text-anchor="middle" transform="rotate(45 50 58)">A.S</text>
     </g>
 
-    <text x="60" y="100" font-family="'Dancing Script', 'Brush Script MT', 'Lucida Handwriting', 'Segoe Print', cursive" font-size="22" font-weight="700" fill="#0066FF" text-anchor="middle">AlphaSpace</text>
+    <text x="60" y="100" font-family="'Dancing Script', cursive" font-size="22" font-weight="700" fill="#0066FF" text-anchor="middle">AlphaSpace</text>
   </g>
 </svg>
