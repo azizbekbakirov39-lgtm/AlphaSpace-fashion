@@ -22,10 +22,27 @@ const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const readFile = promisify(fs.readFile);
 
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
 dotenv.config();
 
-// Cloudflare R2 Logic Removed for lightening
+// Cloudflare R2 Logic
 let r2Client: any = null;
+if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_ENDPOINT) {
+  try {
+    r2Client = new S3Client({
+      region: "auto",
+      endpoint: process.env.R2_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+    });
+    console.log("Cloudflare R2 Client initialized");
+  } catch (err) {
+    console.error("R2 Initialization Error:", err);
+  }
+}
 
 // Initialize Firebase Admin safely
 try {
@@ -302,7 +319,22 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         const fileName = `instagram/${shortcode || Date.now()}_${Date.now()}.${ext}`;
 
         if (process.env.R2_BUCKET_NAME && r2Client) {
-          // Logic removed
+          await r2Client.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: fileName,
+            Body: buffer,
+            ContentType: contentType,
+          }));
+          
+          const publicDomain = process.env.R2_PUBLIC_DOMAIN || process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "").split("/")[0];
+          const cachedUrl = `https://${publicDomain}/${fileName}`;
+          
+          // Update the URL to the R2 cached version
+          if (finalData.urls && finalData.urls[0]) {
+            finalData.urls[0].url = cachedUrl;
+          } else {
+            finalData.url = cachedUrl;
+          }
         }
       }
     } catch (uploadError: any) {
@@ -346,11 +378,22 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
         contentType = "video/mp4";
       }
 
-      // Upload logic removed for lightening
-      results.push({
-        url: "https://example.com/placeholder",
-        type: isVideo ? "video" : "image"
-      });
+      if (process.env.R2_BUCKET_NAME && r2Client) {
+        await r2Client.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: key,
+          Body: finalBuffer,
+          ContentType: contentType,
+        }));
+        
+        const publicDomain = process.env.R2_PUBLIC_DOMAIN || process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "").split("/")[0];
+        results.push({
+          url: `https://${publicDomain}/${key}`,
+          type: isVideo ? "video" : "image"
+        });
+      } else {
+        throw new Error("R2 is not configured properly for manual upload");
+      }
     }
 
     // Cleanup temp files
@@ -410,8 +453,16 @@ app.post("/api/import-to-r2", async (req, res) => {
     
     const key = fileName || `videos/${crypto.randomBytes(8).toString("hex")}.mp4`;
 
-    // Upload to Cloudflare R2 removed for lightening
-    const publicUrl = "https://example.com/placeholder.mp4";
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: compressedBuffer,
+      ContentType: contentType,
+    }));
+
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN || process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "").split("/")[0];
+    const publicUrl = `https://${publicDomain}/${key}`;
+    
     res.json({ publicUrl, key, originalSize: inputBuffer.length, compressedSize: compressedBuffer.length });
 
   } catch (error: any) {
