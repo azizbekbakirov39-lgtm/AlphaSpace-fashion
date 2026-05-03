@@ -25,14 +25,24 @@ const readFile = promisify(fs.readFile);
 dotenv.config();
 
 // Cloudflare R2 Client Initialization
-const r2Client = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-  },
-});
+let r2Client: any = null;
+try {
+  if (process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY) {
+    r2Client = new S3Client({
+      region: "auto",
+      endpoint: process.env.R2_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+    });
+    console.log("Cloudflare R2 Client initialized");
+  } else {
+    console.warn("Cloudflare R2 credentials missing. Storage functions will be limited.");
+  }
+} catch (error) {
+  console.error("R2 Initialization Error:", error);
+}
 
 // Initialize Firebase Admin safely
 try {
@@ -143,9 +153,9 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
     const { shortcode, type = 'p', fullUrl } = req.body;
     if (!shortcode && !fullUrl) return res.status(400).json({ error: "Shortcode or fullUrl required" });
     
-    if (!RAPIDAPI_KEY) {
-      console.error("RAPIDAPI_KEY missing");
-      return res.status(500).json({ error: "API Key missing" });
+    if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'undefined') {
+      console.error("RAPIDAPI_KEY is missing or invalid");
+      return res.status(500).json({ error: "API Key (RAPIDAPI_KEY) o'rnatilmagan. Iltimos, RapidAPI kalitini qo'shing." });
     }
 
     const isApiError = (res: any) => {
@@ -271,7 +281,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
         const ext = contentType.split('/')[1] || (contentType.includes('video') ? 'mp4' : 'jpg');
         const fileName = `instagram/${shortcode || crypto.randomBytes(8).toString('hex')}_${Date.now()}.${ext}`;
 
-        if (process.env.R2_BUCKET_NAME) {
+        if (process.env.R2_BUCKET_NAME && r2Client) {
           const command = new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: fileName,
@@ -301,7 +311,7 @@ app.post("/api/refresh-instagram-url", async (req, res) => {
                 Body: thumbBuffer,
                 ContentType: thumbContentType,
               });
-              await r2Client.send(thumbCommand);
+              if (r2Client) await r2Client.send(thumbCommand);
               finalData.thumbnail_url = `${process.env.R2_PUBLIC_DOMAIN}/${thumbName}`;
             } catch (e: any) {
               console.log("Thumbnail upload failed:", e.message);
@@ -327,8 +337,8 @@ app.post("/api/import-to-r2", async (req, res) => {
     const { videoUrl, fileName } = req.body;
     if (!videoUrl) return res.status(400).json({ error: "videoUrl required" });
 
-    if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
-      console.error("R2 Config Missing. Skipping R2 upload and falling back to original URL.");
+    if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME || !r2Client) {
+      console.error("R2 Config or client Missing. Skipping R2 upload and falling back to original URL.");
       // Soft fallback: If we can't compress/upload, just return the original URL rather than crashing the save
       return res.json({ publicUrl: videoUrl });
     }

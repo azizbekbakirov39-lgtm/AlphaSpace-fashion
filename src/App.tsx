@@ -442,12 +442,7 @@ export default function App() {
 
   useChatNotifications(user, userShop, activeTab, shopWorkspaceChatId, profileActiveChatSellerId, profileSubView);
 
-  if (window.location.pathname === '/download') {
-    return <DownloadPage />;
-  }
-
   const t = translations[language];
-
 
   const handleWorkspaceChange = (newWorkspace: 'Marketplace' | 'Shop') => {
     if (newWorkspace === workspace) return;
@@ -495,7 +490,7 @@ export default function App() {
   };
 
   // Construction Progress Effect
-  React.useEffect(() => {
+  useEffect(() => {
     if (isConstructingShop && newShopData && user) {
       const interval = setInterval(() => {
         setConstructionProgress(prev => {
@@ -510,10 +505,10 @@ export default function App() {
     }
   }, [isConstructingShop, newShopData, user]);
 
-  const constructionFinishedRef = React.useRef(false);
+  const constructionFinishedRef = useRef(false);
 
   // Handle Construction Completion
-  React.useEffect(() => {
+  useEffect(() => {
     if (isConstructingShop && constructionProgress >= 100 && newShopData && user && !constructionFinishedRef.current) {
       const finishConstruction = async () => {
         constructionFinishedRef.current = true;
@@ -577,7 +572,7 @@ export default function App() {
     }
   }, [constructionProgress, isConstructingShop, newShopData, user]);
   
-  const [recentlyViewedPosts, setRecentlyViewedPosts] = React.useState<PostData[]>([]);
+  const [recentlyViewedPosts, setRecentlyViewedPosts] = useState<PostData[]>([]);
 
   const filteredPosts = postsWithUserStatus.filter(post => {
     const q = (searchQuery || '').toLowerCase().trim();
@@ -622,7 +617,7 @@ export default function App() {
     return matchesName || matchesSeller || matchesDescription || matchesPrice || matchesNumeric || isPriceMatch;
   });
 
-  const toggleLike = React.useCallback(async (id: string, type: 'post' | 'story' = 'post') => {
+  const toggleLike = useCallback(async (id: string, type: 'post' | 'story' = 'post') => {
     if (!user) {
       setActiveTab('Profile');
       return;
@@ -671,7 +666,7 @@ export default function App() {
     }
   }, [user]);
 
-  const toggleSave = React.useCallback(async (postId: string) => {
+  const toggleSave = useCallback(async (postId: string) => {
     if (!user) {
       setActiveTab('Profile');
       return;
@@ -703,7 +698,7 @@ export default function App() {
     }
   }, [user]);
 
-  const toggleSubscribe = React.useCallback(async (sellerId: string) => {
+  const toggleSubscribe = useCallback(async (sellerId: string) => {
     if (!user) {
       setActiveTab('Profile');
       return;
@@ -735,7 +730,7 @@ export default function App() {
     }
   }, [user]);
 
-  const markStoryViewed = React.useCallback((storyId: string) => {
+  const markStoryViewed = useCallback((storyId: string) => {
     setStories(prev => {
       const story = prev.find(s => s.id === storyId);
       if (story?.isViewed) return prev;
@@ -749,7 +744,7 @@ export default function App() {
     ));
   }, []);
 
-  const openStories = React.useCallback((storiesList: any[], index: number) => {
+  const openStories = useCallback((storiesList: any[], index: number) => {
     setActiveStoryList(storiesList);
     setActiveStoryIndex(index);
     if (workspace === 'Marketplace') {
@@ -764,7 +759,7 @@ export default function App() {
     }
   }, [workspace, activeTab, profileSubView]);
 
-  const openReels = React.useCallback((reelsList: any[], index: number = 0) => {
+  const openReels = useCallback((reelsList: any[], index: number = 0) => {
     if (!reelsList || reelsList.length === 0) return;
     const safeIndex = typeof index === 'number' ? Math.max(0, Math.min(index, reelsList.length - 1)) : 0;
     setActiveReelList(reelsList);
@@ -782,7 +777,7 @@ export default function App() {
     }
   }, [workspace, activeTab, profileSubView]);
 
-  const openShopProfile = React.useCallback((shopId: string) => {
+  const openShopProfile = useCallback((shopId: string) => {
     setSelectedShopId(shopId);
     if (workspace === 'Marketplace') {
       window.history.pushState({ 
@@ -795,7 +790,7 @@ export default function App() {
     }
   }, [workspace, activeTab, profileSubView]);
 
-  const openPostDetails = React.useCallback((post: any) => {
+  const openPostDetails = useCallback((post: any) => {
     setSelectedPostForDetails(post);
     setRecentlyViewedPosts(prev => {
       const filtered = prev.filter(p => p.id !== post.id);
@@ -814,8 +809,8 @@ export default function App() {
   }, [workspace, activeTab, profileSubView, selectedShopId]);
 
   // Deep linking initial load
-  const initialDeepLinkHandled = React.useRef(false);
-  React.useEffect(() => {
+  const initialDeepLinkHandled = useRef(false);
+  useEffect(() => {
     if (initialDeepLinkHandled.current) return;
     if (postsWithUserStatus.length === 0 && sellersWithUserStatus.length === 0) return;
 
@@ -840,7 +835,7 @@ export default function App() {
     }
   }, [postsWithUserStatus, sellersWithUserStatus, openPostDetails, openShopProfile]);
 
-  const openPostComments = React.useCallback((post: any) => {
+  const openPostComments = useCallback((post: any) => {
     setSelectedPostForComments(post);
     if (workspace === 'Marketplace') {
       window.history.pushState({ 
@@ -854,28 +849,28 @@ export default function App() {
     }
   }, [workspace, activeTab, profileSubView, selectedShopId]);
 
-  const closeStories = React.useCallback(() => {
+  const closeStories = useCallback(() => {
     setActiveStoryIndex(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
     }
   }, [workspace]);
 
-  const closeReels = React.useCallback(() => {
+  const closeReels = useCallback(() => {
     setActiveReelIndex(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
     }
   }, [workspace]);
 
-  const closeShopProfile = React.useCallback(() => {
+  const closeShopProfile = useCallback(() => {
     setSelectedShopId(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
     }
   }, [workspace]);
 
-  const handleAskAI = React.useCallback((product: PostData) => {
+  const handleAskAI = useCallback((product: PostData) => {
     setSelectedPostForDetails(null); // Close product details
     setActiveTab('Search');
     
@@ -893,7 +888,7 @@ export default function App() {
     }
   }, [workspace]);
 
-  const handleOpenChat = React.useCallback((sellerId: string, product?: PostData) => {
+  const handleOpenChat = useCallback((sellerId: string, product?: PostData) => {
     setInitialChatSellerId(sellerId);
     setInitialChatProduct(product || null);
     setProfileSubView('chats');
@@ -925,7 +920,7 @@ export default function App() {
     }
   };
 
-  const closeLiveStream = React.useCallback(() => {
+  const closeLiveStream = useCallback(() => {
     setActiveLiveStream(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
@@ -945,7 +940,7 @@ export default function App() {
     }
   };
 
-  const closeShare = React.useCallback(() => {
+  const closeShare = useCallback(() => {
     setSharingPost(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
@@ -958,21 +953,21 @@ export default function App() {
     setSharingPost(null);
   };
 
-  const closePostDetails = React.useCallback(() => {
+  const closePostDetails = useCallback(() => {
     setSelectedPostForDetails(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
     }
   }, [workspace]);
 
-  const closePostComments = React.useCallback(() => {
+  const closePostComments = useCallback(() => {
     setSelectedPostForComments(null);
     if (!isPoppingState.current && workspace === 'Marketplace') {
       window.history.back();
     }
   }, [workspace]);
 
-  const handleProfileSubViewChange = React.useCallback((subView: SubView) => {
+  const handleProfileSubViewChange = useCallback((subView: SubView) => {
     setProfileSubView(subView);
     if (workspace === 'Marketplace' && subView !== 'main') {
       window.history.pushState({ 
@@ -987,7 +982,7 @@ export default function App() {
   // handleTryOn removed to focus on chat and search accuracy
   
   // Handle Tab Change with History
-  const handleTabChange = React.useCallback((tab: string) => {
+  const handleTabChange = useCallback((tab: string) => {
     if (tab === activeTab) return;
     
     if (workspace === 'Marketplace') {
@@ -1007,14 +1002,14 @@ export default function App() {
     setActiveTab(tab);
   }, [activeTab, workspace, profileSubView]);
 
-  const handleRefresh = React.useCallback(() => {
+  const handleRefresh = useCallback(() => {
     // Shuffle posts to simulate refresh
     setPosts(prev => [...prev].sort(() => Math.random() - 0.5));
     // Also shuffle stories
     setStories(prev => [...prev].sort(() => Math.random() - 0.5));
   }, []);
 
-  const handleBrandsRefresh = React.useCallback(() => {
+  const handleBrandsRefresh = useCallback(() => {
     // Sort sellers: subscribed first, then by followers count
     setSellers(prev => [...prev].sort((a, b) => {
       if (a.isSubscribed && !b.isSubscribed) return -1;
@@ -1026,7 +1021,7 @@ export default function App() {
   }, []);
 
   // Back Button Logic
-  React.useEffect(() => {
+  useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       isPoppingState.current = true;
       const state = event.state;
@@ -1154,6 +1149,10 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [workspace, activeStoryIndex, activeReelIndex, selectedShopId, activeTab, profileSubView]);
+
+  if (window.location.pathname === '/download') {
+    return <DownloadPage />;
+  }
 
   const selectedSeller = sellers.find(s => s.id === selectedShopId) || postsWithUserStatus.find(p => p.seller?.id === selectedShopId)?.seller;
   const sellerPosts = postsWithUserStatus.filter(p => p.seller?.id === selectedShopId);
