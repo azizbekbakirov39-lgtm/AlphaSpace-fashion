@@ -92,13 +92,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [showFreezeModal, setShowFreezeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteCode, setDeleteCode] = useState('');
-  const [showInstagramImportModal, setShowInstagramImportModal] = useState(false);
   const [showManualPostModal, setShowManualPostModal] = useState(false);
   const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
   const [isCreatingStory, setIsCreatingStory] = useState(false);
-  const [instagramLink, setInstagramLink] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
-  const [importPreview, setImportPreview] = useState<any>(null);
   const [selectedPostDetails, setSelectedPostDetails] = useState<PostData | null>(null);
   const [postDetailsTab, setPostDetailsTab] = useState<'stats' | 'settings'>('stats');
 
@@ -252,158 +248,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     }
   };
 
-  const handleInstagramImport = async () => {
-    if (!instagramLink) return toast.error("Iltimos, post linkini kiriting");
-    setIsImporting(true);
-    
-    try {
-      // Allow shorter codes just in case, but check for common formats
-      const urlMatch = instagramLink.match(/(?:instagram\.com\/(?:p|reel|tv|reels)\/)([A-Za-z0-9_-]+)/);
-      if (!urlMatch) {
-         toast.error("Format noto'g'ri. Link quyidagicha bo'lishi kerak: https://www.instagram.com/reel/CODE/");
-         setIsImporting(false);
-         return;
-      }
-
-      const shortcode = urlMatch[1];
-      if (shortcode.length < 3) {
-         toast.error("Instagram kodi juda qisqa. Iltimos, to'liq linkni kiriting.");
-         setIsImporting(false);
-         return;
-      }
-      // Determine type, default to 'p' but check if 'reel' or 'tv' is in URL
-      let importType = 'p';
-      if (instagramLink.includes('/reel/') || instagramLink.includes('/reels/')) importType = 'reel';
-      if (instagramLink.includes('/tv/')) importType = 'tv';
-
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-      const response = await fetch(`${API_BASE}/api/refresh-instagram-url`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ shortcode, type: importType, fullUrl: instagramLink })
-      });
-
-      if (!response.ok) {
-        let errText = "Instagramdan ma'lumot olib bo'lmadi. Linkni tekshiring yoki birozdan so'ng urinib ko'ring.";
-        try { 
-          const errJson = await response.json(); 
-          if (errJson.message) errText = errJson.message;
-          else if (typeof errJson.error === 'string') errText = errJson.error;
-          else if (errJson.error && errJson.error.message) errText = errJson.error.message;
-        } catch(e){}
-        toast.error(errText);
-        setIsImporting(false);
-        return;
-      }
-      
-      const result = await response.json();
-      
-      let mediaUrls: string[] = [];
-      let isVideo = false;
-
-      if (result.urls && Array.isArray(result.urls)) {
-        mediaUrls = result.urls.map((u: any) => u.url);
-        // Oddiy tekshiruv
-        if (mediaUrls[0] && (mediaUrls[0].includes('mp4') || instagramLink.includes('reel'))) {
-          isVideo = true;
-        }
-      } else {
-        const singleUrl = result.pictureUrl || result.display_url || result.thumbnail_url;
-        if (singleUrl) mediaUrls = [singleUrl];
-      }
-
-      if (mediaUrls.length === 0) {
-        throw new Error("Media ma'lumotlari topilmadi");
-      }
-
-      setImportPreview({
-        mediaType: isVideo ? 'video' : 'image',
-        mediaUrls: mediaUrls,
-        outfitName: 'Instagram Post',
-        price: '',
-        instagramUrl: instagramLink
-      });
-
-    } catch (error: any) {
-      console.error(error?.message || error);
-      toast.error(`Xatolik yuz berdi: ${error.message || "Post topilmadi yoki yopiq"}`);
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const confirmImport = async () => {
-    if (!importPreview || !user) return;
-    setIsUploading(true);
-    
-    try {
-      let finalMediaUrls = [...importPreview.mediaUrls];
-      
-      // Agar Video bo'lsa uni backend orqali Cloudflare R2 ga siqib yuklaymiz
-      if (importPreview.mediaType === 'video' && finalMediaUrls[0]) {
-        toast.message("Video yuklanmoqda va tayyorlanmoqda...");
-        try {
-          const response = await fetch('/api/import-to-r2', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ videoUrl: finalMediaUrls[0] })
-          });
-          
-          if (response.ok) {
-            const r2Data = await response.json();
-            if (r2Data.publicUrl) {
-              finalMediaUrls[0] = r2Data.publicUrl;
-            }
-          } else {
-            console.warn("Instagram video could not be imported to R2, using proxy/original URL");
-            // We use the proxy automatically via mediaUtils if needed, 
-            // but for now we keep the original as fallback
-          }
-        } catch (uploadErr) {
-          console.error("R2 import error, using original URL:", uploadErr);
-        }
-      }
-
-      const postData = {
-        ownerUid: user.uid,
-        sellerId: shopData.id,
-        seller: {
-          id: shopData.id,
-          name: shopData.name,
-          logo: shopData.logo,
-          hasStory: shopData.hasStory || false,
-          followers: shopData.followers || 0,
-          categories: shopData.categories || [],
-          isSubscribed: false
-        },
-        outfitName: importPreview.outfitName,
-        price: importPreview.price || '',
-        priceMessage: importPreview.price ? '' : 'Narxini bilish',
-        description: '',
-        mediaUrls: finalMediaUrls,
-        mediaType: importPreview.mediaType,
-        likes: 0,
-        comments: 0,
-        isLiked: false,
-        isSaved: false,
-        createdAt: serverTimestamp(),
-        instagramUrl: importPreview.instagramUrl
-      };
-
-      await addDoc(collection(db, 'posts'), postData);
-      
-      toast.success("Post yordamida muvaffaqiyatli saqlandi!");
-      setShowInstagramImportModal(false);
-      setInstagramLink('');
-      setImportPreview(null);
-    } catch (error: any) {
-      console.error("Import error:", error?.message || error);
-      toast.error(error.message || "Saqlashda xatolik yuz berdi");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleManualPostUpload = async (files: File[], data: { title: string, price: string, description: string }) => {
     if (!user || files.length === 0) return;
     setIsUploading(true);
@@ -531,7 +375,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 handleTelegramClick={() => window.open(`https://t.me/${localShopData.telegram?.replace('@', '')}`)}
                 handleInstagramClick={() => window.open(`https://instagram.com/${localShopData.instagram?.replace('@', '')}`)}
                 setShowMap={setShowMap}
-                setShowInstagramImportModal={setShowInstagramImportModal}
                 setShowManualPostModal={setShowManualPostModal}
                 setShowCreateStoryModal={setShowCreateStoryModal}
                 setSelectedPostDetails={setSelectedPostDetails}
@@ -652,8 +495,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         setDeleteCode={setDeleteCode}
         isDeleting={false}
         handleDeleteShop={() => {}}
-        showInstagramImportModal={showInstagramImportModal}
-        setShowInstagramImportModal={setShowInstagramImportModal}
         showManualPostModal={showManualPostModal}
         setShowManualPostModal={setShowManualPostModal}
         handleManualPostUpload={handleManualPostUpload}
@@ -663,12 +504,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         handleCreateStory={handleCreateStory}
         handleCreateStoryFromPost={handleCreateStoryFromPost}
         posts={posts}
-        instagramLink={instagramLink}
-        setInstagramLink={setInstagramLink}
-        isImporting={isImporting}
-        handleInstagramImport={handleInstagramImport}
-        importPreview={importPreview}
-        confirmImport={confirmImport}
         isUploading={isUploading}
         selectedPostDetails={selectedPostDetails}
         setSelectedPostDetails={setSelectedPostDetails}

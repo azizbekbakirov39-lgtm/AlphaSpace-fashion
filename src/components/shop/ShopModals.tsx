@@ -5,7 +5,6 @@ import {
   Store, 
   MapPin, 
   Navigation, 
-  Instagram, 
   RefreshCw,
   LogOut,
   Trash2,
@@ -41,8 +40,6 @@ interface ShopModalsProps {
   setDeleteCode: (code: string) => void;
   isDeleting: boolean;
   handleDeleteShop: () => void;
-  showInstagramImportModal: boolean;
-  setShowInstagramImportModal: (show: boolean) => void;
   showManualPostModal: boolean;
   setShowManualPostModal: (show: boolean) => void;
   handleManualPostUpload: (files: File[], data: { title: string, price: string, description: string }) => Promise<void>;
@@ -52,12 +49,6 @@ interface ShopModalsProps {
   handleCreateStory: (file: File, price?: string) => Promise<void>;
   handleCreateStoryFromPost: (post: PostData) => Promise<void>;
   posts: PostData[];
-  instagramLink: string;
-  setInstagramLink: (link: string) => void;
-  isImporting: boolean;
-  handleInstagramImport: () => void;
-  importPreview: any;
-  confirmImport: () => void;
   isUploading: boolean;
   selectedPostDetails: any;
   setSelectedPostDetails: (post: any) => void;
@@ -82,20 +73,12 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
   setDeleteCode,
   isDeleting,
   handleDeleteShop,
-  showInstagramImportModal,
-  setShowInstagramImportModal,
   showCreateStoryModal,
   setShowCreateStoryModal,
   isCreatingStory,
   handleCreateStory,
   handleCreateStoryFromPost,
   posts,
-  instagramLink,
-  setInstagramLink,
-  isImporting,
-  handleInstagramImport,
-  importPreview,
-  confirmImport,
   showManualPostModal,
   setShowManualPostModal,
   handleManualPostUpload,
@@ -329,44 +312,6 @@ export const ShopModals: React.FC<ShopModalsProps> = ({
                     <span>Post yaratish</span>
                   )}
                 </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showInstagramImportModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-lg bg-bg-primary rounded-[40px] border border-white/10 overflow-hidden shadow-2xl">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><Instagram size={28} /></div>
-                    <div><h3 className="text-2xl font-black text-text-primary tracking-tight">Instagram Import</h3><p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest">Link orqali post qo'shish</p></div>
-                  </div>
-                  <button onClick={() => { setShowInstagramImportModal(false); setInstagramLink(''); }} className="w-12 h-12 bg-text-primary/5 rounded-full flex items-center justify-center text-text-primary/40 hover:text-text-primary transition-colors"><X size={24} /></button>
-                </div>
-                {!importPreview ? (
-                  <div className="space-y-6">
-                    <div className="space-y-2"><label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Instagram Post Linki</label><input type="text" value={instagramLink} onChange={(e) => setInstagramLink(e.target.value)} placeholder="https://www.instagram.com/p/..." className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-pink-500/50 transition-all font-medium" /></div>
-                    <button onClick={handleInstagramImport} disabled={isImporting} className="w-full py-5 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">{isImporting ? <><RefreshCw size={18} className="animate-spin" /><span>Ma'lumotlar olinmoqda...</span></> : <span>Ma'lumotlarni olish</span>}</button>
-                  </div>
-                ) : (
-                  <div className="space-y-6 max-h-[60vh] overflow-y-auto scrollbar-hide pr-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="aspect-[9/16] rounded-2xl overflow-hidden border border-text-primary/5 relative">
-                        {importPreview.mediaType === 'video' ? <video src={importPreview.mediaUrls[0]} className="w-full h-full object-cover" /> : <img src={importPreview.mediaUrls[0]} className="w-full h-full object-cover" />}
-                        <div className="absolute top-4 right-4 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/20">{importPreview.mediaUrls.length > 1 ? `+${importPreview.mediaUrls.length}` : (importPreview.mediaType === 'video' ? 'Video' : 'Rasm')}</div>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="space-y-1"><label className="text-[8px] font-black uppercase tracking-widest text-text-primary/40">Nomi</label><input type="text" value={importPreview.outfitName} onChange={(e) => {}} className="w-full bg-text-primary/5 border-none rounded-xl px-3 py-2 text-xs font-bold" /></div>
-                        <div className="space-y-1"><label className="text-[8px] font-black uppercase tracking-widest text-text-primary/40">Narxi (Optional)</label><input type="text" placeholder="Masalan: 150,000" className="w-full bg-text-primary/5 border-none rounded-xl px-3 py-2 text-xs font-bold" /></div>
-                      </div>
-                    </div>
-                    <button onClick={confirmImport} disabled={isUploading} className="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">{isUploading ? <><RefreshCw size={18} className="animate-spin" /><span>Yuklanmoqda...</span></> : <span>Do'konga qo'shish</span>}</button>
-                  </div>
-                )}
               </div>
             </motion.div>
           </motion.div>

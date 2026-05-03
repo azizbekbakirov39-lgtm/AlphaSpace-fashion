@@ -33,7 +33,6 @@ interface MyShopTabProps {
   handleTelegramClick: () => void;
   handleInstagramClick: () => void;
   setShowMap: (show: boolean) => void;
-  setShowInstagramImportModal: (show: boolean) => void;
   setShowManualPostModal: (show: boolean) => void;
   setShowCreateStoryModal: (show: boolean) => void;
   onOpenReels?: (posts: PostData[], index: number) => void;
@@ -55,7 +54,6 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
   handleTelegramClick,
   handleInstagramClick,
   setShowMap,
-  setShowInstagramImportModal,
   setShowManualPostModal,
   setShowCreateStoryModal,
   onOpenReels,
@@ -319,13 +317,6 @@ export const MyShopTab: React.FC<MyShopTabProps> = ({
         {activeProfileTab === 'Postlar' && (
           <div className="flex flex-col gap-6">
             <div className="px-6 flex flex-col gap-3 w-full">
-              <button 
-                onClick={() => setShowInstagramImportModal(true)}
-                className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-pink-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
-              >
-                <Instagram size={18} />
-                Instagramdan import
-              </button>
               <button 
                 onClick={() => setShowManualPostModal(true)}
                 className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
