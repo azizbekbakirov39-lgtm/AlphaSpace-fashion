@@ -10,6 +10,7 @@ import { Language, translations } from '../translations';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
+import { ImageWithFallback } from './ImageWithFallback';
 
 const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; index: number }> = ({ url, isMuted, post, index }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -200,38 +201,20 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
               } else {
                 return (
                   <div className="w-full h-full relative bg-neutral-900">
-                    <motion.img
+                    <motion.div
                       key={currentMediaIndex}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3 }}
-                      src={proxiedUrl}
-                      alt={post.outfitName}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        const proxy1 = `https://wsrv.nl/?url=${encodeURIComponent(url)}`;
-                        const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                        
-                        if (!target.dataset.triedProxy1) {
-                          target.dataset.triedProxy1 = 'true';
-                          target.src = proxy1;
-                        } else if (!target.dataset.triedProxy2) {
-                          target.dataset.triedProxy2 = 'true';
-                          target.src = proxy2;
-                        } else {
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent) {
-                            const placeholder = document.createElement('div');
-                            placeholder.className = 'absolute inset-0 flex items-center justify-center text-white/20 text-xs font-black uppercase';
-                            placeholder.innerText = 'Rasm yuklanmadi';
-                            parent.appendChild(placeholder);
-                          }
-                        }
-                      }}
-                    />
+                      className="w-full h-full"
+                    >
+                      <ImageWithFallback
+                        originalSrc={url}
+                        alt={post.outfitName}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </motion.div>
                   </div>
                 );
               }

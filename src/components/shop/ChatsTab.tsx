@@ -23,7 +23,8 @@ import {
   Zap 
 } from 'lucide-react';
 import { Map, Placemark } from '@pbe/react-yandex-maps';
-import { isVideoUrl, safePlayVideo } from '../../utils/mediaUtils';
+import { isVideoUrl, safePlayVideo, getProxiedUrl } from '../../utils/mediaUtils';
+import { ImageWithFallback } from '../ImageWithFallback';
 import { PostData } from '../../types';
 
 interface Message {
@@ -361,7 +362,7 @@ export const ChatsTab = ({
                                   </div>
                                 </div>
                               ) : (
-                                <img src={msg.post.mediaUrls?.[0] || undefined} className="w-full aspect-[9/16] object-cover" alt="sent" referrerPolicy="no-referrer" />
+                                <ImageWithFallback originalSrc={msg.post.mediaUrls?.[0] || ''} className="w-full aspect-[9/16] object-cover" alt="sent" referrerPolicy="no-referrer" />
                               )}
                               <div className="p-2.5 bg-white dark:bg-bg-primary">
                                 <p className="text-xs font-black uppercase tracking-tight text-text-primary truncate">{msg.post.outfitName}</p>

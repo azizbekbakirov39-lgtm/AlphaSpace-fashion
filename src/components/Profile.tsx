@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { ImageWithFallback } from './ImageWithFallback';
 import { 
   ChevronRight, 
   ChevronLeft,
@@ -1550,7 +1551,7 @@ const Profile: React.FC<ProfileProps> = ({
 
                   {msg.image && (
                     <div className="mb-2 rounded-xl overflow-hidden border border-black/5">
-                      <img src={msg.image || undefined} alt="" className="w-full max-h-60 object-cover" referrerPolicy="no-referrer" />
+                      <ImageWithFallback originalSrc={msg.image} alt="" className="w-full max-h-60 object-cover" referrerPolicy="no-referrer" />
                     </div>
                   )}
 
@@ -1604,7 +1605,7 @@ const Profile: React.FC<ProfileProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <img src={getProxiedUrl(getPostThumbnailUrl(msg.post), 0) || undefined} alt="" className="w-full aspect-[9/16] object-cover" referrerPolicy="no-referrer" />
+                        <ImageWithFallback originalSrc={getPostThumbnailUrl(msg.post)} alt="" className="w-full aspect-[9/16] object-cover" referrerPolicy="no-referrer" />
                       )}
                       <div className="p-2.5 pointer-events-none bg-white dark:bg-neutral-800">
                         <p className="text-xs font-black truncate text-text-primary">{msg.post.outfitName}</p>

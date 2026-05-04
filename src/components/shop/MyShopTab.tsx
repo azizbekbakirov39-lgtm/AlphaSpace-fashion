@@ -18,6 +18,7 @@ import { Map, Placemark } from '@pbe/react-yandex-maps';
 import { isVideoUrl, getProxiedUrl } from '../../utils/mediaUtils';
 import { Seller, PostData } from '../../types';
 import { Language } from '../../translations';
+import { ImageWithFallback } from '../ImageWithFallback';
 
 interface MyShopTabProps {
   language: Language;
@@ -346,8 +347,8 @@ export const MyShopTab = ({
                     onClick={() => onOpenReels?.(posts, index)}
                   >
                      {post.thumbnailUrl ? (
-                      <img 
-                        src={getProxiedUrl(post.thumbnailUrl, 0)}
+                      <ImageWithFallback 
+                        originalSrc={post.thumbnailUrl}
                         className="w-full h-full object-cover"
                         alt={post.outfitName}
                         referrerPolicy="no-referrer"
@@ -361,8 +362,8 @@ export const MyShopTab = ({
                         playsInline
                       />
                     ) : (
-                      <img 
-                        src={getProxiedUrl(post.mediaUrls?.[0] || '', 0)} 
+                      <ImageWithFallback 
+                        originalSrc={post.mediaUrls?.[0] || ''} 
                         className="w-full h-full object-cover" 
                         alt={post.outfitName} 
                         referrerPolicy="no-referrer" 

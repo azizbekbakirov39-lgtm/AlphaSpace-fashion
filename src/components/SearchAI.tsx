@@ -3,6 +3,7 @@ import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt, Sear
 import { GoogleGenAI, Type } from '@google/genai';
 import { AIMessage, PostData } from '../types';
 import { isVideoUrl, getProxiedUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
+import { ImageWithFallback } from './ImageWithFallback';
 import { motion, AnimatePresence } from 'motion/react';
 import SmartSellerLogo from './SmartSellerLogo';
 
@@ -607,8 +608,8 @@ Foydalanuvchi xabari: ${messageText}`;
                               playsInline
                             />
                           ) : (
-                            <img 
-                              src={getProxiedUrl(getPostThumbnailUrl(post), 0)} 
+                            <ImageWithFallback 
+                              originalSrc={getPostThumbnailUrl(post)} 
                               alt={post.outfitName} 
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"

@@ -8,6 +8,7 @@ import {
 import { Seller, PostData } from '../types';
 import { Language, translations } from '../translations';
 import { isVideoUrl, useShare, safePlayVideo, getProxiedUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
+import { ImageWithFallback } from './ImageWithFallback';
 
 const ShopCoverVideo: React.FC<{ url: string }> = ({ url }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -433,8 +434,8 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                       playsInline
                     />
                   ) : (
-                    <img 
-                      src={getProxiedUrl(getPostThumbnailUrl(post), 0)} 
+                    <ImageWithFallback 
+                      originalSrc={getPostThumbnailUrl(post)} 
                       alt={post.outfitName}
                       className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isViewed ? 'scale-105' : ''}`}
                       referrerPolicy="no-referrer"
