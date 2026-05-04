@@ -216,104 +216,110 @@ export const ShopModals = ({
 
       <AnimatePresence>
         {showManualPostModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-lg bg-bg-primary rounded-[40px] border border-white/10 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-              <div className="p-8 border-b border-white/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                      <Plus size={28} />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-black text-text-primary tracking-tight">Post yaratish</h3>
-                      <p className="text-[10px] font-bold text-text-primary/40 uppercase tracking-widest">Galereyadan media tanlash</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setShowManualPostModal(false)} className="w-12 h-12 bg-text-primary/5 rounded-full flex items-center justify-center text-text-primary/40 hover:text-text-primary transition-colors">
-                    <X size={24} />
-                  </button>
-                </div>
-              </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[6000] bg-black backdrop-blur-2xl flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 z-50 w-full absolute top-0 bg-gradient-to-b from-black/80 to-transparent">
+              <button onClick={() => setShowManualPostModal(false)} className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-md">
+                <X size={20} />
+              </button>
+              <h3 className="text-white font-bold text-sm tracking-widest uppercase">Yangi Post</h3>
+              <button 
+                onClick={handleManualPostSubmit}
+                disabled={isUploading || manualFiles.length === 0 || !manualTitle}
+                className="text-blue-500 font-bold uppercase tracking-widest text-sm disabled:opacity-50"
+              >
+                {isUploading ? <RefreshCw size={16} className="animate-spin" /> : "Ulashish"}
+              </button>
+            </div>
 
-              <div className="flex-1 overflow-y-auto p-8 pt-6 space-y-6 scrollbar-hide">
-                {/* Media Selection */}
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Media (Rasm yoki Video)</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {manualPreviews.map((preview, index) => (
-                      <div key={index} className="aspect-square rounded-2xl overflow-hidden relative group">
-                        {manualFiles[index]?.type.startsWith('video') ? (
-                          <video src={preview} className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={preview} className="w-full h-full object-cover" />
-                        )}
-                        <button 
-                          onClick={() => removeManualFile(index)}
-                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+            {/* Main Content Area */}
+            {manualFiles.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 bg-zinc-900 border-2 border-dashed border-white/10 m-4 rounded-[40px] mt-20">
+                <label className="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center text-white/50 cursor-pointer hover:bg-white/20 transition-all border-2 border-dashed border-white/20 hover:border-white/40 mb-6">
+                  <Plus size={40} />
+                  <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualFilesChange} />
+                </label>
+                <h2 className="text-white text-2xl font-black mb-2">Media yuklash</h2>
+                <p className="text-white/50 text-center max-w-xs text-sm">Post uchun rasm yoki videolarni galereyadan tanlang</p>
+              </div>
+            ) : (
+              <div className="flex-1 relative flex flex-col object-cover w-full h-full overflow-hidden">
+                {/* Media Preview (Fullscreen) */}
+                <div className="absolute inset-0 w-full h-full bg-zinc-950">
+                  {manualPreviews.length === 1 ? (
+                    manualFiles[0]?.type.startsWith('video') ? (
+                      <video src={manualPreviews[0]} className="w-full h-full object-cover" autoPlay loop playsInline muted />
+                    ) : (
+                      <img src={manualPreviews[0]} className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="flex overflow-x-auto snap-x snap-mandatory w-full h-full scrollbar-hide">
+                      {manualPreviews.map((preview, index) => (
+                        <div key={index} className="w-full h-full flex-shrink-0 snap-center relative">
+                          {manualFiles[index]?.type.startsWith('video') ? (
+                            <video src={preview} className="w-full h-full object-cover" autoPlay loop playsInline muted />
+                          ) : (
+                            <img src={preview} className="w-full h-full object-cover" />
+                          )}
+                          {/* Delete button for each media */}
+                          <button 
+                            onClick={() => removeManualFile(index)}
+                            className="absolute top-20 right-4 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white z-50 shadow-lg"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Delete button for single media */}
+                  {manualPreviews.length === 1 && (
+                    <button 
+                      onClick={() => removeManualFile(0)}
+                      className="absolute top-20 right-4 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white z-50 shadow-lg"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Floating Transparent Details Form at the Bottom */}
+                <div className="absolute bottom-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent pt-32 pb-safe-bottom z-40">
+                  <div className="px-4 pb-8 space-y-3">
+                    <input 
+                      type="text" 
+                      value={manualTitle}
+                      onChange={(e) => setManualTitle(e.target.value)}
+                      placeholder="Mahsulot nomi (Masalan: Erkaklar kostyumi)" 
+                      className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium" 
+                    />
+                    <input 
+                      type="text" 
+                      value={manualPrice}
+                      onChange={(e) => setManualPrice(e.target.value)}
+                      placeholder="Narxi (Masalan: 120,000 so'm)" 
+                      className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium" 
+                    />
+                    <textarea 
+                      value={manualDescription}
+                      onChange={(e) => setManualDescription(e.target.value)}
+                      placeholder="Mahsulot haqida batafsil izoh yozing..." 
+                      className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium min-h-[100px] resize-none" 
+                    />
+                    
+                    {/* Add more media button */}
                     {manualFiles.length < 10 && (
-                      <label className="aspect-square rounded-2xl border-2 border-dashed border-text-primary/10 flex flex-col items-center justify-center hover:bg-text-primary/5 transition-colors cursor-pointer">
-                        <Plus size={24} className="text-text-primary/20" />
+                      <label className="flex items-center gap-3 mt-4 text-white/70 hover:text-white cursor-pointer w-fit group">
+                        <div className="w-10 h-10 bg-white/10 group-hover:bg-white/20 transition-colors flex items-center justify-center rounded-full"><Plus size={20} /></div>
+                        <span className="text-xs font-black uppercase tracking-widest">Yana rasm/video qo'shish</span>
                         <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualFilesChange} />
                       </label>
                     )}
                   </div>
                 </div>
-
-                {/* Form Fields */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Mahsulot nomi</label>
-                    <input 
-                      type="text" 
-                      value={manualTitle}
-                      onChange={(e) => setManualTitle(e.target.value)}
-                      placeholder="Masalan: Erkaklar kostyumi" 
-                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all font-medium" 
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Narxi</label>
-                    <input 
-                      type="text" 
-                      value={manualPrice}
-                      onChange={(e) => setManualPrice(e.target.value)}
-                      placeholder="Masalan: 120,000" 
-                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all font-medium" 
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-text-primary/40 ml-4">Tavsif (Optional)</label>
-                    <textarea 
-                      value={manualDescription}
-                      onChange={(e) => setManualDescription(e.target.value)}
-                      placeholder="Mahsulot haqida batafsil..." 
-                      className="w-full bg-text-primary/5 border border-text-primary/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all font-medium min-h-[100px] resize-none" 
-                    />
-                  </div>
-                </div>
               </div>
-
-              <div className="p-8 border-t border-white/5 bg-text-primary/5">
-                <button 
-                  onClick={handleManualPostSubmit}
-                  disabled={isUploading || manualFiles.length === 0 || !manualTitle}
-                  className="w-full py-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-3"
-                >
-                  {isUploading ? (
-                    <><RefreshCw size={18} className="animate-spin" /><span>Yuklanmoqda...</span></>
-                  ) : (
-                    <span>Post yaratish</span>
-                  )}
-                </button>
-              </div>
-            </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
