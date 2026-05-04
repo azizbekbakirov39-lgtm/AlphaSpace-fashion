@@ -294,7 +294,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
               const percentComplete = Math.round((event.loaded / event.total) * 100);
               setUploadProgress(percentComplete);
               if (percentComplete === 100) {
-                toast.loading("Media siqilmoqda va yuklanmoqda...", { id: toastId });
+                toast.loading("Video sifati saqlanyapti va qayta ishlanmoqda (4K)... Iltimos, sahifani yopmang.", { id: toastId });
+              } else {
+                toast.loading(`Yuklanmoqda: ${percentComplete}%`, { id: toastId });
               }
             }
           };

@@ -92,8 +92,7 @@ try {
       admin.initializeApp();
       console.log("Firebase Admin initialized with default credentials");
     }
-  }
-} catch (error) {
+  } catch (error) {
   console.error("Firebase Admin Initialization Error:", error);
 }
 
@@ -253,41 +252,51 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
 
       try {
         if (isVideo) {
-          console.log("Compressing video...");
+          console.log(`Compressing video: ${file.originalname}`);
           await new Promise<void>((resolve, reject) => {
             ffmpeg(file.path)
               .outputOptions([
                 "-vcodec libx264",
-                "-crf 24", // Good balance of size and quality
-                "-preset faster",
+                "-crf 23", // Great quality for 4K
+                "-preset superfast", // Much faster for server environments
+                "-pix_fmt yuv420p", // Compatibility
                 "-acodec aac",
+                "-b:a 192k",
                 "-movflags +faststart"
               ])
-              // Keep original resolution (4K)
               .on("end", () => {
-                console.log("Video compression finished");
+                console.log("Video compression finished successfully");
                 resolve();
               })
               .on("error", (err) => {
-                console.error("Video compression error:", err);
+                console.error("FFmpeg Error:", err);
                 reject(err);
               })
               .save(optimizedPath);
           });
-          finalPath = optimizedPath;
+          
+          if (fs.existsSync(optimizedPath)) {
+            finalPath = optimizedPath;
+            contentType = "video/mp4";
+          }
         } else if (isImage) {
-          console.log("Optimizing image...");
+          console.log(`Optimizing image: ${file.originalname}`);
           await sharp(file.path)
-            .webp({ quality: 85 })
+            .webp({ quality: 90 }) // Higher quality for images too
             .toFile(optimizedPath);
-          finalPath = optimizedPath;
+          
+          if (fs.existsSync(optimizedPath)) {
+            finalPath = optimizedPath;
+            contentType = "image/webp";
+          }
         }
       } catch (optError) {
-        console.warn("Optimization failed, using original file:", optError);
+        console.warn("Optimization process failed or timed out, falling back to original file:", optError);
         finalPath = file.path;
+        contentType = file.mimetype;
       }
 
-      if (process.env.R2_BUCKET_NAME) {
+      if (r2Client && process.env.R2_BUCKET_NAME) {
         const stats = await fs.promises.stat(finalPath);
         const fileStream = fs.createReadStream(finalPath);
         
@@ -381,7 +390,6 @@ app.post("/api/send-push", async (req, res) => {
   }
 });
 
-// Vite / Static serving
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer } = await import("vite");
@@ -399,7 +407,7 @@ async function setupVite() {
   }
 }
 
-setupVite();
+// setupVite(); // Removed redundant call
 
 // Export for Vercel
 export default app;
