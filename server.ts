@@ -22,7 +22,7 @@ const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 const readFile = promisify(fs.readFile);
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
 dotenv.config();
 
@@ -81,7 +81,38 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
 
     let decodedUrl = decodeURIComponent(url as string);
     decodedUrl = decodedUrl.replace(/^https?:\/\/https?:\/\//, 'https://');
-    console.log(`Proxying video: ${decodedUrl}`);
+    console.log(`Proxying URL: ${decodedUrl}`);
+
+    // If it is an R2 URL, use GetObjectCommand to bypass CORS or missing public access
+    if (r2Client && process.env.R2_BUCKET_NAME) {
+      const publicDomain = process.env.R2_PUBLIC_DOMAIN ? process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "") : "";
+      
+      if (decodedUrl.includes("r2.dev") || decodedUrl.includes("pub-") || (publicDomain && decodedUrl.includes(publicDomain))) {
+        try {
+          const parsedUrl = new URL(decodedUrl);
+          // Key is everything after the first slash
+          const key = parsedUrl.pathname.replace(/^\//, '');
+          
+          console.log(`Intercepting R2 URL, fetching via SDK: bucket=${process.env.R2_BUCKET_NAME}, key=${key}`);
+          
+          const command = new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: key,
+          });
+          
+          const s3Response = await r2Client.send(command);
+          
+          if (s3Response.ContentType) res.setHeader('Content-Type', s3Response.ContentType);
+          if (s3Response.ContentLength) res.setHeader('Content-Length', s3Response.ContentLength.toString());
+          
+          // @ts-ignore
+          s3Response.Body.pipe(res);
+          return;
+        } catch (r2Error) {
+          console.warn("Failed to fetch from R2 SDK, falling back to HTTP proxy...", r2Error);
+        }
+      }
+    }
 
     const outboundHeaders: any = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
