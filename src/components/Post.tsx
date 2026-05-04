@@ -13,6 +13,7 @@ import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, getNextProxyIndex, 
 import { db, updateDoc, doc } from '../firebase';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { useMediaController } from '../hooks/useMediaController';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface PostProps {
   post: PostData;
@@ -136,39 +137,17 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
 };
 
 const CarouselImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: string, index: number }> = ({ url, shouldLoad, outfitName, index }) => {
-  const [proxyIndex, setProxyIndex] = useState(0);
-  const proxiedUrl = getProxiedUrl(url, proxyIndex);
-
   return (
-    <img
-      src={shouldLoad ? proxiedUrl : undefined}
-      alt={`${outfitName} - ${index + 1}`}
-      className="w-full h-full object-cover block"
-      loading="lazy"
-      onLoad={() => {
-        if (shouldLoad) markUrlAsSuccessful(url, proxiedUrl);
-      }}
-      onError={(e) => {
-        console.error('Image load error', { url, proxyIndex });
-        if (!isLastProxy(proxyIndex, url)) {
-          setProxyIndex(prev => getNextProxyIndex(prev));
-        } else {
-          console.error('Final image load error, URL:', url);
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          const parent = target.parentElement;
-          if (parent) {
-            parent.style.backgroundColor = '#171717';
-            if (!parent.querySelector('.error-placeholder')) {
-              const placeholder = document.createElement('div');
-              placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-white/20 text-[10px] font-black uppercase';
-              placeholder.innerText = 'Rasm yuklanmadi';
-              parent.appendChild(placeholder);
-            }
-          }
-        }
-      }}
-    />
+    <div className="w-full h-full relative bg-[#171717]">
+      {shouldLoad && (
+        <ImageWithFallback
+          originalSrc={url}
+          alt={`${outfitName} - ${index + 1}`}
+          className="w-full h-full object-cover block"
+          loading="lazy"
+        />
+      )}
+    </div>
   );
 };
 

@@ -3,6 +3,7 @@ import { Store } from 'lucide-react';
 import { Language } from '../translations';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { PostData } from '../types';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface PostHeaderProps {
   post: PostData;
@@ -26,8 +27,8 @@ const PostHeader: React.FC<PostHeaderProps> = ({
         <div className={`flex-shrink-0 p-[2px] rounded-full ${post.seller.hasStory ? 'bg-accent-light shadow-sm shadow-accent-light/20' : 'bg-text-primary/10'}`}>
           <div className="p-[1.5px] bg-bg-primary rounded-full">
             {post.seller.logo ? (
-              <img 
-                src={post.seller.logo} 
+              <ImageWithFallback 
+                originalSrc={post.seller.logo} 
                 alt={post.seller.name} 
                 className="w-9 h-9 rounded-full object-cover aspect-square"
               />

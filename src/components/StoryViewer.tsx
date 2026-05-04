@@ -8,6 +8,7 @@ import { formatRelativeTime } from '../utils/timeUtils';
 import ProductDetails from './ProductDetails';
 import CommentDrawer from './CommentDrawer';
 import { Language } from '../translations';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface StoryViewerProps {
   stories: Story[];
@@ -387,8 +388,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           })}
         </div>
       ) : (
-        <img
-          src={currentStory.videoUrl}
+        <ImageWithFallback
+          originalSrc={currentStory.videoUrl}
           className="w-full h-full object-cover"
           onClick={handleTap}
           onMouseDown={handlePressStart}

@@ -14,6 +14,7 @@ import { Language } from '../translations';
 import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { useMediaController } from '../hooks/useMediaController';
 import { formatRelativeTime } from '../utils/timeUtils';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface ReelsViewerProps {
   posts: PostData[];
@@ -33,37 +34,17 @@ interface ReelsViewerProps {
 }
 
 const ReelImage: React.FC<{ url: string, shouldLoad: boolean, outfitName: string }> = ({ url, shouldLoad, outfitName }) => {
-  const [proxyIndex, setProxyIndex] = useState(0);
-  const proxiedUrl = getProxiedUrl(url, proxyIndex);
-
   return (
-    <img
-      src={shouldLoad ? proxiedUrl : undefined}
-      className="h-full w-full object-cover pointer-events-none"
-      referrerPolicy="no-referrer"
-      loading="lazy"
-      onLoad={() => {
-        if (shouldLoad) markUrlAsSuccessful(url, proxiedUrl);
-      }}
-      onError={(e) => {
-        if (!isLastProxy(proxyIndex, url)) {
-          setProxyIndex(prev => getNextProxyIndex(prev));
-        } else {
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          const parent = target.parentElement;
-          if (parent) {
-            parent.style.backgroundColor = '#171717';
-            if (!parent.querySelector('.error-placeholder')) {
-              const placeholder = document.createElement('div');
-              placeholder.className = 'error-placeholder absolute inset-0 flex items-center justify-center text-white/20 text-[10px] font-black uppercase';
-              placeholder.innerText = 'Rasm yuklanmadi';
-              parent.appendChild(placeholder);
-            }
-          }
-        }
-      }}
-    />
+    <div className="h-full w-full bg-[#171717]">
+      {shouldLoad && (
+        <ImageWithFallback
+          originalSrc={url}
+          className="h-full w-full object-cover pointer-events-none"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+        />
+      )}
+    </div>
   );
 };
 

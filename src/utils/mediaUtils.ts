@@ -162,25 +162,25 @@ const PROXY_POOL = [
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
   if (!url) return url;
   
-  // Directly return trusted non-instagram URLs
-  if (
-    url.includes('firebasestorage.googleapis.com') || 
-    url.includes('i.ibb.co') || 
-    url.includes('r2.dev') || // Cloudflare R2 default domain
-    url.includes('pub-') || // Cloudflare R2 public bucket prefix often starts with pub-
-    url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN || 'alpha-space-storage') ||
-    url.includes('scontent') === false && !url.includes('instagram.com')
-  ) {
-    return url;
-  }
-  
   // Try hit cache first if index 0
   if (proxyIndex === 0) {
     const cache = getCache();
     if (cache[url]) return cache[url];
   }
+
+  // Directly return trusted non-instagram URLs when proxyIndex is 0
+  if (proxyIndex === 0 && (
+    url.includes('firebasestorage.googleapis.com') || 
+    url.includes('i.ibb.co') || 
+    url.includes('r2.dev') || // Cloudflare R2 default domain
+    url.includes('pub-') || // Cloudflare R2 public bucket prefix often starts with pub-
+    url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN || 'alpha-space-storage') ||
+    (url.includes('scontent') === false && !url.includes('instagram.com'))
+  )) {
+    return url;
+  }
   
-  console.log('getProxiedUrl', { url, proxyIndex });
+  // console.log('getProxiedUrl', { url, proxyIndex });
 
   const isVid = isVideoUrl(url) || url.includes('.mp4');
 

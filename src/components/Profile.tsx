@@ -2023,8 +2023,8 @@ const Profile: React.FC<ProfileProps> = ({
             onClick={() => onOpenPostDetails(savedPosts, index)}
             className="aspect-square relative group overflow-hidden cursor-pointer"
           >
-            <img 
-              src={getProxiedUrl(post.thumbnailUrl || post.mediaUrls[0], 0) || undefined} 
+            <ImageWithFallback 
+              originalSrc={post.thumbnailUrl || post.mediaUrls[0]} 
               alt={post.outfitName} 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -2165,8 +2165,8 @@ const Profile: React.FC<ProfileProps> = ({
                     playsInline
                   />
                 ) : (
-                  <img 
-                    src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} 
+                  <ImageWithFallback 
+                    originalSrc={getPostThumbnailUrl(post)} 
                     alt={post.outfitName} 
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
@@ -2214,8 +2214,8 @@ const Profile: React.FC<ProfileProps> = ({
           onClick={() => onOpenPostDetails(likedPosts, index)}
           className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md cursor-pointer"
         >
-          <img 
-            src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} 
+          <ImageWithFallback 
+            originalSrc={getPostThumbnailUrl(post)} 
             alt={post.outfitName}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
@@ -2247,8 +2247,8 @@ const Profile: React.FC<ProfileProps> = ({
           onClick={() => onOpenPostDetails(recentlyViewedPosts, index)}
           className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 group bg-white/5 backdrop-blur-md cursor-pointer"
         >
-          <img 
-            src={getProxiedUrl(getPostThumbnailUrl(post), 0) || undefined} 
+          <ImageWithFallback 
+            originalSrc={getPostThumbnailUrl(post)} 
             alt={post.outfitName}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             referrerPolicy="no-referrer"
