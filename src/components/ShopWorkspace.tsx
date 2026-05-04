@@ -34,6 +34,7 @@ import { MyShopTab } from './shop/MyShopTab';
 import { ChatsTab } from './shop/ChatsTab';
 import { SettingsTab } from './shop/SettingsTab';
 import { ShopModals } from './shop/ShopModals';
+import { compressImage } from '../lib/compression';
 
 interface ShopWorkspaceProps {
   language: Language;
@@ -283,7 +284,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       // Try server upload (R2) first with XMLHttpRequest to track progress
       try {
         const formData = new FormData();
-        files.forEach(file => formData.append('files', file));
+        for (const file of files) {
+          if (file.type.startsWith('image/')) {
+            const compressedFile = await compressImage(file);
+            formData.append('files', compressedFile);
+          } else {
+            formData.append('files', file);
+          }
+        }
 
         const result: any = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();

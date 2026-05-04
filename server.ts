@@ -253,7 +253,7 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
 
       try {
         if (isVideo) {
-          console.log("Compressing video...");
+          console.log(`Starting video compression for: ${file.originalname}`);
           await new Promise<void>((resolve, reject) => {
             ffmpeg(file.path)
               .outputOptions([
@@ -264,17 +264,21 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
                 "-movflags +faststart"
               ])
               // Keep original resolution (4K)
+              .on("start", (cmd) => console.log("Spawned Ffmpeg with command: " + cmd))
+              .on("progress", (progress) => console.log(`Processing: ${progress.percent}% done`))
               .on("end", () => {
-                console.log("Video compression finished");
+                console.log("Video compression finished successfully");
                 resolve();
               })
-              .on("error", (err) => {
+              .on("error", (err, stdout, stderr) => {
                 console.error("Video compression error:", err);
+                console.error("FFmpeg stderr:", stderr);
                 reject(err);
               })
               .save(optimizedPath);
           });
           finalPath = optimizedPath;
+          console.log(`Compression finished, final path: ${finalPath}`);
         } else if (isImage) {
           console.log("Optimizing image...");
           await sharp(file.path)
