@@ -24,6 +24,8 @@ import {
 import { Map, Placemark } from '@pbe/react-yandex-maps';
 import { Seller, PostData } from '../../types';
 import { Language } from '../../translations';
+import { getProxiedUrl } from '../../utils/mediaUtils';
+import { ImageWithFallback } from '../ImageWithFallback';
 
 interface ShopModalsProps {
   language: Language;
@@ -355,9 +357,9 @@ export const ShopModals = ({
                             className={`aspect-square rounded-2xl overflow-hidden relative cursor-pointer group bg-black ${isCreatingStory ? 'opacity-50 pointer-events-none' : ''}`}
                           >
                             {post.mediaType === 'video' ? (
-                              <video src={post.mediaUrls[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                              <video src={getProxiedUrl(post.mediaUrls[0], 0)} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                             ) : (
-                              <img src={post.mediaUrls[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                              <ImageWithFallback originalSrc={post.mediaUrls[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                             )}
                             <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
                               <p className="text-[8px] text-white font-bold truncate">{post.outfitName || 'Post'}</p>

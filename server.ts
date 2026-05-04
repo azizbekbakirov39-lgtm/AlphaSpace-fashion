@@ -79,7 +79,8 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
     const { url } = req.query;
     if (!url) return res.status(400).send("URL required");
 
-    const decodedUrl = decodeURIComponent(url as string);
+    let decodedUrl = decodeURIComponent(url as string);
+    decodedUrl = decodedUrl.replace(/^https?:\/\/https?:\/\//, 'https://');
     console.log(`Proxying video: ${decodedUrl}`);
 
     const outboundHeaders: any = {
@@ -202,7 +203,8 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
         
         let publicUrl = "";
         if (process.env.R2_PUBLIC_DOMAIN) {
-          publicUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${key}`;
+          const domain = process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "");
+          publicUrl = `https://${domain}/${key}`;
         } else {
           // Fallback to endpoint-based URL if no public domain
           const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");

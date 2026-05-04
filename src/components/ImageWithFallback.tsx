@@ -17,6 +17,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const [hasError, setHasError] = useState(false);
   
   if (!originalSrc) return null;
+  const cleanOriginalSrc = originalSrc.replace(/^https?:\/\/https?:\/\//, 'https://');
   
   if (hasError) {
     return (
@@ -26,21 +27,21 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
     );
   }
 
-  const proxiedUrl = getProxiedUrl(originalSrc, proxyIndex);
+  const proxiedUrl = getProxiedUrl(cleanOriginalSrc, proxyIndex);
 
   return (
     <img
       src={proxiedUrl}
       {...props}
       onLoad={(e) => {
-        markUrlAsSuccessful(originalSrc, proxiedUrl);
+        markUrlAsSuccessful(cleanOriginalSrc, proxiedUrl);
         if (onLoad) onLoad(e);
       }}
       onError={(e) => {
-        if (!isLastProxy(proxyIndex, originalSrc)) {
+        if (!isLastProxy(proxyIndex, cleanOriginalSrc)) {
           setProxyIndex(prev => getNextProxyIndex(prev));
         } else {
-          console.error('Final image load error, URL:', originalSrc);
+          console.error('Final image load error, URL:', cleanOriginalSrc);
           setHasError(true);
         }
         if (onError) onError(e);

@@ -52,6 +52,10 @@ export const safePlayVideo = async (video: HTMLVideoElement | null) => {
 
 export const isVideoUrl = (url: string): boolean => {
   if (!url) return false;
+  
+  // Fix double protocol
+  url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
+  
   const lowerUrl = url.toLowerCase();
   
   // Typical video extensions
@@ -162,6 +166,9 @@ const PROXY_POOL = [
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
   if (!url) return url;
   
+  // Fix double protocol from malformed database strings
+  url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
+
   // Try hit cache first if index 0
   if (proxyIndex === 0) {
     const cache = getCache();
@@ -222,13 +229,19 @@ export const isLastProxy = (index: number, url: string): boolean => {
  * Prefers explicitly defined thumbnailUrl, then the first image from mediaUrls.
  */
 export const getPostThumbnailUrl = (post: { thumbnailUrl?: string, mediaUrls: string[] }): string => {
-  if (post.thumbnailUrl) return post.thumbnailUrl;
+  let url = '';
   
-  if (post.mediaUrls && post.mediaUrls.length > 0) {
+  if (post.thumbnailUrl) {
+    url = post.thumbnailUrl;
+  } else if (post.mediaUrls && post.mediaUrls.length > 0) {
     // Find first true image URL if possible
-    const firstImage = post.mediaUrls.find(url => !isVideoUrl(url));
-    return firstImage || post.mediaUrls[0];
+    const firstImage = post.mediaUrls.find(u => !isVideoUrl(u));
+    url = firstImage || post.mediaUrls[0];
   }
   
-  return '';
+  if (url) {
+    url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
+  }
+  
+  return url;
 };

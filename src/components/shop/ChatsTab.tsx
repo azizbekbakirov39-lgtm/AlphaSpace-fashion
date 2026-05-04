@@ -317,19 +317,19 @@ export const ChatsTab = ({
                           {msg.text && <p className={`leading-relaxed whitespace-pre-wrap ${msg.type !== 'text' ? 'mb-2' : ''}`}>{msg.text}</p>}
                           {msg.type === 'image' && (
                             <div className="relative group">
-                              <img src={msg.mediaUrl || undefined} className="rounded-xl max-w-full h-auto shadow-lg" alt="sent" referrerPolicy="no-referrer" />
+                              <ImageWithFallback originalSrc={msg.mediaUrl || ''} className="rounded-xl max-w-full h-auto shadow-lg" alt="sent" referrerPolicy="no-referrer" />
                               <button className="absolute top-2 right-2 p-2 bg-black/40 backdrop-blur-md text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Download size={14} /></button>
                             </div>
                           )}
                           {msg.type === 'video' && (
                             <div className="relative aspect-video bg-black rounded-xl flex items-center justify-center overflow-hidden shadow-lg min-w-[200px] group">
-                              <video src={`${msg.mediaUrl}#t=0.1`} controls playsInline preload="metadata" className="w-full h-full object-cover" />
+                              <video src={msg.mediaUrl ? `${getProxiedUrl(msg.mediaUrl, 0)}#t=0.1` : undefined} controls playsInline preload="metadata" className="w-full h-full object-cover" />
                             </div>
                           )}
                           {msg.type === 'videoMessage' && (
                             <div className="relative w-48 h-48 rounded-full overflow-hidden border-2 border-accent-blue shadow-xl group">
                               <video 
-                                src={msg.mediaUrl || undefined} 
+                                src={msg.mediaUrl ? getProxiedUrl(msg.mediaUrl, 0) : undefined} 
                                 className="w-full h-full object-cover scale-x-[-1]" 
                                 loop muted playsInline
                                 onMouseOver={(e) => safePlayVideo(e.currentTarget)}
@@ -356,7 +356,7 @@ export const ChatsTab = ({
                             >
                               {isVideoUrl(msg.post.mediaUrls?.[0] || '') ? (
                                 <div className="relative w-full aspect-[9/16] bg-black flex items-center justify-center group">
-                                  <video src={`${msg.post.mediaUrls[0]}#t=0.1`} preload="metadata" className="w-full h-full object-cover" />
+                                  <video src={`${getProxiedUrl(msg.post.mediaUrls[0], 0)}#t=0.1`} preload="metadata" className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-90 group-hover:bg-black/10 transition-colors">
                                     <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center"><Play size={24} className="text-white ml-1" fill="currentColor" /></div>
                                   </div>
