@@ -72,6 +72,10 @@ export const translations = {
     lover: 'Sevimli',
     fast: 'Tezkor',
     collector: 'Kolleksioner',
+    email_placeholder: 'Elektron pochta',
+    password_placeholder: 'Parol',
+    login_button: 'Kirish',
+    register_title: 'Ro\'yxatdan o\'tish',
   },
   'uz-cyrl': {
     home: 'Асосий',

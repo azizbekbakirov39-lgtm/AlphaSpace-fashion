@@ -92,7 +92,8 @@ try {
       admin.initializeApp();
       console.log("Firebase Admin initialized with default credentials");
     }
-  } catch (error) {
+  }
+} catch (error) {
   console.error("Firebase Admin Initialization Error:", error);
 }
 
