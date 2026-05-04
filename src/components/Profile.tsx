@@ -22,6 +22,7 @@ import { StyleDNAView } from './profile/StyleDNAView';
 import { ClosetView } from './profile/ClosetView';
 import { InAppBrowserGuide } from './InAppBrowserGuide';
 import { ChevronLeft } from 'lucide-react';
+import LanguageSelector from './profile/LanguageSelector';
 
 interface ProfileProps {
   language: Language;
@@ -117,44 +118,6 @@ const Profile: React.FC<ProfileProps> = (props) => {
     }
   };
 
-  const renderLanguage = () => (
-    <div className="flex flex-col h-full bg-bg-primary">
-       <div className="flex items-center gap-4 px-4 py-4 border-b border-border-primary">
-          <button 
-            onClick={() => setSubView('main')} 
-            className="p-2 hover:bg-text-primary/5 rounded-full transition-colors"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <h2 className="text-xl font-black uppercase tracking-tight italic">{t.language}</h2>
-        </div>
-        <div className="p-4 space-y-2">
-          {languages.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => {
-                setLanguage(lang.code as any);
-                setSubView('main');
-              }}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                language === lang.code 
-                  ? 'bg-accent-blue border-accent-blue text-white shadow-lg shadow-accent-blue/20' 
-                  : 'bg-text-primary/5 border-border-primary text-text-primary'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{lang.flag}</span>
-                <span className="font-bold">{lang.name}</span>
-              </div>
-              {language === lang.code && (
-                <div className="w-2 h-2 bg-white rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
-    </div>
-  );
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'posts':
@@ -208,7 +171,18 @@ const Profile: React.FC<ProfileProps> = (props) => {
   }
 
   if (subView === 'language') {
-    return renderLanguage();
+    return (
+      <LanguageSelector 
+        currentLanguage={language}
+        languages={languages}
+        onBack={() => setSubView('main')}
+        onSelect={(lang) => {
+          setLanguage(lang);
+          setSubView('main');
+        }}
+        t={t}
+      />
+    );
   }
 
   if (subView === 'chats') {
@@ -281,6 +255,7 @@ const Profile: React.FC<ProfileProps> = (props) => {
       </div>
     );
   }
+
 
   return (
     <div className="h-full bg-bg-primary overflow-hidden">
