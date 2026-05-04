@@ -240,10 +240,31 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
   const handleSaveShopInfo = async () => {
     try {
-      await updateDoc(doc(db, 'shops', shopData.id), { ...localShopData });
+      // Manually pick fields to avoid circularity and ensure only clean data goes to Firestore
+      const cleanData = {
+        name: localShopData.name || "",
+        logo: localShopData.logo || "",
+        description: localShopData.description || "",
+        workingHours: localShopData.workingHours || "",
+        workingDays: localShopData.workingDays || [],
+        categories: localShopData.categories || [],
+        phone: localShopData.phone || "",
+        instagram: localShopData.instagram || "",
+        telegram: localShopData.telegram || "",
+        location: localShopData.location ? {
+          lat: Number(localShopData.location.lat),
+          lng: Number(localShopData.location.lng)
+        } : { lat: 41.311081, lng: 69.240562 },
+        updatedAt: serverTimestamp()
+      };
+      
+      await updateDoc(doc(db, 'shops', shopData.id), cleanData);
+      
       toast.success("Ma'lumotlar saqlandi");
       onUpdateShop(localShopData);
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      console.error("Save shop info error:", errorMessage);
       toast.error("Saqlashda xatolik");
     }
   };
@@ -251,37 +272,61 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const handleManualPostUpload = async (files: File[], data: { title: string, price: string, description: string }) => {
     if (!user || files.length === 0) return;
     setIsUploading(true);
+    setUploadProgress(0);
+    setShowManualPostModal(false); // Close immediately
     const toastId = toast.loading("Media yuklanmoqda...");
 
     try {
       let mediaUrls: string[] = [];
       let isVideo = false;
 
-      // Try server upload (R2) first
+      // Try server upload (R2) first with XMLHttpRequest to track progress
       try {
         const formData = new FormData();
         files.forEach(file => formData.append('files', file));
 
-        const response = await fetch('/api/upload-to-r2', {
-          method: 'POST',
-          body: formData
+        const result: any = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/upload-to-r2');
+          
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percentComplete);
+              if (percentComplete === 100) {
+                toast.loading("Media siqilmoqda va yuklanmoqda...", { id: toastId });
+              }
+            }
+          };
+
+          xhr.onload = () => {
+             if (xhr.status >= 200 && xhr.status < 300) {
+               try {
+                 resolve(JSON.parse(xhr.responseText));
+               } catch (e) {
+                 reject(new Error("Invalid JSON response"));
+               }
+             } else {
+               reject(new Error(`Upload failed with status ${xhr.status}`));
+             }
+          };
+          
+          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.send(formData);
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          mediaUrls = result.urls.map((u: any) => u.url);
-          isVideo = result.urls.some((u: any) => u.type === 'video');
-        } else {
-          console.warn("Server upload failed, falling back to Firebase Storage");
-          throw new Error("R2 not available");
-        }
+        mediaUrls = result.urls.map((u: any) => u.url);
+        isVideo = result.urls.some((u: any) => u.type === 'video');
       } catch (fallbackErr) {
         // Fallback to Firebase Storage
+        let completed = 0;
         const uploadPromises = files.map(async (file) => {
           const extension = file.name.split('.').pop() || (file.type.startsWith('video') ? 'mp4' : 'jpg');
           const fileName = `posts/${shopData.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
           const fileRef = ref(storage, fileName);
           await uploadBytes(fileRef, file);
+          completed++;
+          setUploadProgress(Math.round((completed / files.length) * 100));
           if (file.type.startsWith('video')) isVideo = true;
           return getDownloadURL(fileRef);
         });
@@ -318,12 +363,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       await addDoc(collection(db, 'posts'), postData);
       
       toast.success("Post muvaffaqiyatli yaratildi!", { id: toastId });
-      setShowManualPostModal(false);
     } catch (error: any) {
-      console.error("Manual post error:", error?.message || error);
-      toast.error(error.message || "Xatolik yuz berdi", { id: toastId });
+      const errorMessage = error?.message || String(error);
+      console.error("Manual post error:", errorMessage);
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -348,6 +394,16 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
   return (
     <div className="fixed inset-0 bg-bg-primary z-[1000] flex flex-col overflow-hidden">
+      {/* Upload Progress Bar */}
+      {uploadProgress !== null && (
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-black/10 z-[3000]">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300 ease-out"
+            style={{ width: `${uploadProgress}%` }}
+          />
+        </div>
+      )}
+      
       <div className="absolute top-4 left-4 z-[2000]">
         <button 
           onClick={onBackToMarketplace}

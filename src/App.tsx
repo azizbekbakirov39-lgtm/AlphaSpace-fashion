@@ -583,7 +583,8 @@ export default function App() {
           toast.success("Do'kon muvaffaqiyatli yaratildi!");
           constructionFinishedRef.current = false; // Reset for next time if needed
         } catch (error: any) {
-          console.error("Error creating shop:", error?.message || error);
+          const errorMessage = error?.message || String(error);
+          console.error("Error creating shop:", errorMessage);
           toast.error("Do'kon yaratishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
           setIsConstructingShop(false);
           constructionFinishedRef.current = false;

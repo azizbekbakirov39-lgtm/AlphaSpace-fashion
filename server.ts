@@ -10,13 +10,42 @@ import fs from "fs";
 import { promisify } from "util";
 import os from "os";
 import multer from "multer";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
+import sharp from "sharp";
+
+// Set ffmpeg path
+if (ffmpegStatic) {
+  ffmpeg.setFfmpegPath(ffmpegStatic);
+}
 
 const upload = multer({ 
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(os.tmpdir(), "uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    }
+  }),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB max
+    fileSize: 1024 * 1024 * 1024, // 1GB max for 4K videos
   }
 });
+
+const uploadToR2FromDisk = async (filePath: string, key: string, contentType: string) => {
+  const fileBuffer = await readFile(filePath);
+  return r2Client.send(new PutObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: key,
+    Body: fileBuffer,
+    ContentType: contentType,
+  }));
+};
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
@@ -209,27 +238,65 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
   }
 
   const results = [];
-  const tempFiles: string[] = [];
 
   try {
     for (const file of files) {
       console.log(`Processing file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
       const isVideo = file.mimetype.startsWith("video/");
-      const extension = file.originalname.split(".").pop() || (isVideo ? "mp4" : "jpg");
-      let finalBuffer = file.buffer;
-      let contentType = file.mimetype;
+      const isImage = file.mimetype.startsWith("image/");
+      const extension = isVideo ? "mp4" : "webp"; // Normalize to webp for images
+      let contentType = isVideo ? "video/mp4" : "image/webp";
       const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
+      
+      let finalPath = file.path;
+      const optimizedPath = path.join(os.tmpdir(), `opt-${path.basename(file.path)}.${extension}`);
 
-      if (isVideo) {
-        contentType = "video/mp4";
+      try {
+        if (isVideo) {
+          console.log("Compressing video...");
+          await new Promise<void>((resolve, reject) => {
+            ffmpeg(file.path)
+              .outputOptions([
+                "-vcodec libx264",
+                "-crf 24", // Good balance of size and quality
+                "-preset faster",
+                "-acodec aac",
+                "-movflags +faststart"
+              ])
+              // Keep original resolution (4K)
+              .on("end", () => {
+                console.log("Video compression finished");
+                resolve();
+              })
+              .on("error", (err) => {
+                console.error("Video compression error:", err);
+                reject(err);
+              })
+              .save(optimizedPath);
+          });
+          finalPath = optimizedPath;
+        } else if (isImage) {
+          console.log("Optimizing image...");
+          await sharp(file.path)
+            .webp({ quality: 85 })
+            .toFile(optimizedPath);
+          finalPath = optimizedPath;
+        }
+      } catch (optError) {
+        console.warn("Optimization failed, using original file:", optError);
+        finalPath = file.path;
       }
 
       if (process.env.R2_BUCKET_NAME) {
+        const stats = await fs.promises.stat(finalPath);
+        const fileStream = fs.createReadStream(finalPath);
+        
         await r2Client.send(new PutObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: key,
-          Body: finalBuffer,
+          Body: fileStream,
           ContentType: contentType,
+          ContentLength: stats.size
         }));
         
         let publicUrl = "";
@@ -237,7 +304,6 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
           const domain = process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "");
           publicUrl = `https://${domain}/${key}`;
         } else {
-          // Fallback to endpoint-based URL if no public domain
           const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");
           publicUrl = `https://${process.env.R2_BUCKET_NAME}.${endpoint}/${key}`;
         }
@@ -246,23 +312,22 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
           url: publicUrl,
           type: isVideo ? "video" : "image"
         });
+
+        // Clean up temp files
+        try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
+        try { if (fs.existsSync(optimizedPath)) await unlink(optimizedPath); } catch (e) {}
       } else {
         throw new Error("R2_BUCKET_NAME o'rnatilmagan");
       }
-    }
-
-    // Cleanup temp files
-    for (const f of tempFiles) {
-      try { await unlink(f); } catch (e) {}
     }
 
     res.json({ urls: results });
 
   } catch (error: any) {
     console.error("Manual Upload Error:", error);
-    // Cleanup temp files on error
-    for (const f of tempFiles) {
-      try { await unlink(f); } catch (e) {}
+    // Attempt to cleanup any remaining files
+    for (const file of files) {
+       try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
     }
     res.status(500).json({ error: error.message });
   }
@@ -344,10 +409,13 @@ async function startServer() {
   await setupVite();
   
   const PORT = process.env.PORT || 3000;
-  app.listen(Number(PORT), "0.0.0.0", () => {
+  const server = app.listen(Number(PORT), "0.0.0.0", () => {
     console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
     console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
   });
+
+  // Set timeout to 10 minutes to handle large video uploads and compression
+  server.timeout = 600000;
 }
 
 startServer().catch(err => {

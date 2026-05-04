@@ -24,7 +24,7 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <YMaps query={{ lang: 'ru_RU', apikey: '' }}>
+    <YMaps query={{ lang: 'ru_RU', apikey: '40d1643f-98d9-46d3-9814-e2d199910109' }}>
       <App />
     </YMaps>
   </StrictMode>,

@@ -246,8 +246,7 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-primary/40 ml-1">
                     Do'kon joylashuvi
                   </label>
-                  <div className="w-full h-48 rounded-2xl overflow-hidden border border-text-primary/10 relative">
-                    <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US' }}>
+                    <div className="w-full h-48 rounded-2xl overflow-hidden border border-text-primary/10 relative">
                       <Map 
                         state={{ center: [location.lat, location.lng], zoom: 15 }}
                         width="100%"
@@ -262,7 +261,6 @@ const CreateShopModal: React.FC<CreateShopModalProps> = ({ isOpen, onClose, onSu
                       >
                         <Placemark geometry={[location.lat, location.lng]} />
                       </Map>
-                    </YMaps>
                     <button 
                       type="button"
                       onClick={detectLocation}

@@ -103,6 +103,7 @@ export const ShopModals = ({
   const [manualTitle, setManualTitle] = useState('');
   const [manualPrice, setManualPrice] = useState('');
   const [manualDescription, setManualDescription] = useState('');
+  const [manualPostStep, setManualPostStep] = useState<'edit' | 'preview'>('edit');
 
   const handleManualFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -136,6 +137,7 @@ export const ShopModals = ({
       setManualTitle('');
       setManualPrice('');
       setManualDescription('');
+      setManualPostStep('edit');
     }
   }, [showManualPostModal]);
 
@@ -219,17 +221,35 @@ export const ShopModals = ({
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[6000] bg-black backdrop-blur-2xl flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 z-50 w-full absolute top-0 bg-gradient-to-b from-black/80 to-transparent">
-              <button onClick={() => setShowManualPostModal(false)} className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-md">
-                <X size={20} />
-              </button>
+              {manualPostStep === 'edit' ? (
+                <button onClick={() => setShowManualPostModal(false)} className="w-10 h-10 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-md hover:bg-black/60 transition-all">
+                  <X size={20} />
+                </button>
+              ) : (
+                <button onClick={() => setManualPostStep('edit')} className="px-4 h-10 bg-black/40 rounded-full flex items-center justify-center text-white backdrop-blur-md text-xs font-bold uppercase tracking-widest hover:bg-black/60 transition-all">
+                  Tahrirlash
+                </button>
+              )}
+              
               <h3 className="text-white font-bold text-sm tracking-widest uppercase">Yangi Post</h3>
-              <button 
-                onClick={handleManualPostSubmit}
-                disabled={isUploading || manualFiles.length === 0 || !manualTitle}
-                className="text-blue-500 font-bold uppercase tracking-widest text-sm disabled:opacity-50"
-              >
-                {isUploading ? <RefreshCw size={16} className="animate-spin" /> : "Ulashish"}
-              </button>
+              
+              {manualPostStep === 'edit' ? (
+                <button 
+                  onClick={() => setManualPostStep('preview')}
+                  disabled={manualFiles.length === 0 || !manualTitle}
+                  className="text-blue-500 font-bold uppercase tracking-widest text-sm disabled:opacity-50 hover:text-blue-400 transition-all"
+                >
+                  Keyingi
+                </button>
+              ) : (
+                <button 
+                  onClick={handleManualPostSubmit}
+                  disabled={isUploading}
+                  className="px-4 h-10 bg-blue-500 rounded-full text-white font-bold uppercase tracking-widest text-xs disabled:opacity-50 hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
+                >
+                  {isUploading ? <RefreshCw size={16} className="animate-spin" /> : "Ulashish"}
+                </button>
+              )}
             </div>
 
             {/* Main Content Area */}
@@ -248,7 +268,7 @@ export const ShopModals = ({
                 <div className="absolute inset-0 w-full h-full bg-zinc-950">
                   {manualPreviews.length === 1 ? (
                     manualFiles[0]?.type.startsWith('video') ? (
-                      <video src={manualPreviews[0]} className="w-full h-full object-cover" autoPlay loop playsInline muted />
+                      <video src={manualPreviews[0]} className="w-full h-full object-cover" autoPlay loop playsInline muted={manualPostStep === 'edit'} />
                     ) : (
                       <img src={manualPreviews[0]} className="w-full h-full object-cover" />
                     )
@@ -257,24 +277,26 @@ export const ShopModals = ({
                       {manualPreviews.map((preview, index) => (
                         <div key={index} className="w-full h-full flex-shrink-0 snap-center relative">
                           {manualFiles[index]?.type.startsWith('video') ? (
-                            <video src={preview} className="w-full h-full object-cover" autoPlay loop playsInline muted />
+                            <video src={preview} className="w-full h-full object-cover" autoPlay loop playsInline muted={manualPostStep === 'edit'} />
                           ) : (
                             <img src={preview} className="w-full h-full object-cover" />
                           )}
-                          {/* Delete button for each media */}
-                          <button 
-                            onClick={() => removeManualFile(index)}
-                            className="absolute top-20 right-4 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white z-50 shadow-lg"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          {/* Delete button for each media (only in edit mode) */}
+                          {manualPostStep === 'edit' && (
+                            <button 
+                              onClick={() => removeManualFile(index)}
+                              className="absolute top-20 right-4 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white z-50 shadow-lg"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                   
-                  {/* Delete button for single media */}
-                  {manualPreviews.length === 1 && (
+                  {/* Delete button for single media (only in edit mode) */}
+                  {manualPreviews.length === 1 && manualPostStep === 'edit' && (
                     <button 
                       onClick={() => removeManualFile(0)}
                       className="absolute top-20 right-4 w-10 h-10 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white z-50 shadow-lg"
@@ -284,37 +306,47 @@ export const ShopModals = ({
                   )}
                 </div>
 
-                {/* Floating Transparent Details Form at the Bottom */}
+                {/* Bottom Overlay Info or Form */}
                 <div className="absolute bottom-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent pt-32 pb-safe-bottom z-40">
                   <div className="px-4 pb-8 space-y-3">
-                    <input 
-                      type="text" 
-                      value={manualTitle}
-                      onChange={(e) => setManualTitle(e.target.value)}
-                      placeholder="Mahsulot nomi (Masalan: Erkaklar kostyumi)" 
-                      className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium" 
-                    />
-                    <input 
-                      type="text" 
-                      value={manualPrice}
-                      onChange={(e) => setManualPrice(e.target.value)}
-                      placeholder="Narxi (Masalan: 120,000 so'm)" 
-                      className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium" 
-                    />
-                    <textarea 
-                      value={manualDescription}
-                      onChange={(e) => setManualDescription(e.target.value)}
-                      placeholder="Mahsulot haqida batafsil izoh yozing..." 
-                      className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium min-h-[100px] resize-none" 
-                    />
-                    
-                    {/* Add more media button */}
-                    {manualFiles.length < 10 && (
-                      <label className="flex items-center gap-3 mt-4 text-white/70 hover:text-white cursor-pointer w-fit group">
-                        <div className="w-10 h-10 bg-white/10 group-hover:bg-white/20 transition-colors flex items-center justify-center rounded-full"><Plus size={20} /></div>
-                        <span className="text-xs font-black uppercase tracking-widest">Yana rasm/video qo'shish</span>
-                        <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualFilesChange} />
-                      </label>
+                    {manualPostStep === 'edit' ? (
+                      <>
+                        <input 
+                          type="text" 
+                          value={manualTitle}
+                          onChange={(e) => setManualTitle(e.target.value)}
+                          placeholder="Mahsulot nomi (Masalan: Erkaklar kostyumi)" 
+                          className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium" 
+                        />
+                        <input 
+                          type="text" 
+                          value={manualPrice}
+                          onChange={(e) => setManualPrice(e.target.value)}
+                          placeholder="Narxi (Masalan: 120,000 so'm)" 
+                          className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium" 
+                        />
+                        <textarea 
+                          value={manualDescription}
+                          onChange={(e) => setManualDescription(e.target.value)}
+                          placeholder="Mahsulot haqida batafsil izoh yozing..." 
+                          className="w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-4 text-white placeholder-white/50 focus:outline-none focus:border-white/60 transition-all font-medium min-h-[100px] resize-none" 
+                        />
+                        
+                        {/* Add more media button */}
+                        {manualFiles.length < 10 && (
+                          <label className="flex items-center gap-3 mt-4 text-white/70 hover:text-white cursor-pointer w-fit group">
+                            <div className="w-10 h-10 bg-white/10 group-hover:bg-white/20 transition-colors flex items-center justify-center rounded-full"><Plus size={20} /></div>
+                            <span className="text-xs font-black uppercase tracking-widest">Yana rasm/video qo'shish</span>
+                            <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualFilesChange} />
+                          </label>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-white">
+                        <h2 className="text-2xl font-black mb-1 drop-shadow-md">{manualTitle}</h2>
+                        {manualPrice && <div className="text-xl font-bold text-blue-400 mb-2 drop-shadow-md">{manualPrice}</div>}
+                        {manualDescription && <p className="text-white/80 text-sm leading-relaxed max-h-[120px] overflow-y-auto scrollbar-hide break-words drop-shadow">{manualDescription}</p>}
+                      </div>
                     )}
                   </div>
                 </div>

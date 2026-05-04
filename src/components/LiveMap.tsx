@@ -188,7 +188,6 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
         )}
       </AnimatePresence>
 
-      <YMaps query={{ lang: language === 'ru' ? 'ru_RU' : 'en_US', apikey: '40d1643f-98d9-46d3-9814-e2d199910109' }}>
         <Map 
           instanceRef={mapRef}
           defaultState={{
@@ -278,7 +277,6 @@ const LiveMap: React.FC<LiveMapProps> = ({ language, onOpenShopProfile, onSearch
             />
           )}
         </Map>
-      </YMaps>
       
       {/* Search & Filter Overlay */}
       <div className="absolute top-4 left-4 right-4 pointer-events-none z-[1000]">
