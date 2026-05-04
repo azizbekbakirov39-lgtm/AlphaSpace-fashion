@@ -1,4 +1,4 @@
-export type SubView = 'main' | 'settings' | 'edit-profile' | 'chats' | 'notifications';
+export type SubView = 'main' | 'settings' | 'edit-profile' | 'chats' | 'notifications' | 'language';
 
 export interface ChatMessage {
   id: string;
