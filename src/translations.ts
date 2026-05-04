@@ -72,10 +72,6 @@ export const translations = {
     lover: 'Sevimli',
     fast: 'Tezkor',
     collector: 'Kolleksioner',
-    email_placeholder: 'Elektron pochta',
-    password_placeholder: 'Parol',
-    login_button: 'Kirish',
-    register_title: 'Ro\'yxatdan o\'tish',
   },
   'uz-cyrl': {
     home: 'Асосий',
@@ -148,10 +144,6 @@ export const translations = {
     lover: 'Севимли',
     fast: 'Тезкор',
     collector: 'Коллекционер',
-    email_placeholder: 'Электрон почта',
-    password_placeholder: 'Парол',
-    login_button: 'Кириш',
-    register_title: 'Рўйхатдан ўтиш',
   },
   ru: {
     home: 'Главная',
@@ -224,10 +216,6 @@ export const translations = {
     lover: 'Любитель',
     fast: 'Быстрый',
     collector: 'Коллекционер',
-    email_placeholder: 'Электронная почта',
-    password_placeholder: 'Пароль',
-    login_button: 'Войти',
-    register_title: 'Регистрация',
   },
   en: {
     home: 'Home',
@@ -300,9 +288,5 @@ export const translations = {
     lover: 'Lover',
     fast: 'Fast',
     collector: 'Collector',
-    email_placeholder: 'Email',
-    password_placeholder: 'Password',
-    login_button: 'Login',
-    register_title: 'Register',
   },
 };
