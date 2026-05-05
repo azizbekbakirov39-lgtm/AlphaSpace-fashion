@@ -349,8 +349,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 reject(error);
               },
               async () => {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
+                try {
+                  const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                  resolve(downloadURL);
+                } catch (e) {
+                  reject(e);
+                }
               }
             );
           });
