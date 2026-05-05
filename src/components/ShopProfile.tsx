@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, Phone, Instagram, Send, MapPin, Clock, Users, Grid, Play, 
+  X, Phone, Send, MapPin, Clock, Users, Grid, Play, 
   MessageCircle, Navigation, Store, Sparkles, Zap, Award, 
   ChevronRight, Star, Check
 } from 'lucide-react';
@@ -69,18 +69,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
   };
 
   if (!isOpen) return null;
-
-  const handleInstagramClick = () => {
-    if (seller.instagram) {
-      window.open(seller.instagram, '_blank');
-    }
-  };
-
-  const handleTelegramClick = () => {
-    if (seller.telegram) {
-      window.open(seller.telegram, '_blank');
-    }
-  };
 
   const handlePhoneClick = () => {
     if (seller.phone) {
@@ -225,7 +213,7 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
           </div>
 
           {/* Contact Links Grid */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {/* Phone */}
             {seller.phone && (
               <button 
@@ -236,32 +224,6 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                   <Phone size={18} />
                 </div>
                 <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telefon</span>
-              </button>
-            )}
-
-            {/* Telegram */}
-            {seller.telegram && (
-              <button 
-                onClick={handleTelegramClick}
-                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#0088cc]/5 hover:border-[#0088cc]/20 group"
-              >
-                <div className="p-2.5 bg-[#0088cc]/10 text-[#0088cc] rounded-2xl group-hover:bg-[#0088cc] group-hover:text-white transition-colors">
-                  <Send size={18} />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telegram</span>
-              </button>
-            )}
-
-            {/* Instagram */}
-            {seller.instagram && (
-              <button 
-                onClick={handleInstagramClick}
-                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#E4405F]/5 hover:border-[#E4405F]/20 group"
-              >
-                <div className="p-2.5 bg-[#E4405F]/10 text-[#E4405F] rounded-2xl group-hover:bg-[#E4405F] group-hover:text-white transition-colors">
-                  <Instagram size={18} />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Instagram</span>
               </button>
             )}
           </div>

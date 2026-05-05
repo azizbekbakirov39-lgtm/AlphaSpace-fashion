@@ -283,8 +283,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         workingDays: localShopData.workingDays || [],
         categories: localShopData.categories || [],
         phone: localShopData.phone || "",
-        instagram: localShopData.instagram || "",
-        telegram: localShopData.telegram || "",
         location: localShopData.location ? {
           lat: Number(localShopData.location.lat),
           lng: Number(localShopData.location.lng)
@@ -471,8 +469,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 setActiveProfileTab={setActiveProfileTab}
                 handleTabChange={handleTabChange}
                 handlePhoneClick={() => window.open(`tel:${localShopData.phone}`)}
-                handleTelegramClick={() => window.open(`https://t.me/${localShopData.telegram?.replace('@', '')}`)}
-                handleInstagramClick={() => window.open(`https://instagram.com/${localShopData.instagram?.replace('@', '')}`)}
                 setShowMap={setShowMap}
                 setShowManualPostModal={setShowManualPostModal}
                 setShowCreateStoryModal={setShowCreateStoryModal}

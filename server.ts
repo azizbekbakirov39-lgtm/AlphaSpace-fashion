@@ -371,18 +371,6 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-app.post("/api/fetch-telegram-html", async (req, res) => {
-  try {
-    const { url } = req.body;
-    const embedUrl = url.includes("?embed=1") ? url : `${url}?embed=1`;
-    const response = await fetch(embedUrl);
-    const html = await response.text();
-    res.json({ html });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // New endpoint to handle manual uploads directly to R2
 app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
   if (!r2Client) {

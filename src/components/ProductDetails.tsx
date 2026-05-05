@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, Phone, Send, Instagram, MessageCircle, Clock, MapPin, 
+  X, Phone, Send, MessageCircle, Clock, MapPin, 
   Navigation, Sparkles, Share2, ChevronRight, ChevronLeft,
   Star, Heart, ArrowLeft, Volume2, VolumeX, Check
 } from 'lucide-react';
@@ -77,16 +77,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
     }
   };
 
-  const handleSocialClick = (platform: 'phone' | 'telegram' | 'instagram') => {
+  const handleSocialClick = (platform: 'phone') => {
     switch (platform) {
       case 'phone':
         window.open(`tel:${seller.phone || '+998901234567'}`, '_blank');
-        break;
-      case 'telegram':
-        window.open(`https://t.me/${seller.telegram?.replace('@', '') || 'shop_username'}`, '_blank');
-        break;
-      case 'instagram':
-        window.open(`https://instagram.com/${seller.instagram?.replace('@', '') || 'shop_username'}`, '_blank');
         break;
     }
   };
@@ -437,7 +431,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
           </div>
 
           {/* Social Links Section */}
-          <div className="mb-10 grid grid-cols-3 gap-3">
+          <div className="mb-10 grid grid-cols-1 gap-3">
             {seller.phone && (
               <button 
                 onClick={() => window.open(`tel:${seller.phone}`, '_blank')}
@@ -447,28 +441,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ post, onClose, onOpenSh
                   <Phone size={18} />
                 </div>
                 <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telefon</span>
-              </button>
-            )}
-            {seller.telegram && (
-              <button 
-                onClick={() => window.open(`https://t.me/${seller.telegram?.replace('@', '')}`, '_blank')}
-                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-accent-blue/5 hover:border-accent-blue/20 group"
-              >
-                <div className="p-2.5 bg-accent-blue/10 text-accent-blue rounded-2xl group-hover:bg-accent-blue group-hover:text-white transition-colors">
-                  <Send size={18} />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telegram</span>
-              </button>
-            )}
-            {seller.instagram && (
-              <button 
-                onClick={() => window.open(`https://instagram.com/${seller.instagram?.replace('@', '')}`, '_blank')}
-                className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#E4405F]/5 hover:border-[#E4405F]/20 group"
-              >
-                <div className="p-2.5 bg-[#E4405F]/10 text-[#E4405F] rounded-2xl group-hover:bg-[#E4405F] group-hover:text-white transition-colors">
-                  <Instagram size={18} />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Instagram</span>
               </button>
             )}
           </div>

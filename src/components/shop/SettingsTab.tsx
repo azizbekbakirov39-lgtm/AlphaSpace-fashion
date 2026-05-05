@@ -124,16 +124,6 @@ export const SettingsTab = ({
               })}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Instagram</label>
-              <input type="text" value={localShopData.instagram} onChange={(e) => setLocalShopData(prev => ({ ...prev, instagram: e.target.value }))} className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-blue/50 text-text-primary" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Telegram</label>
-              <input type="text" value={localShopData.telegram} onChange={(e) => setLocalShopData(prev => ({ ...prev, telegram: e.target.value }))} className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-blue/50 text-text-primary" />
-            </div>
-          </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40 ml-2">Joylashuv</label>

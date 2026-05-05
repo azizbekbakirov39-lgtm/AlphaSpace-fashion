@@ -66,8 +66,6 @@ export interface Seller {
   workingHours?: string;
   workingDays?: string[];
   phone?: string;
-  telegram?: string;
-  instagram?: string;
   description?: string;
   isSubscribed?: boolean;
   region?: string; // e.g., 'Chilonzor', 'Yunusobod', 'Mirobod'

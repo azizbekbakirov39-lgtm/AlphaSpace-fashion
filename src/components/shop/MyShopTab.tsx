@@ -30,8 +30,6 @@ interface MyShopTabProps {
   setActiveProfileTab: (tab: 'Postlar' | 'Ma\'lumot') => void;
   handleTabChange: (tab: string) => void;
   handlePhoneClick: () => void;
-  handleTelegramClick: () => void;
-  handleInstagramClick: () => void;
   setShowMap: (show: boolean) => void;
   setShowManualPostModal: (show: boolean) => void;
   setShowCreateStoryModal: (show: boolean) => void;
@@ -51,8 +49,6 @@ export const MyShopTab = ({
   setActiveProfileTab,
   handleTabChange,
   handlePhoneClick,
-  handleTelegramClick,
-  handleInstagramClick,
   setShowMap,
   setShowManualPostModal,
   setShowCreateStoryModal,
@@ -64,6 +60,7 @@ export const MyShopTab = ({
   return (
     <div className="h-full overflow-y-auto scrollbar-hide pb-16">
       {/* Hero Section */}
+
       <div className="relative h-[300px] w-full overflow-hidden bg-text-primary/5">
         {(() => {
           const latestPost = posts.find(p => {
@@ -158,7 +155,7 @@ export const MyShopTab = ({
       </div>
 
       {/* Contact Links Grid */}
-      <div className="px-6 py-2 grid grid-cols-3 gap-3">
+      <div className="px-6 py-2 grid grid-cols-1 gap-3">
         <button 
           onClick={handlePhoneClick}
           className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-green-500/5 hover:border-green-500/20 group"
@@ -167,16 +164,6 @@ export const MyShopTab = ({
             <Phone size={18} />
           </div>
           <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telefon</span>
-        </button>
-
-        <button 
-          onClick={handleTelegramClick}
-          className="bg-text-primary/5 p-4 rounded-[28px] border border-border-primary flex flex-col items-center gap-2 transition-all active:scale-95 hover:bg-[#0088cc]/5 hover:border-[#0088cc]/20 group flex-1"
-        >
-          <div className="p-2.5 bg-[#0088cc]/10 text-[#0088cc] rounded-2xl group-hover:bg-[#0088cc] group-hover:text-white transition-colors">
-            <Send size={18} />
-          </div>
-          <span className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Telegram</span>
         </button>
       </div>
 
