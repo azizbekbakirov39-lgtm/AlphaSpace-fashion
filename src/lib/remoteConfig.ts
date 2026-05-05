@@ -8,6 +8,8 @@ const remoteConfig = getRemoteConfigService(app);
 remoteConfig.defaultConfig = {
   enable_new_feature: 'false',
   bottom_tabs: JSON.stringify(['Do\'kon', 'Chat', 'Sozlamalar']),
+  primary_color: '#3B82F6', // Tailwind blue-500
+  app_font_size: '16',
 };
 
 // Fetch and activate

@@ -37,7 +37,11 @@ async function generateIcons() {
     // 1. ic_launcher.png (regular box image)
     try {
       await image.clone()
-        .resize(size, size, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
+        .resize(size, size, { 
+          fit: 'contain', 
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+          kernel: sharp.kernel.lanczos3
+        })
         .toFile(launcherPath);
     } catch(e) { console.error("Error generating launcherPath", launcherPath, e); }
       
@@ -47,14 +51,14 @@ async function generateIcons() {
     
     try {
       await image.clone()
-        .resize(size, size, { fit: 'cover' })
+        .resize(size, size, { fit: 'cover', kernel: sharp.kernel.lanczos3 })
         .composite([{ input: circleMask, blend: 'dest-in' }])
         .toFile(roundPath);
     } catch(e) { console.error("Error generating roundPath", roundPath, e); }
 
     // Generate adaptive icon foreground as png as well
     try {
-      const foregroundSize = Math.floor(size * 0.85); // Increased from 0.7 to 0.85 (approx 1.2x)
+      const foregroundSize = Math.floor(size * 0.95); // Further increased to 0.95 for maximum utilization
       const padding = Math.floor((size - foregroundSize) / 2);
       
       await image.clone()
