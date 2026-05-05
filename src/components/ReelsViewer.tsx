@@ -11,7 +11,7 @@ import ProductDetails from './ProductDetails';
 import ReelRightActions from './ReelRightActions';
 import ReelBottomInfo from './ReelBottomInfo';
 import { Language } from '../translations';
-import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, refreshMediaUrl, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
+import { useShare, isVideoUrl, getProxiedUrl, safePlayVideo, getNextProxyIndex, isLastProxy, markUrlAsSuccessful } from '../utils/mediaUtils';
 import { useMediaController } from '../hooks/useMediaController';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { ImageWithFallback } from './ImageWithFallback';

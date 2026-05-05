@@ -11,8 +11,9 @@ import {
 import { toast } from 'sonner';
 import { Seller, PostData, User } from '../types';
 import { Language } from '../translations';
-import { db, storage } from '../firebase';
 import { 
+  db, 
+  storage,
   collection, 
   query, 
   where, 
@@ -25,9 +26,12 @@ import {
   setDoc, 
   addDoc,
   serverTimestamp,
-  Timestamp
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+  Timestamp,
+  ref, 
+  uploadBytes, 
+  getDownloadURL, 
+  uploadBytesResumable
+} from '../firebase';
 
 // Modular components
 import { MyShopTab } from './shop/MyShopTab';
@@ -174,7 +178,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                  const errResponse = JSON.parse(xhr.responseText);
                  reject(new Error(errResponse.error || `Upload failed: ${xhr.status}`));
                } catch {
-                 reject(new Error(xhr.status === 413 ? "Fayl yirik (Max 30MB)" : `Upload failed: ${xhr.status} - ${xhr.responseText}`));
+                 reject(new Error(xhr.status === 413 ? "Fayl hajmi juda katta" : `Upload failed: ${xhr.status} - ${xhr.responseText}`));
                }
              }
            };
@@ -353,7 +357,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                  reject(new Error(errResponse.error || `Upload failed with status ${xhr.status}`));
                } catch {
                  if (xhr.status === 413) {
-                   reject(new Error("Fayl hajmi juda katta. Ilovaga video/rasm yuklash chegarasi 30MB gacha."));
+                   reject(new Error("Fayl hajmi juda katta. Ilovaga video/rasm yuklashda xatolik yuz berdi."));
                  } else {
                    reject(new Error(`Upload failed with status ${xhr.status} - ${xhr.responseText}`));
                  }

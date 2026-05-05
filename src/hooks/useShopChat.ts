@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { uploadFile } from '../services/uploadService';
 import { 
+  db, 
+  storage,
   collection, 
   query, 
   orderBy, 
@@ -11,9 +14,7 @@ import {
   serverTimestamp,
   getDoc,
   where
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+} from '../firebase';
 import { toast } from 'sonner';
 
 export const useShopChat = (shopId: string, userId: string) => {
@@ -118,33 +119,10 @@ export const useShopChat = (shopId: string, userId: string) => {
     if (!activeChatId) return;
     setIsUploading(true);
     try {
-      let url = "";
-      try {
-        const formData = new FormData();
-        formData.append('files', file, file.name);
-
-        const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
-          const data = await r.json();
-          if (!r.ok) throw new Error(data.error || "Upload failed");
-          return data;
-        });
-
-        url = r2Result.urls[0].url;
-      } catch (err: any) {
-        if (err?.message && err.message.includes("R2 sozlanmagan")) {
-          toast.error("R2 sozlanmagan!");
-          setIsUploading(false);
-          return;
-        }
-        
-        toast.info("R2 orqali yuklash muvaffaqiyatsiz tugadi. Firebase yordamida urunib ko'rilmoqda...");
-        const storageRef = ref(storage, `chats/${activeChatId}/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        url = await getDownloadURL(storageRef);
-      }
-      
+      const url = await uploadFile(file, `chats/${activeChatId}`);
       await handleSendMessage(type, { mediaUrl: url });
     } catch (error: any) {
+      console.error("Chat file upload error:", error);
       toast.error("Fayl yuklashda xatolik yuz berdi");
     } finally {
       setIsUploading(false);

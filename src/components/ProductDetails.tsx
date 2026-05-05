@@ -8,7 +8,7 @@ import {
 import { PostData } from '../types';
 import { Language, translations } from '../translations';
 import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
-import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, refreshMediaUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
+import { isVideoUrl, getProxiedUrl, useShare, safePlayVideo, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { db, updateDoc, doc } from '../firebase';
 import { ImageWithFallback } from './ImageWithFallback';
 
@@ -36,23 +36,6 @@ const ProductVideo: React.FC<{ url: string; isMuted: boolean; post: PostData; in
           video.src = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
           video.load();
           safePlayVideo(video);
-        } else if (post.instagramUrl && !video.dataset.triedRefresh) {
-          video.dataset.triedRefresh = 'true';
-          const newUrl = await refreshMediaUrl(post.instagramUrl);
-          if (newUrl) {
-             const newMediaUrls = [...post.mediaUrls];
-             newMediaUrls[index] = newUrl;
-             try {
-               await updateDoc(doc(db, 'posts', post.id), {
-                 mediaUrls: newMediaUrls
-               });
-             } catch (err) {
-               console.error("Firestore update failed in ProductDetails:", err);
-             }
-             video.src = getProxiedUrl(newUrl, 0);
-             video.load();
-             safePlayVideo(video);
-          }
         }
       }}
     />

@@ -1,6 +1,6 @@
 {
   "name": "AlphaSpace Marketplace",
-  "description": "Instagram integratsiyasi bilan jihozlangan do'kon va mahsulotlar boshqaruvi platformasi.",
+  "description": "Do'kon va mahsulotlar boshqaruvi platformasi.",
   "requestFramePermissions": [
     "geolocation",
     "camera",

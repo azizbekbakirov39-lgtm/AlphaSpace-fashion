@@ -47,7 +47,7 @@ import { usePWA } from '../hooks/usePWA';
 import { showChatNotification } from '../utils/notifications';
 import { PostData, Seller, User } from '../types';
 import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, getDoc, updateDoc, increment, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
-import { uploadImageToImgBB } from '../services/imgbb';
+import { uploadFile } from '../services/uploadService';
 
 import { InAppBrowserGuide } from './InAppBrowserGuide';
 import Logo from './Logo';
@@ -595,30 +595,16 @@ const Profile: React.FC<ProfileProps> = ({
       let finalVideoUrl = video || null;
 
       if (stagedFile) {
-        if (stagedImage) {
-          try {
-            finalImageUrl = await uploadImageToImgBB(stagedFile);
-          } catch (error) {
-            console.error("ImgBB upload error:", error);
+        try {
+          const uploadedUrl = await uploadFile(stagedFile, stagedImage ? 'chat_images' : 'chat_videos');
+          if (stagedImage) {
+            finalImageUrl = uploadedUrl;
+          } else {
+            finalVideoUrl = uploadedUrl;
           }
-        } else if (stagedVideo) {
-          try {
-            const formData = new FormData();
-            formData.append('files', stagedFile, stagedFile.name);
-            const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
-              const data = await r.json();
-              if (!r.ok) throw new Error(data.error || "Upload failed");
-              return data;
-            });
-            finalVideoUrl = r2Result.urls[0].url;
-          } catch (err: any) {
-            console.error("Staged video upload error with R2, falling back:", err);
-            const fileExt = stagedFile.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-            await uploadBytes(storageRef, stagedFile);
-            finalVideoUrl = await getDownloadURL(storageRef);
-          }
+        } catch (error) {
+          console.error("File upload error:", error);
+          toast.error("Fayl yuklashda xatolik yuz berdi");
         }
       }
 

@@ -115,7 +115,6 @@ export interface PostData {
     description?: string;
     tags?: string[];
   };
-  instagramUrl?: string;
   thumbnailUrl?: string;
   createdAt?: any;
 }

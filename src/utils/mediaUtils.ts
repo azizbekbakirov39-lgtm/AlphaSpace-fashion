@@ -72,10 +72,7 @@ export const isVideoUrl = (url: string): boolean => {
     lowerUrl.includes('clip') ||
     lowerUrl.includes('stream') ||
     lowerUrl.includes('blob') ||
-    lowerUrl.includes('upload') ||
-    (lowerUrl.includes('fbcdn.net') && lowerUrl.includes('mp4')) || // Only if it also says mp4
-    lowerUrl.includes('instagram.com/reels') ||
-    lowerUrl.includes('instagram.com/reel')
+    lowerUrl.includes('upload')
   ) {
     // Ensure it's not an image with these keywords in URL
     const isLikelyImage = lowerUrl.match(/\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)($|\?|&)/);
@@ -84,46 +81,6 @@ export const isVideoUrl = (url: string): boolean => {
   }
   
   return false;
-};
-
-// Instagram vaqtinchalik havolalarini yangilash uchun xizmat
-export const refreshMediaUrl = async (instagramUrl: string): Promise<string | null> => {
-  if (!instagramUrl) return null;
-  
-  try {
-    const urlMatch = instagramUrl.match(/(p|reel|tv)\/([A-Za-z0-9_-]+)/);
-    const type = urlMatch ? urlMatch[1] : 'p';
-    const shortcode = urlMatch ? urlMatch[2] : null;
-    if (!shortcode) return null;
-
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-    const response = await fetch(`${API_BASE}/api/refresh-instagram-url`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({ shortcode, type })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "No error body");
-      // console.error(`API Error (${response.status}):`, errorText); // Silent for cleaner UX
-      return null;
-    }
-    const result = await response.json();
-    
-    if (Array.isArray(result) && result.length > 0) {
-      return result[0].urls?.[0]?.url || result[0].pictureUrl || result[0].display_url;
-    } else if (result.urls && Array.isArray(result.urls)) {
-      return result.urls[0].url;
-    } else if (result.pictureUrl || result.display_url || result.thumbnail_url) {
-      return result.pictureUrl || result.display_url || result.thumbnail_url;
-    }
-    return null;
-  } catch (error: any) {
-    // console.error("Link refresh network error:", error.message, error); // Silent for cleaner UX
-    return null;
-  }
 };
 
 // Key used for local caching of successful proxy URLs
@@ -188,12 +145,8 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     return `/api/proxy-video?url=${encodeURIComponent(url)}`;
   }
 
-  // Directly return trusted non-instagram URLs when proxyIndex is 0
-  if (proxyIndex === 0 && (
-    url.includes('firebasestorage.googleapis.com') || 
-    url.includes('i.ibb.co') || 
-    (url.includes('scontent') === false && !url.includes('instagram.com'))
-  )) {
+  // Directly return trusted URLs when proxyIndex is 0
+  if (proxyIndex === 0 && url.includes('firebasestorage.googleapis.com')) {
     return url;
   }
   

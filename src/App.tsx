@@ -23,7 +23,7 @@ import Logo from './components/Logo';
 import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
 import { Toaster, toast } from 'sonner';
-import { uploadImageToImgBB } from './services/imgbb';
+import { uploadFile } from './services/uploadService';
 import { showChatNotification } from './utils/notifications';
 import { requestNotificationPermission, onMessage, messaging } from './firebase';
 import { useChatNotifications } from './hooks/useChatNotifications';
@@ -108,14 +108,6 @@ export default function App() {
     }
   }, [activeReelIndex, activeReelList, selectedPostForDetails]);
 
-  // Check for ImgBB API Key on startup
-  useEffect(() => {
-    const apiKey = (import.meta as any).env.VITE_IMGBB_API_KEY;
-    if (!apiKey && userShop) {
-      toast.error("ImgBB API kaliti topilmadi. Rasmlar yuklashda muammo bo'lishi mumkin.");
-    }
-  }, [userShop]);
-  
   // Firestore Real-time Listeners
   useEffect(() => {
     const unsubSellers = onSnapshot(collection(db, 'shops'), (snapshot) => {
@@ -347,32 +339,11 @@ export default function App() {
   const [constructionProgress, setConstructionProgress] = useState(0);
   const [newShopData, setNewShopData] = useState<{name: string, logoFile: File | null, logoPreview: string | null, workingDays: string[], categories: SellerCategory[], location: { lat: number, lng: number }, region: string} | null>(null);
 
-  // Firebase Auth Listener
+  // Auth Listener
   useEffect(() => {
-    if (messaging) {
-      onMessage(messaging, (payload) => {
-        showChatNotification(payload.notification?.title || 'Yangi xabar', payload.notification?.body || '');
-      });
-    }
-
-    const handleRedirect = async () => {
-      try {
-        const { getRedirectResult } = await import('firebase/auth');
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("Redirect result user:", result.user.email);
-        }
-      } catch (error: any) {
-        if (error.code !== 'auth/web-storage-unsupported') {
-          console.error("Auth redirect result error:", error.message || error);
-        }
-      }
-    };
-    handleRedirect();
-
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        requestNotificationPermission(firebaseUser.uid);
+        requestNotificationPermission();
         if (!user || user.uid !== firebaseUser.uid) {
           const userDoc = doc(db, 'users', firebaseUser.uid);
           const docSnap = await getDoc(userDoc);
@@ -537,12 +508,12 @@ export default function App() {
         try {
           let logoUrl = '';
           if (newShopData.logoFile) {
-            const uploadToastId = toast.loading("Logo ImgBB ga yuklanmoqda...");
+            const uploadToastId = toast.loading("Logo yuklanmoqda...");
             try {
-              logoUrl = await uploadImageToImgBB(newShopData.logoFile);
+              logoUrl = await uploadFile(newShopData.logoFile);
               toast.success("Logo yuklandi!", { id: uploadToastId });
             } catch (uploadError: any) {
-              console.error("ImgBB upload error:", uploadError?.message || uploadError);
+              console.error("Upload error:", uploadError?.message || uploadError);
               toast.error(`Logo yuklashda xatolik: ${uploadError.message || 'Noma\'lum xato'}. Do'kon yaratish davom etmoqda...`, { id: uploadToastId });
             }
           }

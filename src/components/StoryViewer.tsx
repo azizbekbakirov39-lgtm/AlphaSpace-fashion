@@ -81,8 +81,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     likes: currentStory?.likes || 0,
     comments: currentStory?.comments || 0,
     isLiked: currentStory?.isLiked || false,
-    isSaved: false,
-    instagramUrl: ''
+    isSaved: false
   };
 
   const { 
