@@ -66,12 +66,18 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, language
                   <div className="mt-[-4px]">
                     <Logo width={63} showText={true} />
                   </div>
-                ) : tab.name === 'Profile' && user?.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt={user.displayName || 'Profile'} 
-                    className="w-[28px] h-[28px] rounded-full border border-border-primary object-cover" 
-                  />
+                ) : tab.name === 'Profile' ? (
+                  <div className="w-[28px] h-[28px] rounded-full border border-border-primary overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-[10px] font-black">
+                    {user?.photoURL ? (
+                      <img 
+                        src={user.photoURL} 
+                        alt={user.displayName || 'Profile'} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <span>{user?.displayName?.charAt(0).toUpperCase() || <UserIcon size={16} />}</span>
+                    )}
+                  </div>
                 ) : tab.isCustom ? (
                   <Icon 
                     size={42} 

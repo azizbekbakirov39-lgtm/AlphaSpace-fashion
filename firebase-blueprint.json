@@ -1,0 +1,200 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["buyer", "seller", "admin"] },
+        "hasShop": { "type": "boolean" },
+        "sellerId": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "bio": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Shop": {
+      "title": "Shop",
+      "description": "Seller shop data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "logo": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "rating": { "type": "number" },
+        "verified": { "type": "boolean" },
+        "followers": { "type": "number" },
+        "location": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "name"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Social feed post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "mediaUrls": { "type": "array", "items": { "type": "string" } },
+        "caption": { "type": "string" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "isVideo": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sellerId", "mediaUrls"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "Temporary story post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "isVideo": { "type": "boolean" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sellerId", "mediaUrl"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Chat session between users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual message in a chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment on a post",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "text"]
+    },
+    "TelegramLink": {
+      "title": "TelegramLink",
+      "description": "Telegram post link data",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "productName": { "type": "string" },
+        "price": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "channelName": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "processed", "error"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["url"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "User like on a post or story",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "postId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "postId"]
+    },
+    "SavedItem": {
+      "title": "SavedItem",
+      "description": "User saved post",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "postId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "postId"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "User subscription to a shop",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "sellerId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "shops/{shopId}": {
+      "schema": "Shop",
+      "description": "Seller shops"
+    },
+    "posts/{postId}": {
+      "schema": "Post",
+      "description": "Social feed posts"
+    },
+    "stories/{storyId}": {
+      "schema": "Story",
+      "description": "Temporary stories"
+    },
+    "chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Chat sessions"
+    },
+    "chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages in chats"
+    },
+    "posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Post comments"
+    },
+    "telegram_links/{linkId}": {
+      "schema": "TelegramLink",
+      "description": "Telegram links"
+    },
+    "likes/{likeId}": {
+      "schema": "Like",
+      "description": "Post likes"
+    },
+    "saved_items/{saveId}": {
+      "schema": "SavedItem",
+      "description": "Saved posts"
+    },
+    "subscriptions/{subId}": {
+      "schema": "Subscription",
+      "description": "Shop subscriptions"
+    }
+  }
+}

@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import { Seller, PostData, User } from '../types';
 import { Language } from '../translations';
+import { uploadFile } from '../services/uploadService';
 import { 
   db, 
   storage,
@@ -189,16 +190,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         url = r2Result.urls[0].url;
       } catch (err: any) {
         if (err?.message && err.message.includes("R2 sozlanmagan")) {
-           throw err; // Show exact error
+           throw err;
         }
         
-        toast.info("G'o'ldan yuklashda R2 xatosi yuz berdi. Firebase yordamida urunib ko'rilmoqda...");
-        const extension = file.name.split('.').pop();
-        const fileName = `stories/${shopData.id}_${Date.now()}.${extension}`;
-        const fileRef = ref(storage, fileName);
-        
-        await uploadBytes(fileRef, file);
-        url = await getDownloadURL(fileRef);
+        console.error("R2 upload error, retrying...", err);
+        url = await uploadFile(file);
       }
 
       const storyData = {
@@ -372,48 +368,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         mediaUrls = result.urls.map((u: any) => u.url);
         isVideo = result.urls.some((u: any) => u.type === 'video');
       } catch (fallbackErr: any) {
-        // Do not fallback to Firebase if the error was clearly an R2 configuration issue
-        // or a file size limit. Firebase Storage typically fails with CORS in live env anyway.
         if (fallbackErr?.message && fallbackErr.message.includes("R2 sozlanmagan")) {
           throw fallbackErr;
         }
 
-        toast.loading("G'o'ldan yuklashda R2 xatosi yuz berdi. Firebase yordamida urinib ko'rilmoqda...", { id: toastId });
-        
-        // Fallback to Firebase Storage
-        const fileProgresses: number[] = new Array(files.length).fill(0);
-        
-        const uploadPromises = files.map(async (file, index) => {
-          const extension = file.name.split('.').pop() || (file.type.startsWith('video') ? 'mp4' : 'jpg');
-          const fileName = `posts/${shopData.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
-          const fileRef = ref(storage, fileName);
-          
-          if (file.type.startsWith('video')) isVideo = true;
-
-          return new Promise<string>((resolve, reject) => {
-            const uploadTask = uploadBytesResumable(fileRef, file);
-            uploadTask.on('state_changed', 
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                fileProgresses[index] = progress;
-                const totalProgress = fileProgresses.reduce((acc, curr) => acc + curr, 0) / files.length;
-                setUploadProgress(Math.round(totalProgress));
-              },
-              (error) => {
-                reject(error);
-              },
-              async () => {
-                try {
-                  const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                  resolve(downloadURL);
-                } catch (e) {
-                  reject(e);
-                }
-              }
-            );
-          });
-        });
-        mediaUrls = await Promise.all(uploadPromises);
+        console.error("R2 collection upload error:", fallbackErr);
+        throw fallbackErr;
       }
 
       if (mediaUrls.length === 0) throw new Error("Fayllarni yuklash imkoni bo'lmadi");

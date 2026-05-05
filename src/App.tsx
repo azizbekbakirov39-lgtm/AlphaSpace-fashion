@@ -24,16 +24,13 @@ import { Language, translations } from './translations';
 import { Seller, Story, AIMessage, SellerCategory, PostData, User } from './types';
 import { Toaster, toast } from 'sonner';
 import { uploadFile } from './services/uploadService';
-import { showChatNotification } from './utils/notifications';
-import { requestNotificationPermission, onMessage, messaging } from './firebase';
-import { useChatNotifications } from './hooks/useChatNotifications';
 import { DesktopSidebar } from './components/DesktopSidebar';
 import { 
   auth, 
   onSnapshot, 
   doc, 
   db, 
-  signInWithGoogle, 
+  signInWithGoogle,
   logout, 
   registerWithEmail,
   loginWithEmail,
@@ -341,18 +338,17 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        requestNotificationPermission();
-        if (!user || user.uid !== firebaseUser.uid) {
-          const userDoc = doc(db, 'users', firebaseUser.uid);
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser) {
+        if (!user || user.uid !== currentUser.uid) {
+          const userDoc = doc(db, 'users', currentUser.uid);
           const docSnap = await getDoc(userDoc);
           if (!docSnap.exists()) {
             const newUser: User = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName,
+              photoURL: currentUser.photoURL,
               role: 'buyer',
               hasShop: false
             };
@@ -368,7 +364,7 @@ export default function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // Real-time User Profile Listener
   useEffect(() => {
@@ -432,8 +428,6 @@ export default function App() {
       }
     }
   };
-
-  useChatNotifications(user, userShop, activeTab, shopWorkspaceChatId, profileActiveChatSellerId, profileSubView);
 
   const t = translations[language];
 

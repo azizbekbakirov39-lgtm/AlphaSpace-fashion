@@ -83,12 +83,18 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <div className="flex items-center justify-center w-[30px] h-[30px]">
                   {tab.isSmartObject ? (
                     <SmartSellerLogo width={40} showText={false} />
-                  ) : tab.name === 'Profile' && user?.photoURL ? (
-                    <img 
-                      src={user.photoURL} 
-                      alt="" 
-                      className="w-full h-full rounded-full object-cover border border-border-primary"
-                    />
+                  ) : tab.name === 'Profile' ? (
+                    <div className="w-full h-full rounded-full border border-border-primary overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white text-xs font-black">
+                      {user?.photoURL ? (
+                        <img 
+                          src={user.photoURL} 
+                          alt="" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{user?.displayName?.charAt(0).toUpperCase() || <UserIcon size={18} />}</span>
+                      )}
+                    </div>
                   ) : tab.isCustom ? (
                     <Icon size={48} isActive={isActive} />
                   ) : Icon ? (
@@ -151,11 +157,11 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       {user && (
         <div className="mt-auto border-t border-border-primary pt-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-text-primary/10 overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 overflow-hidden flex items-center justify-center text-white font-black">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <UserIcon size={24} className="m-2 text-text-secondary" />
+                <span>{user.displayName?.charAt(0).toUpperCase() || <UserIcon size={24} />}</span>
               )}
             </div>
             <div className="flex flex-col overflow-hidden">

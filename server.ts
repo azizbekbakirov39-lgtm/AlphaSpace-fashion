@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import Stripe from "stripe";
 import cors from "cors";
 import dotenv from "dotenv";
 import crypto from "crypto";
@@ -68,7 +67,7 @@ if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.
 
 // R2-backed Database Helpers
 const dbGet = async (collection: string, id: string) => {
-  if (!r2Client) return null;
+  if (!r2Client || !process.env.R2_BUCKET_NAME) return null;
   try {
     const command = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
@@ -78,13 +77,13 @@ const dbGet = async (collection: string, id: string) => {
     const bodyContents = await response.Body.transformToString();
     return JSON.parse(bodyContents);
   } catch (err: any) {
-    if (err.name === 'NoSuchKey') return null;
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) return null;
     throw err;
   }
 };
 
 const dbSet = async (collection: string, id: string, data: any) => {
-  if (!r2Client) return;
+  if (!r2Client || !process.env.R2_BUCKET_NAME) return;
   const command = new PutObjectCommand({
     Bucket: process.env.R2_BUCKET_NAME,
     Key: `db/${collection}/${id}.json`,
@@ -95,17 +94,21 @@ const dbSet = async (collection: string, id: string, data: any) => {
 };
 
 const dbList = async (collection: string) => {
-  if (!r2Client) return [];
+  if (!r2Client || !process.env.R2_BUCKET_NAME) return [];
   try {
     const command = new ListObjectsV2Command({
       Bucket: process.env.R2_BUCKET_NAME,
       Prefix: `db/${collection}/`,
     });
-    const response = await r2Client.send(command);
-    if (!response.Contents) return [];
     
-    // Fetch all files in parallel (with some concurrency limit ideally, but simple for now)
+    const response = await r2Client.send(command);
+    if (!response.Contents || response.Contents.length === 0) return [];
+    
+    // Fetch all files in parallel
     const promises = response.Contents.map(async (obj: any) => {
+      // Skip "folder" markers (keys ending in /)
+      if (obj.Key.endsWith('/')) return null;
+      
       try {
         const getCmd = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
@@ -114,13 +117,19 @@ const dbList = async (collection: string) => {
         const getRes = await r2Client.send(getCmd);
         const body = await getRes.Body.transformToString();
         return JSON.parse(body);
-      } catch (e) {
+      } catch (e: any) {
+        if (e.name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404) return null;
+        console.error(`Error fetching document ${obj.Key}:`, e.message);
         return null;
       }
     });
+    
     const results = await Promise.all(promises);
     return results.filter(r => r !== null);
-  } catch (err) {
+  } catch (err: any) {
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+      return [];
+    }
     console.error(`Error listing collection ${collection}:`, err);
     return [];
   }
@@ -135,7 +144,6 @@ const dbDelete = async (collection: string, id: string) => {
   await r2Client.send(command);
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc");
 const app = express();
 
 app.use(cors());
@@ -451,35 +459,6 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
   }
 });
 
-app.post("/api/create-checkout-session", async (req, res) => {
-  try {
-    const { price, title } = req.body;
-    const amount = parseInt(price.replace(/[^0-9]/g, "")) * 100;
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [{
-        price_data: {
-          currency: "uzs",
-          product_data: { name: title },
-          unit_amount: amount || 2000000,
-        },
-        quantity: 1,
-      }],
-      mode: "payment",
-      success_url: `${req.headers.origin}/shop-workspace?payment=success`,
-      cancel_url: `${req.headers.origin}/shop-workspace?payment=cancel`,
-    });
-    res.json({ url: session.url });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/send-push", async (req, res) => {
-  // Push notifications removed along with Firebase
-  res.json({ success: true, message: "Push disabled (Firebase removed)" });
-});
-
 // Vite / Static serving
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
@@ -497,11 +476,6 @@ async function setupVite() {
     });
   }
 }
-
-setupVite();
-
-// Export for Vercel
-export default app;
 
 // Start Server
 async function startServer() {

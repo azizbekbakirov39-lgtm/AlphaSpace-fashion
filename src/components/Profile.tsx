@@ -681,7 +681,7 @@ const Profile: React.FC<ProfileProps> = ({
         lastSender: user.uid,
         readBy: [user.uid],
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       let finalType = 'text';
       let mediaUrl = undefined;
@@ -820,6 +820,20 @@ const Profile: React.FC<ProfileProps> = ({
       ...prev,
       [sellerId]: prev[sellerId].filter(m => m.id !== messageId)
     }));
+  };
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+
+  const handleSaveName = async () => {
+    if (!tempName.trim() || !user) return;
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { displayName: tempName.trim() });
+      setIsEditingName(false);
+      toast.success("Ism yangilandi!");
+    } catch (err) {
+      toast.error("Xatolik yuz berdi");
+    }
   };
 
   const renderMain = () => {
@@ -1132,20 +1146,75 @@ const Profile: React.FC<ProfileProps> = ({
           <div className="relative z-10 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/40 p-1 shadow-inner">
+                <div className="relative group/avatar">
+                  <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/40 p-1 shadow-inner relative overflow-hidden">
                     <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-accent-blue to-accent-light flex items-center justify-center text-white shadow-lg">
                       {user.photoURL ? (
                         <img src={user.photoURL || undefined} alt={user.displayName || ''} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
-                        <UserIcon size={40} />
+                        <span className="text-3xl font-black">{user.displayName?.charAt(0).toUpperCase() || <UserIcon size={40} />}</span>
                       )}
                     </div>
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
+                      <ImageIcon size={20} className="text-white" />
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file && user) {
+                            try {
+                              const toastId = toast.loading("Rasm yuklanmoqda...");
+                              const url = await uploadFile(file);
+                              await updateDoc(doc(db, 'users', user.uid), { photoURL: url });
+                              toast.success("Rasm yangilandi!", { id: toastId });
+                            } catch (err) {
+                              toast.error("Rasm yuklashda xatolik");
+                            }
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-black text-white tracking-tight leading-none mb-1">{user.displayName || 'Foydalanuvchi'}</h2>
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 group/name">
+                    {isEditingName ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          autoFocus
+                          type="text"
+                          value={tempName}
+                          onChange={(e) => setTempName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveName();
+                            if (e.key === 'Escape') setIsEditingName(false);
+                          }}
+                          className="bg-white/20 backdrop-blur-md border border-white/40 rounded-lg px-2 py-1 text-xl font-black text-white w-full outline-none focus:ring-2 focus:ring-white/30"
+                        />
+                        <button onClick={handleSaveName} className="p-1 bg-white/20 rounded-md text-white hover:bg-white/30 transition-colors">
+                          <Zap size={16} fill="currentColor" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <h2 className="text-2xl font-black text-white tracking-tight leading-none truncate max-w-[200px]">
+                          {user.displayName || 'Foydalanuvchi'}
+                        </h2>
+                        <button 
+                          onClick={() => {
+                            setTempName(user.displayName || '');
+                            setIsEditingName(true);
+                          }}
+                          className="p-1.5 opacity-0 group-hover/name:opacity-100 transition-opacity text-white/60 hover:text-white"
+                        >
+                          <Plus size={16} className="rotate-45" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/20">
                       {user.role === 'seller' ? 'SOTUVCHI' : t.alpha_member}
                     </span>

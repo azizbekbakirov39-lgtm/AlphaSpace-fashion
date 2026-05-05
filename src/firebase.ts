@@ -1,134 +1,116 @@
-import { authService, dbService, storageService } from './services/apiService';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot, 
+  serverTimestamp, 
+  increment,
+  Timestamp,
+  limit,
+  startAfter,
+  getDocFromServer
+} from 'firebase/firestore';
+import { 
+  getStorage, 
+  ref, 
+  uploadBytes, 
+  getDownloadURL, 
+  uploadBytesResumable 
+} from 'firebase/storage';
+import firebaseConfig from '../firebase-applet-config.json';
 
-export { storageService };
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const storage = getStorage(app);
 
-// Mimic Firebase Auth
-export const auth = {
-  currentUser: null as any,
-  onAuthStateChanged: (callback: (user: any) => void) => {
-    // Initial check
-    authService.getMe().then(user => {
-      auth.currentUser = user;
-      callback(user);
-    });
-    return () => {}; // Unsubscribe mock
-  },
-  signOut: async () => {
-    await authService.logout();
-    auth.currentUser = null;
-  }
-};
+// Auth Helpers
+export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
-  // Mock Google sign-in since we don't have Firebase anymore
-  // In a real app, you'd use OAuth integration (see oauth skill)
-  console.warn("Google sign-in is not implemented in custom auth yet. Use email/password.");
-  return null;
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error("Error signing in with Google", error);
+    throw error;
+  }
 };
 
-export const logout = () => auth.signOut();
-export const loginWithCustomToken = async (token: string) => {}; 
+export const logout = () => signOut(auth);
 
-export const registerWithEmail = (email: string, pass: string) => authService.register(email, pass);
-export const loginWithEmail = (email: string, pass: string) => authService.login(email, pass);
-export const resetPassword = async (email: string) => {};
+export const registerWithEmail = (email: string, pass: string) => 
+  createUserWithEmailAndPassword(auth, email, pass);
+
+export const loginWithEmail = (email: string, pass: string) => 
+  signInWithEmailAndPassword(auth, email, pass);
+
+export const resetPassword = (email: string) => 
+  sendPasswordResetEmail(auth, email);
+
 export const updateUserName = async (name: string) => {
   if (auth.currentUser) {
-    const updated = { ...auth.currentUser, displayName: name };
-    await dbService.setDoc(`users/${auth.currentUser.email}`, updated);
-    auth.currentUser = updated;
-    return;
+    await updateProfile(auth.currentUser, { displayName: name });
+    // Also sync with firestore users collection
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), { displayName: name });
   }
-  throw new Error("No user logged in");
 };
 
-// Mimic Firestore
-export const db = {}; // Dummy db object
+// Custom Auth State Changed
+export { onAuthStateChanged };
 
-export const collection = (db: any, path: string) => path;
-export const doc = (db: any, collection: string, id: string) => `${collection}/${id}`;
-
-export const getDoc = async (path: string) => dbService.getDoc(path);
-export const getDocs = async (collectionRef: string) => dbService.getDocs(collectionRef);
-export const setDoc = async (path: string, data: any) => dbService.setDoc(path, data);
-export const addDoc = async (path: string, data: any) => dbService.addDoc(path, data);
-export const updateDoc = async (path: string, data: any) => dbService.updateDoc(path, data);
-export const deleteDoc = async (path: string) => dbService.deleteDoc(path);
-
-// Alias Timestamp
-export const Timestamp = {
-  now: () => ({
-    toMillis: () => Date.now(),
-    toDate: () => new Date(),
-    toISOString: () => new Date().toISOString()
-  }),
-  fromDate: (date: Date) => ({
-    toMillis: () => date.getTime(),
-    toDate: () => date,
-    toISOString: () => date.toISOString()
-  })
+// Firestore Exports
+export {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  increment,
+  Timestamp,
+  limit,
+  startAfter,
+  getDocFromServer
 };
 
-export const uploadBytesResumable = (ref: string, file: File) => {
-  // Simple mock
-  let progress = 0;
-  const listeners: any[] = [];
-  const task = {
-    on: (evt: string, next: any) => {
-      listeners.push(next);
-      // Simulate progress
-      setTimeout(() => {
-        progress = 100;
-        next({ bytesTransferred: 100, totalBytes: 100 });
-      }, 500);
-    },
-    then: (cb: any) => {
-      storageService.uploadFile(file).then(url => cb({ ref, url }));
-    }
-  };
-  return task;
+// Storage Exports
+export {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  uploadBytesResumable
 };
 
-// Real-time listener mock (polling for now to keep it simple while removing Firebase)
-export const onSnapshot = (pathOrQuery: any, onNext: (snapshot: any) => void, onError?: (err: any) => void) => {
-  const poll = async () => {
-    try {
-      if (typeof pathOrQuery === 'string') {
-        const snap = await dbService.getDocs(pathOrQuery);
-        onNext(snap);
-      } else {
-        // Handle query objects if needed
-      }
-    } catch (e) {
-      if (onError) onError(e);
-    }
-  };
-
-  poll();
-  const interval = setInterval(poll, 10000); // Poll every 10s
-  return () => clearInterval(interval);
-};
-
-export const query = (col: string, ...constraints: any[]) => col;
-export const where = (field: string, op: string, val: any) => ({ field, op, val });
-export const orderBy = (field: string, dir: string) => ({ field, dir });
-export const limit = (n: number) => ({ limit: n });
-export const serverTimestamp = () => Timestamp.now();
-export const increment = (n: number) => (current: number) => (current || 0) + n;
-
-// Mimic Storage
-export const storage = {}; 
-export const ref = (storage: any, path: string) => path;
-export const uploadBytes = async (ref: string, file: File) => {
-  const url = await storageService.uploadFile(file);
-  return { ref, url };
-};
-export const getDownloadURL = async (uploadRes: any) => uploadRes.url;
-
-export const requestNotificationPermission = async () => null;
-export const onMessage = () => () => {};
-export const messaging = {};
-
+// Error Handler
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -137,8 +119,43 @@ export enum OperationType {
   GET = 'get',
   WRITE = 'write',
 }
-export function handleFirestoreError(error: any, op: any, path: any) {
-  console.error("Custom DB Error:", error, op, path);
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  }
 }
 
-export type User = any;
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Test Connection
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
+}
+testConnection();
