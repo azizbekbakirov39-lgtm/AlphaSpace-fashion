@@ -371,6 +371,59 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
+// Helper to upload to Cloudflare Stream
+const uploadToStream = async (file: Express.Multer.File) => {
+  if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
+    throw new Error("CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not configured");
+  }
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/stream`;
+  
+  // Create a read stream for the file
+  const fileStream = fs.createReadStream(file.path);
+  
+  // Use FormData to send the file to Stream API
+  const formData = new FormData();
+  // @ts-ignore
+  formData.append('file', fileStream);
+
+  const response = await axios.post(url, formData, {
+    headers: {
+      'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+      ...formData.getHeaders()
+    }
+  });
+
+  return response.data.result;
+};
+
+// New endpoint to handle manual uploads directly to Stream
+app.post("/api/upload-to-stream", upload.single("file"), async (req: any, res: any) => {
+  console.log("POST /api/upload-to-stream hit");
+  
+  if (!req.file) {
+    return res.status(400).json({ error: "Fayl yuborilmadi" });
+  }
+
+  try {
+    const streamResult = await uploadToStream(req.file);
+    
+    // Clean up temp file
+    try { await unlink(req.file.path); } catch (e) {}
+    
+    res.json({ 
+      success: true, 
+      uid: streamResult.uid,
+      preview: streamResult.preview,
+      status: streamResult.status
+    });
+  } catch (error: any) {
+    console.error("Stream Upload Error:", error.response?.data || error.message);
+    try { if (fs.existsSync(req.file.path)) await unlink(req.file.path); } catch (e) {}
+    res.status(500).json({ error: "Stream upload failed: " + (error.response?.data?.errors?.[0]?.message || error.message) });
+  }
+});
+
 // New endpoint to handle manual uploads directly to R2
 app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
   console.log("POST /api/upload-to-r2 hit");
