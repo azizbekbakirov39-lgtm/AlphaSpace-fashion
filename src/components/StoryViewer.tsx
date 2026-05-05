@@ -310,7 +310,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     >
       {isVideoUrl(currentStory.videoUrl) ? (
         <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
-          {/* Instagram Trick: HD Poster behind the video */}
           {(currentStory.imageUrl || currentStory.thumbnailUrl) && (
             <img 
               src={getProxiedUrl(currentStory.imageUrl || currentStory.thumbnailUrl || '', 0)}

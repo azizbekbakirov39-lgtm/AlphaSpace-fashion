@@ -104,7 +104,6 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
 
   return (
     <div className="relative w-full h-full bg-black">
-      {/* Instagram Trick: HD Poster behind the video */}
       {poster && !poster.includes('.mp4') && (
         <img 
           src={getProxiedUrl(poster, 0)}
@@ -503,7 +502,6 @@ const Post: React.FC<PostProps> = ({
               </div>
             )}
 
-            {/* Instagram Trick: HD Poster behind the video */}
             {(post.thumbnailUrl || getPostThumbnailUrl(post)) && (
               <img 
                 src={getProxiedUrl(post.thumbnailUrl || getPostThumbnailUrl(post), 0)}

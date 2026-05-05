@@ -20,19 +20,16 @@ export function usePWA() {
     if (globalDeferredPrompt) {
       setDeferredPrompt(globalDeferredPrompt);
     }
-    // Force open in external browser if inside an in-app browser (like Instagram/Telegram)
+    // Force open in external browser if inside an in-app browser
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isInstagram = userAgent.includes('instagram');
-    const isTelegram = userAgent.includes('telegram');
     const isFB = userAgent.includes('fbav') || userAgent.includes('fban');
     const isAndroid = userAgent.includes('android');
 
-    const inApp = isInstagram || isTelegram || isFB;
+    const inApp = isFB;
     setIsInAppBrowser(inApp);
 
     if (inApp && isAndroid) {
       // Try to create an intent URL to force open Chrome on Android
-      // Note: Instagram often blocks this, so we also rely on the UI warning
       const currentUrl = window.location.href.replace(/^https?:\/\//, '');
       const intentUrl = `intent://${currentUrl}#Intent;scheme=https;package=com.android.chrome;end;`;
       

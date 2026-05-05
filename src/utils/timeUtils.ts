@@ -1,6 +1,6 @@
 
 /**
- * Formats a Firestore timestamp or Date into a relative time string (Instagram style).
+ * Formats a Firestore timestamp or Date into a relative time string.
  * e.g., "hozir", "5m", "2h", "1d"
  */
 export const formatRelativeTime = (timestamp: any): string => {

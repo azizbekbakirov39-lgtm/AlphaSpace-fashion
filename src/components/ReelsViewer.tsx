@@ -295,7 +295,6 @@ const ReelItem: React.FC<{
           >
             {realPost.mediaType === 'video' && idx === 0 ? (
               <div className="h-full w-full relative bg-black">
-                {/* Instagram Trick: HD Poster behind the video */}
                 {realPost.thumbnailUrl && (
                   <img 
                     src={getProxiedUrl(realPost.thumbnailUrl, 0)}

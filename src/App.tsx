@@ -1293,7 +1293,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             className="relative h-full w-full flex flex-col overflow-hidden"
           >
-            {/* Instagram Style Header */}
+
             <svg width="0" height="0" className="absolute">
               <defs>
                 <linearGradient id="header-blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1309,7 +1309,7 @@ export default function App() {
                   <Logo width={44} height={44} animated={false} />
                 </div>
 
-                {/* Middle Branding Text - Instagram Style */}
+
                 <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
                   <h1 className="text-[32px] font-cursive font-bold italic bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent tracking-tight">
                     AlphaSpace
