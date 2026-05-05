@@ -372,13 +372,17 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-// Helper to upload to Cloudflare Stream
 const uploadToStream = async (file: Express.Multer.File) => {
+  console.log("Checking CLOUDFLARE config:");
+  console.log("ACCOUNT_ID exists:", !!process.env.CLOUDFLARE_ACCOUNT_ID);
+  console.log("API_TOKEN exists:", !!process.env.CLOUDFLARE_API_TOKEN);
+  
   if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
     throw new Error("CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not configured");
   }
 
   const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/stream`;
+  console.log("Uploading to Cloudflare URL:", url);
   
   // Create a read stream for the file
   const fileStream = fs.createReadStream(file.path);
@@ -388,14 +392,29 @@ const uploadToStream = async (file: Express.Multer.File) => {
   // @ts-ignore
   formData.append('file', fileStream);
 
-  const response = await axios.post(url, formData, {
-    headers: {
-      'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-      ...formData.getHeaders()
+  try {
+    const response = await axios.post(url, formData, {
+      headers: {
+        'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+        ...formData.getHeaders()
+      },
+      validateStatus: (status) => true // Accept all status codes to inspect body
+    });
+    
+    if (response.status >= 300) {
+       console.error("AXIOS UPLOAD ERROR DETAIL:", response.status, response.data);
+       throw new Error(`Cloudflare rejected request with status ${response.status}: ${JSON.stringify(response.data)}`);
     }
-  });
-
-  return response.data.result;
+    
+    return response.data.result;
+  } catch (error: any) {
+    if (error.response) {
+       console.error("AXIOS UPLOAD ERROR DETAIL:", error.response.status, error.response.data);
+    } else {
+       console.error("AXIOS UPLOAD ERROR DETAIL:", error.message);
+    }
+    throw error;
+  }
 };
 
 // New endpoint to handle manual uploads directly to Stream

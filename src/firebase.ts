@@ -40,7 +40,7 @@ import {
 } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
@@ -150,6 +150,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 // Test Connection
 async function testConnection() {
+  await new Promise(resolve => setTimeout(resolve, 2000));
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
