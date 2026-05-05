@@ -116,13 +116,19 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
     if (r2Client && process.env.R2_BUCKET_NAME) {
       const publicDomain = process.env.R2_PUBLIC_DOMAIN ? process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "") : "";
       
-      if (decodedUrl.includes("r2.dev") || decodedUrl.includes("pub-") || (publicDomain && decodedUrl.includes(publicDomain))) {
+      if (
+        decodedUrl.includes("r2.dev") || 
+        decodedUrl.includes("pub-") || 
+        decodedUrl.includes("r2.cloudflarestorage.com") || 
+        decodedUrl.includes("amazonaws.com") || 
+        (publicDomain && decodedUrl.includes(publicDomain))
+      ) {
         try {
           const parsedUrl = new URL(decodedUrl);
           // Key is everything after the first slash
           const key = parsedUrl.pathname.replace(/^\//, '');
           
-          console.log(`Intercepting R2 URL, fetching via SDK: bucket=${process.env.R2_BUCKET_NAME}, key=${key}`);
+          console.log(`Intercepting R2/S3 URL, fetching via SDK: bucket=${process.env.R2_BUCKET_NAME}, key=${key}`);
           
           const command = new GetObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,

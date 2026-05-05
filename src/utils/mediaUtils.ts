@@ -175,8 +175,14 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     if (cache[url]) return cache[url];
   }
 
-  // Handle R2 URLs immediately using the internal SDK proxy to avoid CORS/403 issues
-  if (url.includes('r2.dev') || url.includes('pub-') || url.includes('r2.cloudflarestorage.com') || (import.meta.env.VITE_R2_PUBLIC_DOMAIN && url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN))) {
+  // Handle R2/S3 URLs immediately using the internal SDK proxy to avoid CORS/403 issues
+  if (
+    url.includes('r2.dev') || 
+    url.includes('pub-') || 
+    url.includes('r2.cloudflarestorage.com') || 
+    url.includes('amazonaws.com') || // Also proxy S3 URLs
+    (import.meta.env.VITE_R2_PUBLIC_DOMAIN && url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN))
+  ) {
     return `/api/proxy-video?url=${encodeURIComponent(url)}`;
   }
 
