@@ -157,12 +157,45 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     if (!user) return;
     setIsCreatingStory(true);
     try {
-      const extension = file.name.split('.').pop();
-      const fileName = `stories/${shopData.id}_${Date.now()}.${extension}`;
-      const fileRef = ref(storage, fileName);
+      let url = '';
       
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
+      try {
+        const formData = new FormData();
+        formData.append('files', file);
+
+        const r2Result = await new Promise<{urls: any[]}>((resolve, reject) => {
+           const xhr = new XMLHttpRequest();
+           xhr.open('POST', '/api/upload-to-r2');
+           xhr.onload = () => {
+             if (xhr.status >= 200 && xhr.status < 300) {
+               resolve(JSON.parse(xhr.responseText));
+             } else {
+               try {
+                 const errResponse = JSON.parse(xhr.responseText);
+                 reject(new Error(errResponse.error || `Upload failed: ${xhr.status}`));
+               } catch {
+                 reject(new Error(xhr.status === 413 ? "Fayl yirik (Max 30MB)" : `Upload failed: ${xhr.status} - ${xhr.responseText}`));
+               }
+             }
+           };
+           xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi yoki R2 serveri mavjud emas."));
+           xhr.send(formData);
+        });
+
+        url = r2Result.urls[0].url;
+      } catch (err: any) {
+        if (err?.message && (err.message.includes("R2 sozlanmagan") || err.message.includes("Fayl yirik") || err.message.includes("Tarmoq xatosi"))) {
+           throw err; // Show exact error
+        }
+        
+        toast.info("G'o'ldan yuklashda R2 xatosi yuz berdi. Firebase yordamida urunib ko'rilmoqda...");
+        const extension = file.name.split('.').pop();
+        const fileName = `stories/${shopData.id}_${Date.now()}.${extension}`;
+        const fileRef = ref(storage, fileName);
+        
+        await uploadBytes(fileRef, file);
+        url = await getDownloadURL(fileRef);
+      }
 
       const storyData = {
         ownerUid: user.uid,
@@ -315,17 +348,37 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                  reject(new Error("Invalid JSON response"));
                }
              } else {
-               reject(new Error(`Upload failed with status ${xhr.status}`));
+               try {
+                 const errResponse = JSON.parse(xhr.responseText);
+                 reject(new Error(errResponse.error || `Upload failed with status ${xhr.status}`));
+               } catch {
+                 if (xhr.status === 413) {
+                   reject(new Error("Fayl hajmi juda katta. Ilovaga video/rasm yuklash chegarasi 30MB gacha."));
+                 } else {
+                   reject(new Error(`Upload failed with status ${xhr.status} - ${xhr.responseText}`));
+                 }
+               }
              }
           };
           
-          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi yoki R2 serveri mavjud emas."));
           xhr.send(formData);
         });
 
         mediaUrls = result.urls.map((u: any) => u.url);
         isVideo = result.urls.some((u: any) => u.type === 'video');
-      } catch (fallbackErr) {
+      } catch (fallbackErr: any) {
+        // Do not fallback to Firebase if the error was clearly an R2 configuration issue
+        // or a file size limit. Firebase Storage typically fails with CORS in live env anyway.
+        if (fallbackErr?.message && 
+            (fallbackErr.message.includes("R2 sozlanmagan") || 
+             fallbackErr.message.includes("juda katta") ||
+             fallbackErr.message.includes("Tarmoq xatosi"))) {
+          throw fallbackErr;
+        }
+
+        toast.loading("G'o'ldan yuklashda R2 xatosi yuz berdi. Firebase yordamida urinib ko'rilmoqda...", { id: toastId });
+        
         // Fallback to Firebase Storage
         const fileProgresses: number[] = new Array(files.length).fill(0);
         

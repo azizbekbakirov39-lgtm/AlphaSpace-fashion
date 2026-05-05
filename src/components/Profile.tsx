@@ -602,12 +602,19 @@ const Profile: React.FC<ProfileProps> = ({
             console.error("ImgBB upload error:", error);
           }
         } else if (stagedVideo) {
-          const fileExt = stagedFile.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-          const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-          
-          await uploadBytes(storageRef, stagedFile);
-          finalVideoUrl = await getDownloadURL(storageRef);
+          try {
+            const formData = new FormData();
+            formData.append('files', stagedFile);
+            const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
+              const data = await r.json();
+              if (!r.ok) throw new Error(data.error || "Upload failed");
+              return data;
+            });
+            finalVideoUrl = r2Result.urls[0].url;
+          } catch (err: any) {
+            console.error("Staged video upload error:", err);
+            throw err;
+          }
         }
       }
 
@@ -618,12 +625,18 @@ const Profile: React.FC<ProfileProps> = ({
         try {
           const res = await fetch(videoMessage);
           const blob = await res.blob();
-          const fileName = `vmsg_${Date.now()}.webm`;
-          const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-          await uploadBytes(storageRef, blob);
-          videoMessage = await getDownloadURL(storageRef);
+          
+          const formData = new FormData();
+          formData.append('files', new File([blob], `vmsg_${Date.now()}.webm`, { type: 'video/webm' }));
+          const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || "Upload failed");
+            return data;
+          });
+          videoMessage = r2Result.urls[0].url;
         } catch (err) {
           console.error("Video message upload error:", err);
+          throw err;
         }
       }
 
@@ -631,12 +644,18 @@ const Profile: React.FC<ProfileProps> = ({
         try {
           const res = await fetch(audioData);
           const blob = await res.blob();
-          const fileName = `audio_${Date.now()}.webm`;
-          const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-          await uploadBytes(storageRef, blob);
-          finalAudioUrl = await getDownloadURL(storageRef);
+          
+          const formData = new FormData();
+          formData.append('files', new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' }));
+          const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || "Upload failed");
+            return data;
+          });
+          finalAudioUrl = r2Result.urls[0].url;
         } catch (err) {
           console.error("Audio upload error:", err);
+          throw err;
         }
       } else if (audioData) {
         finalAudioUrl = audioData;

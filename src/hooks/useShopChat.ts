@@ -118,12 +118,23 @@ export const useShopChat = (shopId: string, userId: string) => {
     if (!activeChatId) return;
     setIsUploading(true);
     try {
-      const storageRef = ref(storage, `chats/${activeChatId}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const formData = new FormData();
+      formData.append('files', file);
+
+      const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Upload failed");
+        return data;
+      });
+
+      const url = r2Result.urls[0].url;
       await handleSendMessage(type, { mediaUrl: url });
-    } catch (error) {
-      toast.error('Fayl yuklashda xatolik');
+    } catch (error: any) {
+      if (error?.message && error.message.includes("Fayl hajmi juda katta")) {
+        toast.error("Fayl hajmi juda katta!");
+      } else {
+        toast.error("Fayl yuklanmadi, R2 sozlamalari mavjud emas.");
+      }
     } finally {
       setIsUploading(false);
     }
