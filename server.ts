@@ -466,20 +466,24 @@ async function setupVite() {
   }
 }
 
-// Start Server
-async function startServer() {
-  await setupVite();
-  
-  const PORT = process.env.PORT || 3000;
-  const server = app.listen(Number(PORT), "0.0.0.0", () => {
-    console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
-    console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
+// Export app for Vercel Serverless Function
+export default app;
+
+if (!process.env.VERCEL) {
+  async function startServer() {
+    await setupVite();
+    
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(Number(PORT), "0.0.0.0", () => {
+      console.log(`[${new Date().toISOString()}] Server is running on port ${PORT}`);
+      console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+
+    // Set timeout to 10 minutes to handle large video uploads and compression
+    server.timeout = 600000;
+  }
+
+  startServer().catch(err => {
+    console.error("Failed to start server:", err);
   });
-
-  // Set timeout to 10 minutes to handle large video uploads and compression
-  server.timeout = 600000;
 }
-
-startServer().catch(err => {
-  console.error("Failed to start server:", err);
-});
