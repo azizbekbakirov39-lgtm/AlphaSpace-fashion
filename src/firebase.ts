@@ -17,7 +17,6 @@ import {
 } from 'firebase/auth';
 
 import { 
-  initializeFirestore,
   getFirestore, 
   collection, 
   doc, 
@@ -46,9 +45,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const messaging = getMessaging(app);
 
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
-}, firebaseConfig.firestoreDatabaseId || '(default)');
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
 
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
