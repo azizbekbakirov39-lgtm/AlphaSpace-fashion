@@ -40,7 +40,7 @@ const upload = multer({
     }
   }),
   limits: {
-    fileSize: 1024 * 1024 * 1024, // 1GB max for 4K videos
+    fileSize: 5 * 1024 * 1024 * 1024, // 5GB max
   }
 });
 
@@ -148,8 +148,8 @@ const dbDelete = async (collection: string, id: string) => {
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '1000mb' }));
-app.use(express.urlencoded({ limit: '1000mb', extended: true }));
+app.use(express.json({ limit: '5000mb' }));
+app.use(express.urlencoded({ limit: '5000mb', extended: true }));
 
 // Auth Middleware
 const authenticateToken = (req: any, res: any, next: any) => {

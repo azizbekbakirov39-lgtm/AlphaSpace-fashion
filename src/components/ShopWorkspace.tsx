@@ -326,7 +326,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
         const result: any = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/upload-to-r2');
+          xhr.open('POST', '/api/upload-to-stream'); // Changed to /api/upload-to-stream
           
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
@@ -359,12 +359,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
              }
           };
           
-          xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi yoki R2 serveri mavjud emas."));
+          xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi yoki Stream serveri mavjud emas."));
           xhr.send(formData);
         });
 
-        mediaUrls = result.urls.map((u: any) => u.url);
-        isVideo = result.urls.some((u: any) => u.type === 'video');
+        // Map Stream response to post data structure
+        // Cloudflare Stream URL: https://videodelivery.net/${result.uid}/manifest/video.m3u8
+        mediaUrls = [`https://videodelivery.net/${result.uid}/manifest/video.m3u8`];
+        isVideo = true; // Assuming Stream is for videos
       } catch (fallbackErr: any) {
         if (fallbackErr?.message && fallbackErr.message.includes("R2 sozlanmagan")) {
           throw fallbackErr;
