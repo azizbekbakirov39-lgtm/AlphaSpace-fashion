@@ -251,52 +251,10 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
       console.log(`Processing file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
       const isVideo = file.mimetype.startsWith("video/");
       const isImage = file.mimetype.startsWith("image/");
-      const extension = isVideo ? "mp4" : "webp"; // Normalize to webp for images
-      let contentType = isVideo ? "video/mp4" : "image/webp";
-      const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
-      
       let finalPath = file.path;
-      const optimizedPath = path.join(os.tmpdir(), `opt-${path.basename(file.path)}.${extension}`);
-
-      try {
-        if (isVideo) {
-          console.log(`Starting video compression for: ${file.originalname}`);
-          await new Promise<void>((resolve, reject) => {
-            ffmpeg(file.path)
-              .outputOptions([
-                "-vcodec libx264",
-                "-crf 24", // Good balance of size and quality
-                "-preset faster",
-                "-acodec aac",
-                "-movflags +faststart"
-              ])
-              // Keep original resolution (4K)
-              .on("start", (cmd) => console.log("Spawned Ffmpeg with command: " + cmd))
-              .on("progress", (progress) => console.log(`Processing: ${progress.percent}% done`))
-              .on("end", () => {
-                console.log("Video compression finished successfully");
-                resolve();
-              })
-              .on("error", (err, stdout, stderr) => {
-                console.error("Video compression error:", err);
-                console.error("FFmpeg stderr:", stderr);
-                reject(err);
-              })
-              .save(optimizedPath);
-          });
-          finalPath = optimizedPath;
-          console.log(`Compression finished, final path: ${finalPath}`);
-        } else if (isImage) {
-          console.log("Optimizing image...");
-          await sharp(file.path)
-            .webp({ quality: 85 })
-            .toFile(optimizedPath);
-          finalPath = optimizedPath;
-        }
-      } catch (optError) {
-        console.warn("Optimization failed, using original file:", optError);
-        finalPath = file.path;
-      }
+      let contentType = isVideo ? "video/mp4" : file.mimetype; // Keep original mimetype for images if possible
+      const extension = file.originalname.split('.').pop() || (isVideo ? "mp4" : "jpg");
+      const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
 
       if (process.env.R2_BUCKET_NAME) {
         const stats = await fs.promises.stat(finalPath);
@@ -326,7 +284,6 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
 
         // Clean up temp files
         try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
-        try { if (fs.existsSync(optimizedPath)) await unlink(optimizedPath); } catch (e) {}
       } else {
         throw new Error("R2_BUCKET_NAME o'rnatilmagan");
       }

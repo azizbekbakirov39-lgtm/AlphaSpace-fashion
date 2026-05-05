@@ -27,7 +27,7 @@ import {
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 
 // Modular components
 import { MyShopTab } from './shop/MyShopTab';
@@ -327,16 +327,33 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         isVideo = result.urls.some((u: any) => u.type === 'video');
       } catch (fallbackErr) {
         // Fallback to Firebase Storage
-        let completed = 0;
-        const uploadPromises = files.map(async (file) => {
+        const fileProgresses: number[] = new Array(files.length).fill(0);
+        
+        const uploadPromises = files.map(async (file, index) => {
           const extension = file.name.split('.').pop() || (file.type.startsWith('video') ? 'mp4' : 'jpg');
           const fileName = `posts/${shopData.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
           const fileRef = ref(storage, fileName);
-          await uploadBytes(fileRef, file);
-          completed++;
-          setUploadProgress(Math.round((completed / files.length) * 100));
+          
           if (file.type.startsWith('video')) isVideo = true;
-          return getDownloadURL(fileRef);
+
+          return new Promise<string>((resolve, reject) => {
+            const uploadTask = uploadBytesResumable(fileRef, file);
+            uploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                fileProgresses[index] = progress;
+                const totalProgress = fileProgresses.reduce((acc, curr) => acc + curr, 0) / files.length;
+                setUploadProgress(Math.round(totalProgress));
+              },
+              (error) => {
+                reject(error);
+              },
+              async () => {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(downloadURL);
+              }
+            );
+          });
         });
         mediaUrls = await Promise.all(uploadPromises);
       }
