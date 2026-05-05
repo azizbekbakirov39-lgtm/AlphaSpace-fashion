@@ -111,7 +111,9 @@ export const storageService = {
   uploadFile: async (file: File | Blob) => {
     const formData = new FormData();
     formData.append('files', file);
-    const res = await api.post('/upload-to-r2', formData);
+    const res = await api.post('/upload-to-r2', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     return res.data.urls[0].url;
   }
 };

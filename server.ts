@@ -373,6 +373,7 @@ app.get("/api/health", (req, res) => {
 
 // New endpoint to handle manual uploads directly to R2
 app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
+  console.log("POST /api/upload-to-r2 hit");
   if (!r2Client) {
     const missing = [];
     if (!process.env.R2_ACCESS_KEY_ID) missing.push("R2_ACCESS_KEY_ID");
