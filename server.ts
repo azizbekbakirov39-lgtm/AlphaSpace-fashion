@@ -399,28 +399,34 @@ const uploadToStream = async (file: Express.Multer.File) => {
 };
 
 // New endpoint to handle manual uploads directly to Stream
-app.post("/api/upload-to-stream", upload.single("file"), async (req: any, res: any) => {
+app.post("/api/upload-to-stream", upload.array("files"), async (req: any, res: any) => {
   console.log("POST /api/upload-to-stream hit");
   
-  if (!req.file) {
+  const files = req.files as Express.Multer.File[];
+  if (!files || files.length === 0) {
     return res.status(400).json({ error: "Fayl yuborilmadi" });
   }
 
   try {
-    const streamResult = await uploadToStream(req.file);
+    const results = [];
+    for (const file of files) {
+      const streamResult = await uploadToStream(file);
+      results.push({
+        uid: streamResult.uid,
+        preview: streamResult.preview,
+        status: streamResult.status
+      });
+      // Clean up temp file
+      try { await unlink(file.path); } catch (e) {}
+    }
     
-    // Clean up temp file
-    try { await unlink(req.file.path); } catch (e) {}
-    
-    res.json({ 
-      success: true, 
-      uid: streamResult.uid,
-      preview: streamResult.preview,
-      status: streamResult.status
-    });
+    // For now assuming only one file is uploaded for stream to match existing client logic
+    res.json(results[0]);
   } catch (error: any) {
     console.error("Stream Upload Error:", error.response?.data || error.message);
-    try { if (fs.existsSync(req.file.path)) await unlink(req.file.path); } catch (e) {}
+    for (const file of files) {
+       try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
+    }
     res.status(500).json({ error: "Stream upload failed: " + (error.response?.data?.errors?.[0]?.message || error.message) });
   }
 });
