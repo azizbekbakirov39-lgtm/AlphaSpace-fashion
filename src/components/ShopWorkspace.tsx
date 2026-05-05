@@ -161,7 +161,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       
       try {
         const formData = new FormData();
-        formData.append('files', file);
+        formData.append('files', file, file.name);
 
         const r2Result = await new Promise<{urls: any[]}>((resolve, reject) => {
            const xhr = new XMLHttpRequest();
@@ -184,7 +184,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
         url = r2Result.urls[0].url;
       } catch (err: any) {
-        if (err?.message && (err.message.includes("R2 sozlanmagan") || err.message.includes("Fayl yirik") || err.message.includes("Tarmoq xatosi"))) {
+        if (err?.message && err.message.includes("R2 sozlanmagan")) {
            throw err; // Show exact error
         }
         
@@ -320,9 +320,9 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         for (const file of files) {
           if (file.type.startsWith('image/')) {
             const compressedFile = await compressImage(file);
-            formData.append('files', compressedFile);
+            formData.append('files', compressedFile, file.name);
           } else {
-            formData.append('files', file);
+            formData.append('files', file, file.name);
           }
         }
 
@@ -370,10 +370,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       } catch (fallbackErr: any) {
         // Do not fallback to Firebase if the error was clearly an R2 configuration issue
         // or a file size limit. Firebase Storage typically fails with CORS in live env anyway.
-        if (fallbackErr?.message && 
-            (fallbackErr.message.includes("R2 sozlanmagan") || 
-             fallbackErr.message.includes("juda katta") ||
-             fallbackErr.message.includes("Tarmoq xatosi"))) {
+        if (fallbackErr?.message && fallbackErr.message.includes("R2 sozlanmagan")) {
           throw fallbackErr;
         }
 

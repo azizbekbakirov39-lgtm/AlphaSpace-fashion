@@ -118,23 +118,34 @@ export const useShopChat = (shopId: string, userId: string) => {
     if (!activeChatId) return;
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('files', file);
+      let url = "";
+      try {
+        const formData = new FormData();
+        formData.append('files', file, file.name);
 
-      const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || "Upload failed");
-        return data;
-      });
+        const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || "Upload failed");
+          return data;
+        });
 
-      const url = r2Result.urls[0].url;
+        url = r2Result.urls[0].url;
+      } catch (err: any) {
+        if (err?.message && err.message.includes("R2 sozlanmagan")) {
+          toast.error("R2 sozlanmagan!");
+          setIsUploading(false);
+          return;
+        }
+        
+        toast.info("R2 orqali yuklash muvaffaqiyatsiz tugadi. Firebase yordamida urunib ko'rilmoqda...");
+        const storageRef = ref(storage, `chats/${activeChatId}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        url = await getDownloadURL(storageRef);
+      }
+      
       await handleSendMessage(type, { mediaUrl: url });
     } catch (error: any) {
-      if (error?.message && error.message.includes("Fayl hajmi juda katta")) {
-        toast.error("Fayl hajmi juda katta!");
-      } else {
-        toast.error("Fayl yuklanmadi, R2 sozlamalari mavjud emas.");
-      }
+      toast.error("Fayl yuklashda xatolik yuz berdi");
     } finally {
       setIsUploading(false);
     }
