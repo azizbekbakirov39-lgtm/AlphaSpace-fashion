@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, Clock, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, translations } from '../translations';
+import { safeJsonStringify } from '../utils/jsonUtils';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
     const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 10);
     setRecentSearches(updated);
-    localStorage.setItem('recentSearches', JSON.stringify(updated));
+    localStorage.setItem('recentSearches', safeJsonStringify(updated));
     
     onSearch(searchQuery);
     onClose();
@@ -50,7 +51,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
     e.stopPropagation();
     const updated = recentSearches.filter(s => s !== search);
     setRecentSearches(updated);
-    localStorage.setItem('recentSearches', JSON.stringify(updated));
+    localStorage.setItem('recentSearches', safeJsonStringify(updated));
   };
 
   useEffect(() => {

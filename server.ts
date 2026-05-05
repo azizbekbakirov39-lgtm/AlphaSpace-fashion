@@ -112,42 +112,43 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
     decodedUrl = decodedUrl.replace(/^https?:\/\/https?:\/\//, 'https://');
     console.log(`Proxying URL: ${decodedUrl}`);
 
-    // If it is an R2 URL, use GetObjectCommand to bypass CORS or missing public access
-    if (r2Client && process.env.R2_BUCKET_NAME) {
-      const publicDomain = process.env.R2_PUBLIC_DOMAIN ? process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "") : "";
-      
-      if (
-        decodedUrl.includes("r2.dev") || 
-        decodedUrl.includes("pub-") || 
-        decodedUrl.includes("r2.cloudflarestorage.com") || 
-        decodedUrl.includes("amazonaws.com") || 
-        (publicDomain && decodedUrl.includes(publicDomain))
-      ) {
-        try {
-          const parsedUrl = new URL(decodedUrl);
-          // Key is everything after the first slash
-          const key = parsedUrl.pathname.replace(/^\//, '');
-          
-          console.log(`Intercepting R2/S3 URL, fetching via SDK: bucket=${process.env.R2_BUCKET_NAME}, key=${key}`);
-          
-          const command = new GetObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: key,
-          });
-          
-          const s3Response = await r2Client.send(command);
-          
-          if (s3Response.ContentType) res.setHeader('Content-Type', s3Response.ContentType);
-          if (s3Response.ContentLength) res.setHeader('Content-Length', s3Response.ContentLength.toString());
-          
-          // @ts-ignore
-          s3Response.Body.pipe(res);
-          return;
-        } catch (r2Error) {
-          console.warn("Failed to fetch from R2 SDK, falling back to HTTP proxy...", r2Error);
+      // If it is an R2 URL, use GetObjectCommand to bypass CORS or missing public access
+      let proxiedViaR2 = false;
+      if (r2Client && process.env.R2_BUCKET_NAME) {
+        const publicDomain = process.env.R2_PUBLIC_DOMAIN ? process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "") : "";
+        
+        if (
+          decodedUrl.includes("r2.dev") || 
+          decodedUrl.includes("pub-") || 
+          decodedUrl.includes("r2.cloudflarestorage.com") ||
+          (publicDomain && decodedUrl.includes(publicDomain))
+        ) {
+          try {
+            const parsedUrl = new URL(decodedUrl);
+            const key = parsedUrl.pathname.replace(/^\//, '');
+            console.log(`Intercepting R2 URL, fetching via SDK: bucket=${process.env.R2_BUCKET_NAME}, key=${key}`);
+            
+            const command = new GetObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: key,
+            });
+            
+            const s3Response = await r2Client.send(command);
+            
+            if (s3Response.ContentType) res.setHeader('Content-Type', s3Response.ContentType);
+            if (s3Response.ContentLength) res.setHeader('Content-Length', s3Response.ContentLength.toString());
+            
+            // @ts-ignore
+            s3Response.Body.pipe(res);
+            proxiedViaR2 = true;
+          } catch (r2Error) {
+            console.warn("Failed to fetch from R2 SDK, falling back to HTTP proxy...", r2Error);
+          }
         }
       }
-    }
+      
+      if (proxiedViaR2) return;
+
 
     const outboundHeaders: any = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -373,14 +374,32 @@ app.post("/api/send-push", async (req, res) => {
     if (!token) return res.status(400).json({ error: "No target FCM token provided" });
     if (!admin.apps.length) return res.status(500).json({ error: "Firebase Admin is not configured. Add FIREBASE_SERVICE_ACCOUNT."});
 
-    const payload = {
+    const payload: any = {
       token: token,
       notification: {
         title: title || "Yangi xabar",
         body: body || "Sizga xabar keldi"
       },
-      data: data || {}
+      data: {}
     };
+    
+    // Safely clone and sanitize 'data' to prevent circular structure errors
+    if (data && typeof data === 'object') {
+       try {
+         payload.data = JSON.parse(JSON.stringify(data, (key, value) => {
+           // Simple circular structure detector
+           if (typeof value === 'object' && value !== null) {
+              if (key === 'src' || key === 'i') return '[Circular]'; // Basic heuristic based on error message
+           }
+           return value;
+         }));
+       } catch (e) {
+         console.warn("Failed to sanitize push data, sending empty data:", e);
+         payload.data = {};
+       }
+    } else {
+        payload.data = data || {};
+    }
 
     const response = await admin.messaging().send(payload);
     console.log("FCM xabar muvaffaqiyatli jo'natildi:", response);

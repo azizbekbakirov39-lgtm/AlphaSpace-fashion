@@ -39,6 +39,7 @@ import {
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL, uploadString } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
+import { safeJsonStringify } from './utils/jsonUtils';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -146,18 +147,6 @@ export function handleFirestoreError(error: any, operationType: OperationType, p
     path
   }
   
-  // Safe circular-structure-proof stringify
-  const safeJsonStringify = (obj: any) => {
-    const cache = new WeakSet();
-    return JSON.stringify(obj, (key, value) => {
-      if (typeof value === 'object' && value !== null) {
-        if (cache.has(value)) return '[Circular]';
-        cache.add(value);
-      }
-      return value;
-    });
-  };
-
   const serializedErrorInfo = safeJsonStringify(errInfo);
   console.error('Firestore Error: ', serializedErrorInfo);
   throw new Error(serializedErrorInfo);

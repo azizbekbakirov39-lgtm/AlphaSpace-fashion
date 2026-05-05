@@ -1,3 +1,5 @@
+import { safeJsonStringify } from './jsonUtils';
+
 export const useShare = () => {
   const shareContent = async (title: string, text: string, url: string) => {
     try {
@@ -146,7 +148,7 @@ const setCache = (originalUrl: string, proxiedUrl: string) => {
     if (keys.length > 500) {
       delete cache[keys[0]];
     }
-    localStorage.setItem(URL_CACHE_KEY, JSON.stringify(cache));
+    localStorage.setItem(URL_CACHE_KEY, safeJsonStringify(cache));
   } catch (e) {
     console.error('Cache write error:', e);
   }

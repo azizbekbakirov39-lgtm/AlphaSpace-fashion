@@ -1,6 +1,5 @@
 import { toast } from 'sonner';
-
-// Brauzer bildirishnomalari uchun ruxsat so'rash
+import { safeJsonStringify } from './jsonUtils';
 export const requestNotificationPermission = () => {
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission().catch(console.error);
@@ -32,7 +31,7 @@ export const sendPushNotification = async (targetToken: String, title: string, b
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
+      body: safeJsonStringify({
         token: targetToken,
         title,
         body,
