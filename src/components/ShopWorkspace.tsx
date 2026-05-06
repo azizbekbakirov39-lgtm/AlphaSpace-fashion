@@ -165,29 +165,51 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       let url = '';
       
       try {
-        const formData = new FormData();
-        formData.append('files', file, file.name);
+        let fileToUpload: File | Blob = file;
+        const isVid = file.type.startsWith('video/');
+        if (!isVid) {
+           fileToUpload = await compressImage(file);
+        }
 
-        const r2Result = await new Promise<{urls: any[]}>((resolve, reject) => {
+        let targetUrl = '';
+        if (isVid) {
+             const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
+             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (Stream)");
+             const data = await res.json();
+             targetUrl = data.uploadUrl;
+             url = `https://iframe.videodelivery.net/${data.uid}`; 
+        } else {
+             const res = await fetch('/api/get-r2-upload-url', { 
+               method: 'POST', 
+               headers: {'Content-Type': 'application/json'},
+               body: JSON.stringify({ fileName: file.name, fileType: fileToUpload.type })
+             });
+             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (R2)");
+             const data = await res.json();
+             targetUrl = data.uploadUrl;
+             url = data.publicUrl;
+        }
+
+        await new Promise((resolve, reject) => {
            const xhr = new XMLHttpRequest();
-           xhr.open('POST', '/api/upload-to-r2');
+           xhr.open(isVid ? 'POST' : 'PUT', targetUrl);
            xhr.onload = () => {
              if (xhr.status >= 200 && xhr.status < 300) {
-               resolve(JSON.parse(xhr.responseText));
+               resolve(true);
              } else {
-               try {
-                 const errResponse = JSON.parse(xhr.responseText);
-                 reject(new Error(errResponse.error || `Upload failed: ${xhr.status}`));
-               } catch {
-                 reject(new Error(xhr.status === 413 ? "Fayl hajmi juda katta" : `Upload failed: ${xhr.status} - ${xhr.responseText}`));
-               }
+               reject(new Error(`Upload failed: ${xhr.status}`));
              }
            };
-           xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi yoki R2 serveri mavjud emas."));
-           xhr.send(formData);
+           xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi."));
+           if (isVid) {
+              const fd = new FormData();
+              fd.append('file', fileToUpload);
+              xhr.send(fd);
+           } else {
+              xhr.setRequestHeader('Content-Type', fileToUpload.type);
+              xhr.send(fileToUpload);
+           }
         });
-
-        url = r2Result.urls[0].url;
       } catch (err: any) {
         if (err?.message && err.message.includes("R2 sozlanmagan")) {
            throw err;
@@ -312,67 +334,82 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       let mediaUrls: string[] = [];
       let isVideo = false;
 
-      // Try server upload (R2) first with XMLHttpRequest to track progress
+      // Try client-side direct uploads to bypass 413 limits
       try {
-        const formData = new FormData();
         for (const file of files) {
-          if (file.type.startsWith('image/')) {
-            const compressedFile = await compressImage(file);
-            formData.append('files', compressedFile, file.name);
-          } else {
-            formData.append('files', file, file.name);
+          const isVid = file.type.startsWith('video/');
+          let fileToUpload: File | Blob = file;
+          if (!isVid) {
+            fileToUpload = await compressImage(file);
           }
-        }
+          const fileName = file.name;
 
-        const result: any = await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/upload-to-stream'); // Changed to /api/upload-to-stream
-          
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percentComplete);
-              if (percentComplete === 100) {
-                toast.loading("Media siqilmoqda va yuklanmoqda...", { id: toastId });
+          let targetUrl = '';
+          let publicMediaUrl = '';
+
+          // 1. Get presigned URL
+          if (isVid) {
+             const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
+             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (Stream)");
+             const data = await res.json();
+             targetUrl = data.uploadUrl;
+             publicMediaUrl = `https://iframe.videodelivery.net/${data.uid}`; 
+          } else {
+             const res = await fetch('/api/get-r2-upload-url', { 
+               method: 'POST', 
+               headers: {'Content-Type': 'application/json'},
+               body: JSON.stringify({ fileName, fileType: fileToUpload.type })
+             });
+             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (R2)");
+             const data = await res.json();
+             targetUrl = data.uploadUrl;
+             publicMediaUrl = data.publicUrl;
+          }
+
+          // 2. Upload file directly
+          await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open(isVid ? 'POST' : 'PUT', targetUrl);
+            
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setUploadProgress(percentComplete);
+                if (percentComplete === 100) {
+                  toast.loading("Media saqlanmoqda...", { id: toastId });
+                }
               }
+            };
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(true);
+              } else {
+                reject(new Error(`Upload failed with status ${xhr.status}`));
+              }
+            };
+            
+            xhr.onerror = () => reject(new Error(`Tarmoq xatosi yuz berdi (${isVid ? 'Stream' : 'R2'})`));
+
+            if (isVid) {
+               const fd = new FormData();
+               fd.append('file', fileToUpload);
+               xhr.send(fd);
+            } else {
+               xhr.setRequestHeader('Content-Type', fileToUpload.type);
+               xhr.send(fileToUpload);
             }
-          };
+          });
 
-          xhr.onload = () => {
-             if (xhr.status >= 200 && xhr.status < 300) {
-               try {
-                 resolve(JSON.parse(xhr.responseText));
-               } catch (e) {
-                 reject(new Error("Invalid JSON response"));
-               }
-             } else {
-               try {
-                 const errResponse = JSON.parse(xhr.responseText);
-                 reject(new Error(errResponse.error || `Upload failed with status ${xhr.status}`));
-               } catch {
-                 if (xhr.status === 413) {
-                   reject(new Error("Fayl hajmi juda katta. Ilovaga video/rasm yuklashda xatolik yuz berdi."));
-                 } else {
-                   reject(new Error(`Upload failed with status ${xhr.status} - ${xhr.responseText}`));
-                 }
-               }
-             }
-          };
-          
-          xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi yoki Stream serveri mavjud emas."));
-          xhr.send(formData);
-        });
-
-        // Map Stream response to post data structure
-        // Cloudflare Stream URL: https://videodelivery.net/${result.uid}/manifest/video.m3u8
-        mediaUrls = [`https://videodelivery.net/${result.uid}/manifest/video.m3u8`];
-        isVideo = true; // Assuming Stream is for videos
+          mediaUrls.push(publicMediaUrl);
+          if (isVid) isVideo = true;
+        }
       } catch (fallbackErr: any) {
         if (fallbackErr?.message && fallbackErr.message.includes("R2 sozlanmagan")) {
           throw fallbackErr;
         }
 
-        console.error("R2 collection upload error:", fallbackErr);
+        console.error("R2/Stream collection upload error:", fallbackErr);
         throw fallbackErr;
       }
 

@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import axios from "axios";
+import * as tus from "tus-js-client";
 import FormData from "form-data";
 import fs from "fs";
 import { promisify } from "util";
@@ -15,6 +16,7 @@ import sharp from "sharp";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 dotenv.config();
 
@@ -372,85 +374,52 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV });
 });
 
-const uploadToStream = async (file: Express.Multer.File) => {
-  console.log("Checking CLOUDFLARE config:");
-  console.log("ACCOUNT_ID exists:", !!process.env.CLOUDFLARE_ACCOUNT_ID);
-  console.log("API_TOKEN exists:", !!process.env.CLOUDFLARE_API_TOKEN);
-  
-  if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-    throw new Error("CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not configured");
-  }
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/stream`;
-  console.log("Uploading to Cloudflare URL:", url);
-  
-  // Create a read stream for the file
-  const fileStream = fs.createReadStream(file.path);
-  
-  // Use FormData to send the file to Stream API
-  const formData = new FormData();
-  // @ts-ignore
-  formData.append('file', fileStream);
+
+// New endpoint to handle manual uploads directly to R2
+// Get presigned URL for direct R2 upload
+app.post("/api/get-r2-upload-url", express.json(), async (req: any, res: any) => {
+  if (!r2Client) {
+    return res.status(500).json({ error: "R2 client not configured" });
+  }
+  const { fileName, fileType } = req.body;
+  const isVideo = fileType?.startsWith('video/');
+  const extension = fileName?.split('.').pop() || (isVideo ? "mp4" : "jpg");
+  const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
 
   try {
-    const response = await axios.post(url, formData, {
-      headers: {
-        'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-        ...formData.getHeaders()
-      },
-      validateStatus: (status) => true // Accept all status codes to inspect body
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      ContentType: fileType,
     });
-    
-    if (response.status >= 300) {
-       console.error("AXIOS UPLOAD ERROR DETAIL:", response.status, response.data);
-       throw new Error(`Cloudflare rejected request with status ${response.status}: ${JSON.stringify(response.data)}`);
-    }
-    
-    return response.data.result;
-  } catch (error: any) {
-    if (error.response) {
-       console.error("AXIOS UPLOAD ERROR DETAIL:", error.response.status, error.response.data);
-    } else {
-       console.error("AXIOS UPLOAD ERROR DETAIL:", error.message);
-    }
-    throw error;
-  }
-};
-
-// New endpoint to handle manual uploads directly to Stream
-app.post("/api/upload-to-stream", upload.array("files"), async (req: any, res: any) => {
-  console.log("POST /api/upload-to-stream hit");
-  
-  const files = req.files as Express.Multer.File[];
-  if (!files || files.length === 0) {
-    return res.status(400).json({ error: "Fayl yuborilmadi" });
-  }
-
-  try {
-    const results = [];
-    for (const file of files) {
-      const streamResult = await uploadToStream(file);
-      results.push({
-        uid: streamResult.uid,
-        preview: streamResult.preview,
-        status: streamResult.status
-      });
-      // Clean up temp file
-      try { await unlink(file.path); } catch (e) {}
-    }
-    
-    // For now assuming only one file is uploaded for stream to match existing client logic
-    res.json(results[0]);
-  } catch (error: any) {
-    console.error("Stream Upload Error:", error.response?.data || error.message);
-    for (const file of files) {
-       try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
-    }
-    res.status(500).json({ error: "Stream upload failed: " + (error.response?.data?.errors?.[0]?.message || error.message) });
+    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+    const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");
+    const publicUrl = `https://${process.env.R2_BUCKET_NAME}.${endpoint}/${key}`;
+    res.json({ uploadUrl, publicUrl, key });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// New endpoint to handle manual uploads directly to R2
+// Get direct upload URL for Cloudflare Stream
+app.post("/api/get-stream-upload-url", express.json(), async (req: any, res: any) => {
+  try {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/stream/direct_upload`;
+    const response = await axios.post(url, { maxDurationSeconds: 3600 }, {
+      headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}` }
+    });
+    res.json({
+      uploadUrl: response.data.result.uploadURL,
+      uid: response.data.result.uid,
+      preview: `https://videodelivery.net/${response.data.result.uid}/thumbnails/thumbnail.jpg`
+    });
+  } catch (err: any) {
+    console.error("Stream direct upload url error:", err.response?.data || err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
   console.log("POST /api/upload-to-r2 hit");
   if (!r2Client) {
@@ -479,10 +448,34 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
       const isImage = file.mimetype.startsWith("image/");
       let finalPath = file.path;
       let contentType = isVideo ? "video/mp4" : file.mimetype; // Keep original mimetype for images if possible
-      const extension = file.originalname.split('.').pop() || (isVideo ? "mp4" : "jpg");
+      const extension = isVideo ? "mp4" : (file.originalname.split('.').pop() || "jpg");
       const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
 
       if (process.env.R2_BUCKET_NAME) {
+        if (isVideo) {
+          const compressedPath = `${file.path}-compressed.mp4`;
+          console.log(`Compressing video: ${finalPath} -> ${compressedPath}`);
+          try {
+            await new Promise((resolve, reject) => {
+              ffmpeg(finalPath)
+                .outputOptions([
+                  '-c:v libx264',
+                  '-crf 28',         // 0-51 (lower is better quality, higher is smaller size)
+                  '-preset veryfast',// faster encoding
+                  '-c:a aac',
+                  '-b:a 128k',
+                  '-movflags +faststart'
+                ])
+                .toFormat('mp4')
+                .on('end', resolve)
+                .on('error', reject)
+                .save(compressedPath);
+            });
+            finalPath = compressedPath;
+          } catch (compressErr) {
+            console.error("Video compression error, using original file:", compressErr);
+          }
+        }
         const stats = await fs.promises.stat(finalPath);
         const fileStream = fs.createReadStream(finalPath);
         
@@ -510,6 +503,9 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
 
         // Clean up temp files
         try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
+        if (isVideo && finalPath !== file.path) {
+          try { if (fs.existsSync(finalPath)) await unlink(finalPath); } catch (e) {}
+        }
       } else {
         throw new Error("R2_BUCKET_NAME o'rnatilmagan");
       }
