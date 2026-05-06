@@ -174,7 +174,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         let targetUrl = '';
         if (isVid) {
              const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
-             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (Stream)");
+             if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Yuklash uchun link olishda xato (Stream)");
+             }
              const data = await res.json();
              targetUrl = data.uploadUrl;
              url = `https://iframe.videodelivery.net/${data.uid}`; 
@@ -184,7 +187,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                headers: {'Content-Type': 'application/json'},
                body: JSON.stringify({ fileName: file.name, fileType: fileToUpload.type })
              });
-             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (R2)");
+             if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Yuklash uchun link olishda xato (R2)");
+             }
              const data = await res.json();
              targetUrl = data.uploadUrl;
              url = data.publicUrl;
@@ -350,7 +356,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           // 1. Get presigned URL
           if (isVid) {
              const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
-             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (Stream)");
+             if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Yuklash uchun link olishda xato (Stream)");
+             }
              const data = await res.json();
              targetUrl = data.uploadUrl;
              publicMediaUrl = `https://iframe.videodelivery.net/${data.uid}`; 
@@ -360,7 +369,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                headers: {'Content-Type': 'application/json'},
                body: JSON.stringify({ fileName, fileType: fileToUpload.type })
              });
-             if (!res.ok) throw new Error("Yuklash uchun link olishda xato (R2)");
+             if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Yuklash uchun link olishda xato (R2)");
+             }
              const data = await res.json();
              targetUrl = data.uploadUrl;
              publicMediaUrl = data.publicUrl;

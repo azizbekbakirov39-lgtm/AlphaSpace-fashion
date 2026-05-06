@@ -378,9 +378,13 @@ app.get("/api/health", (req, res) => {
 
 // New endpoint to handle manual uploads directly to R2
 // Get presigned URL for direct R2 upload
-app.post("/api/get-r2-upload-url", express.json(), async (req: any, res: any) => {
-  if (!r2Client) {
-    return res.status(500).json({ error: "R2 client not configured" });
+app.post("/api/get-r2-upload-url", async (req: any, res: any) => {
+  if (!r2Client || !process.env.R2_BUCKET_NAME) {
+    console.error("Cloudflare R2 configuration missing: r2Client not initialized or R2_BUCKET_NAME not set");
+    return res.status(500).json({ 
+      error: "Cloudflare R2 sozlanmagan. Iltimos, Secret sozlamalarini tekshiring.",
+      details: "Missing R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT or R2_BUCKET_NAME"
+    });
   }
   const { fileName, fileType } = req.body;
   const isVideo = fileType?.startsWith('video/');
@@ -394,16 +398,33 @@ app.post("/api/get-r2-upload-url", express.json(), async (req: any, res: any) =>
       ContentType: fileType,
     });
     const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-    const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");
-    const publicUrl = `https://${process.env.R2_BUCKET_NAME}.${endpoint}/${key}`;
+    
+    let publicUrl = "";
+    if (process.env.R2_PUBLIC_DOMAIN) {
+      const domain = process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "");
+      publicUrl = `https://${domain}/${key}`;
+    } else {
+      const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");
+      publicUrl = `https://${process.env.R2_BUCKET_NAME}.${endpoint}/${key}`;
+    }
+    
     res.json({ uploadUrl, publicUrl, key });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error("R2 presigned URL error:", err.message);
+    res.status(500).json({ error: "R2 yuklash linkini olishda xato: " + err.message });
   }
 });
 
 // Get direct upload URL for Cloudflare Stream
-app.post("/api/get-stream-upload-url", express.json(), async (req: any, res: any) => {
+app.post("/api/get-stream-upload-url", async (req: any, res: any) => {
+  if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
+    console.error("Cloudflare Stream configuration missing: CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set");
+    return res.status(500).json({ 
+      error: "Cloudflare Stream sozlanmagan. Iltimos, Cloudflare sozlamalarini tekshiring.",
+      details: "Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN"
+    });
+  }
+
   try {
     const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/stream/direct_upload`;
     const response = await axios.post(url, { maxDurationSeconds: 3600 }, {
@@ -415,8 +436,12 @@ app.post("/api/get-stream-upload-url", express.json(), async (req: any, res: any
       preview: `https://videodelivery.net/${response.data.result.uid}/thumbnails/thumbnail.jpg`
     });
   } catch (err: any) {
-    console.error("Stream direct upload url error:", err.response?.data || err.message);
-    res.status(500).json({ error: err.message });
+    const errorData = err.response?.data || err.message;
+    console.error("Stream direct upload url error:", JSON.stringify(errorData));
+    res.status(500).json({ 
+      error: "Cloudflare Stream orqali yuklash linkini olishda xato yuz berdi",
+      details: typeof errorData === 'object' ? JSON.stringify(errorData) : errorData
+    });
   }
 });
 
