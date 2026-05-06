@@ -418,44 +418,6 @@ app.post("/api/get-r2-upload-url", async (req: any, res: any) => {
   }
 });
 
-// Get direct upload URL for Cloudflare Stream
-app.post("/api/get-stream-upload-url", async (req: any, res: any) => {
-  if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
-    console.error("Cloudflare Stream configuration missing: CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN not set");
-    return res.status(500).json({ 
-      error: "Cloudflare Stream sozlanmagan. Iltimos, Cloudflare sozlamalarini tekshiring.",
-      details: "Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN"
-    });
-  }
-
-  try {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/stream/direct_upload`;
-    const response = await axios.post(url, { maxDurationSeconds: 3600 }, {
-      headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}` }
-    });
-    res.json({
-      uploadUrl: response.data.result.uploadURL,
-      uid: response.data.result.uid,
-      preview: `https://videodelivery.net/${response.data.result.uid}/thumbnails/thumbnail.jpg`
-    });
-  } catch (err: any) {
-    const errorData = err.response?.data || err.message;
-    console.error("Stream direct upload url error:", JSON.stringify(errorData));
-    
-    let detailedError = "Cloudflare Stream orqali yuklash linkini olishda xato yuz berdi";
-    if (err.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0) {
-      detailedError += ": " + err.response.data.errors.map((e: any) => e.message).join(", ");
-    } else if (typeof errorData === 'string') {
-      detailedError += ": " + errorData;
-    }
-
-    res.status(500).json({ 
-      error: detailedError,
-      details: typeof errorData === 'object' ? JSON.stringify(errorData) : errorData
-    });
-  }
-});
-
 app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
   console.log("POST /api/upload-to-r2 hit");
   if (!r2Client) {

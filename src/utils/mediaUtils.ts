@@ -70,7 +70,6 @@ export const isVideoUrl = (url: string): boolean => {
     lowerUrl.includes('video') || 
     lowerUrl.includes('reel') || 
     lowerUrl.includes('clip') ||
-    lowerUrl.includes('stream') ||
     lowerUrl.includes('blob') ||
     lowerUrl.includes('upload')
   ) {

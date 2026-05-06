@@ -18,12 +18,26 @@ export const uploadToR2 = async (file: File): Promise<string> => {
     body: formData 
   });
 
-  const data = await response.json();
   if (!response.ok) {
-    if (data.error && data.error.includes("R2 is not configured")) {
+    let errorMessage = `Upload failed with status ${response.status}`;
+    try {
+      const data = await response.json();
+      errorMessage = data.error || errorMessage;
+    } catch (e) {
+      // If response is not JSON (e.g. HTML), we just keep the status-based error
+    }
+    
+    if (errorMessage.includes("R2 is not configured")) {
       throw new Error("R2_NOT_CONFIGURED");
     }
-    throw new Error(data.error || `Upload failed with status ${response.status}`);
+    throw new Error(errorMessage);
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error(`Failed to parse response as JSON. Status: ${response.status}`);
   }
 
   if (data.urls && data.urls.length > 0) {

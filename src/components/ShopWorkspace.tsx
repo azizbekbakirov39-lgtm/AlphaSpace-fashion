@@ -162,84 +162,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     if (!user) return;
     setIsCreatingStory(true);
     try {
-      let url = '';
-      
-      try {
-        let fileToUpload: File | Blob = file;
-        const isVid = file.type.startsWith('video/');
-        if (!isVid) {
-           fileToUpload = await compressImage(file);
-        }
-
-        let targetUrl = '';
-        if (isVid) {
-             const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
-             if (!res.ok) {
-                let errorMsg = "Yuklash uchun link olishda xato (Stream)";
-                try {
-                  const errData = await res.json();
-                  errorMsg = errData.error || errData.details || errorMsg;
-                } catch (e) {}
-                throw new Error(errorMsg);
-             }
-             const data = await res.json();
-             targetUrl = data.uploadUrl;
-             url = `https://iframe.videodelivery.net/${data.uid}`; 
-        } else {
-             const res = await fetch('/api/get-r2-upload-url', { 
-               method: 'POST', 
-               headers: {'Content-Type': 'application/json'},
-               body: JSON.stringify({ fileName: file.name, fileType: fileToUpload.type })
-             });
-             if (!res.ok) {
-                let errorMsg = "Yuklash uchun link olishda xato (R2)";
-                try {
-                  const errData = await res.json();
-                  errorMsg = errData.error || errData.details || errorMsg;
-                } catch (e) {}
-                throw new Error(errorMsg);
-             }
-             const data = await res.json();
-             targetUrl = data.uploadUrl;
-             url = data.publicUrl;
-        }
-
-        await new Promise((resolve, reject) => {
-           const xhr = new XMLHttpRequest();
-           xhr.open(isVid ? 'POST' : 'PUT', targetUrl);
-           xhr.onload = () => {
-             if (xhr.status >= 200 && xhr.status < 300) {
-               resolve(true);
-             } else {
-               reject(new Error(`Upload failed: ${xhr.status}`));
-             }
-           };
-           xhr.onerror = () => reject(new Error("Tarmoq xatosi yuz berdi."));
-           if (isVid) {
-              const fd = new FormData();
-              fd.append('file', fileToUpload);
-              xhr.send(fd);
-           } else {
-              xhr.setRequestHeader('Content-Type', fileToUpload.type);
-              xhr.send(fileToUpload);
-           }
-        });
-      } catch (err: any) {
-        const isQuotaError = err?.message?.includes("Storage capacity exceeded") || 
-                            err?.message?.includes("quota exceeded");
-        
-        if (isQuotaError) {
-           console.warn("Cloudflare Stream quota full, using fallback storage:", err.message);
-           toast.info("Cloudflare videoxotirasi to'lib qoldi. Video boshqa xotiraga yuklanmoqda...", { duration: 5000 });
-        } else if (err?.message && err.message.includes("R2 sozlanmagan")) {
-           throw err;
-        } else {
-           console.error("Direct upload failed, falling back to uploadService:", err);
-        }
-        
-        // If direct upload fails, use the uploadFile service which handles R2-proxy and Firebase fallback
-        url = await uploadFile(file);
-      }
+      const url = await uploadFile(file);
 
       const storyData = {
         ownerUid: user.uid,
@@ -356,104 +279,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       let mediaUrls: string[] = [];
       let isVideo = false;
 
-      // Try client-side direct uploads to bypass 413 limits
+      // Use the stable uploadFile service for all media uploads
       for (const file of files) {
         try {
-          const isVid = file.type.startsWith('video/');
-          let fileToUpload: File | Blob = file;
-          if (!isVid) {
-            fileToUpload = await compressImage(file);
-          }
-          const fileName = file.name;
-
-          let targetUrl = '';
-          let publicMediaUrl = '';
-
-          // 1. Get presigned URL
-          if (isVid) {
-             const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
-             if (!res.ok) {
-                let errorMsg = "Yuklash uchun link olishda xato (Stream)";
-                try {
-                  const errData = await res.json();
-                  errorMsg = errData.error || errData.details || errorMsg;
-                } catch (e) {}
-                throw new Error(errorMsg);
-             }
-             const data = await res.json();
-             targetUrl = data.uploadUrl;
-             publicMediaUrl = `https://iframe.videodelivery.net/${data.uid}`; 
-          } else {
-             const res = await fetch('/api/get-r2-upload-url', { 
-               method: 'POST', 
-               headers: {'Content-Type': 'application/json'},
-               body: JSON.stringify({ fileName, fileType: fileToUpload.type })
-             });
-             if (!res.ok) {
-                let errorMsg = "Yuklash uchun link olishda xato (R2)";
-                try {
-                  const errData = await res.json();
-                  errorMsg = errData.error || errData.details || errorMsg;
-                } catch (e) {}
-                throw new Error(errorMsg);
-             }
-             const data = await res.json();
-             targetUrl = data.uploadUrl;
-             publicMediaUrl = data.publicUrl;
-          }
-
-          // 2. Upload file directly
-          await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open(isVid ? 'POST' : 'PUT', targetUrl);
-            
-            xhr.upload.onprogress = (event) => {
-              if (event.lengthComputable) {
-                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                setUploadProgress(percentComplete);
-                if (percentComplete === 100) {
-                  toast.loading("Media saqlanmoqda...", { id: toastId });
-                }
-              }
-            };
-
-            xhr.onload = () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                resolve(true);
-              } else {
-                reject(new Error(`Upload failed with status ${xhr.status}`));
-              }
-            };
-            
-            xhr.onerror = () => reject(new Error(`Tarmoq xatosi yuz berdi (${isVid ? 'Stream' : 'R2'})`));
-
-            if (isVid) {
-               const fd = new FormData();
-               fd.append('file', fileToUpload);
-               xhr.send(fd);
-            } else {
-               xhr.setRequestHeader('Content-Type', fileToUpload.type);
-               xhr.send(fileToUpload);
-            }
-          });
-
-          mediaUrls.push(publicMediaUrl);
-          if (isVid) isVideo = true;
-        } catch (fallbackErr: any) {
-          const isQuotaError = fallbackErr?.message?.includes("Storage capacity exceeded") || 
-                              fallbackErr?.message?.includes("quota exceeded");
-          
-          if (isQuotaError) {
-             console.warn("Cloudflare Stream quota full, using fallback storage:", fallbackErr.message);
-             toast.info("Cloudflare videoxotirasi to'lib qoldi. Video boshqa xotiraga yuklanmoqda...", { duration: 5000 });
-          } else {
-             console.error("Direct upload failed, falling back to uploadService:", fallbackErr);
-          }
-          
-          // If direct upload fails, use the uploadFile service which handles R2-proxy and Firebase fallback
           const url = await uploadFile(file);
           mediaUrls.push(url);
           if (file.type.startsWith('video/')) isVideo = true;
+        } catch (err: any) {
+          console.error("Media upload error:", err);
+          throw new Error("Faylni yuklashda xatolik yuz berdi");
         }
       }
 
