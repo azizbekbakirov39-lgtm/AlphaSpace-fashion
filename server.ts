@@ -411,7 +411,10 @@ app.post("/api/get-r2-upload-url", async (req: any, res: any) => {
     res.json({ uploadUrl, publicUrl, key });
   } catch (err: any) {
     console.error("R2 presigned URL error:", err.message);
-    res.status(500).json({ error: "R2 yuklash linkini olishda xato: " + err.message });
+    res.status(500).json({ 
+      error: "R2 yuklash linkini olishda xato: " + err.message,
+      details: err.message
+    });
   }
 });
 
@@ -438,8 +441,16 @@ app.post("/api/get-stream-upload-url", async (req: any, res: any) => {
   } catch (err: any) {
     const errorData = err.response?.data || err.message;
     console.error("Stream direct upload url error:", JSON.stringify(errorData));
+    
+    let detailedError = "Cloudflare Stream orqali yuklash linkini olishda xato yuz berdi";
+    if (err.response?.data?.errors && Array.isArray(err.response.data.errors) && err.response.data.errors.length > 0) {
+      detailedError += ": " + err.response.data.errors.map((e: any) => e.message).join(", ");
+    } else if (typeof errorData === 'string') {
+      detailedError += ": " + errorData;
+    }
+
     res.status(500).json({ 
-      error: "Cloudflare Stream orqali yuklash linkini olishda xato yuz berdi",
+      error: detailedError,
       details: typeof errorData === 'object' ? JSON.stringify(errorData) : errorData
     });
   }
@@ -544,7 +555,10 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
     for (const file of files) {
        try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: "Server orqali yuklashda xatolik: " + error.message,
+      details: error.message
+    });
   }
 });
 

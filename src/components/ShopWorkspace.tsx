@@ -175,8 +175,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
         if (isVid) {
              const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
              if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || "Yuklash uchun link olishda xato (Stream)");
+                let errorMsg = "Yuklash uchun link olishda xato (Stream)";
+                try {
+                  const errData = await res.json();
+                  errorMsg = errData.error || errData.details || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
              }
              const data = await res.json();
              targetUrl = data.uploadUrl;
@@ -188,8 +192,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                body: JSON.stringify({ fileName: file.name, fileType: fileToUpload.type })
              });
              if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || "Yuklash uchun link olishda xato (R2)");
+                let errorMsg = "Yuklash uchun link olishda xato (R2)";
+                try {
+                  const errData = await res.json();
+                  errorMsg = errData.error || errData.details || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
              }
              const data = await res.json();
              targetUrl = data.uploadUrl;
@@ -217,11 +225,19 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
            }
         });
       } catch (err: any) {
-        if (err?.message && err.message.includes("R2 sozlanmagan")) {
+        const isQuotaError = err?.message?.includes("Storage capacity exceeded") || 
+                            err?.message?.includes("quota exceeded");
+        
+        if (isQuotaError) {
+           console.warn("Cloudflare Stream quota full, using fallback storage:", err.message);
+           toast.info("Cloudflare videoxotirasi to'lib qoldi. Video boshqa xotiraga yuklanmoqda...", { duration: 5000 });
+        } else if (err?.message && err.message.includes("R2 sozlanmagan")) {
            throw err;
+        } else {
+           console.error("Direct upload failed, falling back to uploadService:", err);
         }
         
-        console.error("R2 upload error, retrying...", err);
+        // If direct upload fails, use the uploadFile service which handles R2-proxy and Firebase fallback
         url = await uploadFile(file);
       }
 
@@ -341,8 +357,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       let isVideo = false;
 
       // Try client-side direct uploads to bypass 413 limits
-      try {
-        for (const file of files) {
+      for (const file of files) {
+        try {
           const isVid = file.type.startsWith('video/');
           let fileToUpload: File | Blob = file;
           if (!isVid) {
@@ -357,8 +373,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           if (isVid) {
              const res = await fetch('/api/get-stream-upload-url', { method: 'POST', headers: {'Content-Type': 'application/json'} });
              if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || "Yuklash uchun link olishda xato (Stream)");
+                let errorMsg = "Yuklash uchun link olishda xato (Stream)";
+                try {
+                  const errData = await res.json();
+                  errorMsg = errData.error || errData.details || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
              }
              const data = await res.json();
              targetUrl = data.uploadUrl;
@@ -370,8 +390,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                body: JSON.stringify({ fileName, fileType: fileToUpload.type })
              });
              if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || "Yuklash uchun link olishda xato (R2)");
+                let errorMsg = "Yuklash uchun link olishda xato (R2)";
+                try {
+                  const errData = await res.json();
+                  errorMsg = errData.error || errData.details || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
              }
              const data = await res.json();
              targetUrl = data.uploadUrl;
@@ -415,14 +439,22 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
           mediaUrls.push(publicMediaUrl);
           if (isVid) isVideo = true;
+        } catch (fallbackErr: any) {
+          const isQuotaError = fallbackErr?.message?.includes("Storage capacity exceeded") || 
+                              fallbackErr?.message?.includes("quota exceeded");
+          
+          if (isQuotaError) {
+             console.warn("Cloudflare Stream quota full, using fallback storage:", fallbackErr.message);
+             toast.info("Cloudflare videoxotirasi to'lib qoldi. Video boshqa xotiraga yuklanmoqda...", { duration: 5000 });
+          } else {
+             console.error("Direct upload failed, falling back to uploadService:", fallbackErr);
+          }
+          
+          // If direct upload fails, use the uploadFile service which handles R2-proxy and Firebase fallback
+          const url = await uploadFile(file);
+          mediaUrls.push(url);
+          if (file.type.startsWith('video/')) isVideo = true;
         }
-      } catch (fallbackErr: any) {
-        if (fallbackErr?.message && fallbackErr.message.includes("R2 sozlanmagan")) {
-          throw fallbackErr;
-        }
-
-        console.error("R2/Stream collection upload error:", fallbackErr);
-        throw fallbackErr;
       }
 
       if (mediaUrls.length === 0) throw new Error("Fayllarni yuklash imkoni bo'lmadi");
