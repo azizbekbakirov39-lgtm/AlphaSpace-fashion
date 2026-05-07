@@ -476,10 +476,12 @@ const Brands: React.FC<BrandsProps> = ({
                     <div 
                       onClick={(e) => {
                         e.stopPropagation();
-                        seller.hasStory && handleStoryClick(seller.id);
+                        if (seller.hasStory) {
+                          handleStoryClick(seller.id);
+                        }
                       }}
                       className={`p-[2px] rounded-full transition-all duration-500 hover:scale-110 active:scale-95 ${
-                        seller.hasStory 
+                        seller.hasStory
                           ? (stories.find(s => s.seller.id === seller.id)?.isViewed 
                               ? 'bg-white/20' 
                               : 'bg-gradient-to-tr from-accent-blue to-accent-light animate-gradient') 

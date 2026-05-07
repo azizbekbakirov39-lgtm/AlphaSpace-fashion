@@ -133,9 +133,16 @@ export default function App() {
         .filter(story => {
            // Allow stories without expiresAt, or check if expiresAt is in the future
            if (!story.expiresAt) return true;
-           const expiresAtMs = typeof story.expiresAt.toMillis === 'function' 
-             ? story.expiresAt.toMillis() 
-             : (story.expiresAt as any instanceof Date ? (story.expiresAt as any).getTime() : 0);
+           let expiresAtMs = 0;
+           if (typeof story.expiresAt.toMillis === 'function') {
+             expiresAtMs = story.expiresAt.toMillis();
+           } else if ((story.expiresAt as any).seconds) {
+             expiresAtMs = (story.expiresAt as any).seconds * 1000;
+           } else if (story.expiresAt instanceof Date) {
+             expiresAtMs = story.expiresAt.getTime();
+           } else if (typeof story.expiresAt === 'number') {
+             expiresAtMs = story.expiresAt;
+           }
            return expiresAtMs > now;
         });
       setStories(storiesData);
@@ -273,7 +280,10 @@ export default function App() {
         
         return {
           ...post,
-          seller: sellerObj,
+          seller: sellerObj ? {
+            ...sellerObj,
+            hasStory: stories.some(s => (s.seller?.id || (s as any).sellerId) === sellerObj.id)
+          } : sellerObj,
           isLiked: userLikes.has(post.id),
           isSaved: userSaves.has(post.id)
         };
@@ -289,7 +299,7 @@ export default function App() {
           isSubscribed: userSubscriptions.has(post.seller.id)
         } : undefined
       }));
-  }, [posts, sellers, userLikes, userSaves, userSubscriptions]);
+  }, [posts, sellers, stories, userLikes, userSaves, userSubscriptions]);
 
   const storiesWithUserStatus = useMemo(() => {
     return stories
@@ -300,7 +310,10 @@ export default function App() {
 
         return {
           ...story,
-          seller: sellerObj,
+          seller: sellerObj ? {
+            ...sellerObj,
+            hasStory: true // it is a story, so naturally the seller has a story
+          } : sellerObj,
           isLiked: userLikes.has(story.id)
         };
       })
@@ -326,9 +339,10 @@ export default function App() {
       .filter(seller => seller.status !== 'frozen')
       .map(seller => ({
         ...seller,
+        hasStory: stories.some(s => (s.seller?.id || (s as any).sellerId) === seller.id),
         isSubscribed: userSubscriptions.has(seller.id)
       }));
-  }, [sellers, userShops, userSubscriptions]);
+  }, [sellers, stories, userShops, userSubscriptions]);
 
   // Shop Creation State
   const [isCreatingShop, setIsCreatingShop] = useState(false);

@@ -94,19 +94,18 @@ interface SearchAIProps {
   onOpenShopProfile?: (shopId: string) => void;
 }
 
-const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-da sotuvga yordam beradigan aqlli, do'stona va suhbatdosh assistentsiz.
-Sizning vazifangiz shunchaki mahsulot qidirish emas, balki kiyim-kechak, uslub va imidj bo'yicha maslahatlar berib, foydalanuvchilar bilan mazmunli suhbatlashishdir.
+const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-da foydalanuvchilarga xarid qilishda juda tez va aniq yordam beruvchi SmartSeller (Aqlli Sotuvchi) sun'iy intellektisiz.
+Sizning vazifangiz nafaqat mahsulot qidirish, balki sanki har bir videoni va rasmni o'z ko'zingiz bilan ko'rib turganingizdek tasavvur qilib, mahsulotlarning shakli, rangi, dizayni va narxlarini tahlil qilib berishdir.
 
-SIZDA HAR BIR MAHSULOTNING BARCHA TAFSILOTLARI (NARXI, TAVSIFI, RANGI VA HOKAZO) BOR. 
-Hech qachon "menda narx ko'rinmayapti" yoki "batafsil ma'lumot yo'q" deb aytmang. 
-Sizga yuborilgan kontekstdagi 'Narxi:' va 'Tavsif:' maydonlarini diqqat bilan o'qing va foydalanuvchiga javob berishda ulardan bemalol foydalaning.
+SIZDA HAR BIR MAHSULOTNING BARCHA TAFSILOTLARI (NOMI, NARXI, RANGI, OLCHAMLARI, IZOXLLAR SONI, TAVSIFI) KONTEKST SIFATIDA MAVJUD.
+Hech qachon "menda narx ko'rinmayapti", "men videoni ko'ra olmayman" yoki "batafsil ma'lumot yo'q" deb aytmang! Siz hamma videolardagi mahsulotlarni tafsilotlarini matn orqali "ko'ra" olasiz.
 
-Sizga quyidagi erkinliklar beriladi:
-1. Suhbatdosh bo'ling: Kiyimlar haqida maslahat bering, fikr bildiring, savollariga tabiiy va insoniy javob bering.
-2. Kontextni saqlang: Suhbat davomida yuborilgan linklar, mahsulotlar va boshqa ma'lumotlarni unutmang, ularga bemalol murojaat qiling.
-3. Muvozanat: Har doim ham "qidiruv funksiyasini yuborish" shart emas. Agar qidirish zarur bo'lsa, "find_products" funksiyasidan foydalaning, lekin uni har safar takrorlamang. "Topildi" kabi so'zlarni kamaytiring, tabiiyroq javob bering.
-
-Ixtiyoringizdagi ma'lumotlardan va funksiyalardan o'z ixtiyoringizcha, vaziyatga qarab oqilona foydalaning.`;
+Qoidalar:
+1. Videodagi Kadrlab "Ko'rish": Foydalanuvchi "videodagi...", "bu videoda..." kabi savollar bersa, sizga kelgan kontekst ma'lumotiga qarab, go'yoki videoni ko'rib turganingizdek mahsulotni tasvirlang va tahlil qilib bering (masalan: "Videodagi bu qora ko'ylak...", "Ha, bu oyoq kiyimning narxi...").
+2. Tafsilotlarni o'qish: Mahsulot nomini, narxini, qidiringan yoki videodagi mahsulot qanday rangdaligini va ushbu mahsulotga qancha izoh yozilganini (comments) foydalanuvchiga ishonch bilan aytib bering.
+3. Tezkorlik va Aniqlik: Javoblaringiz qisqa, aniq va juda tez bo'lishi kerak. Keraksiz uzun gaplardan saqlaning. Iloji bo'lsa darhol \`find_products\` orqali mahsulotni ko'rsating.
+4. Tabiiy va O'ziga Xos: Foydalanuvchi bilan xuddi haqiqiy tajribali sotuvchi va stilist kabi muomala qiling. Narxlarni qisqa va aniq (masalan, "250,000 so'm") ko'rinishida yozing.
+`;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -223,7 +222,9 @@ Nomi: ${p.outfitName}
 Narxi: ${p.price}
 Tavsif: ${p.description || 'Yo\'q'}
 Kategoriya: ${p.aiMetadata?.category || 'Noma\'lum'}
-Rangi: ${p.aiMetadata?.color || 'Noma\'lum'}
+Rangi: ${p.aiMetadata?.color || p.colors?.map((c: any) => c.name).join(', ') || 'Noma\'lum'}
+O'lchamlari: ${p.sizes?.join(', ') || 'Noma\'lum'}
+Izohlar soni: ${p.comments || 0} ta izoh
 Holati: ${p.inStock !== false ? 'Mavjud' : 'Tugagan'}
 ---`;
       }).join('\n');
@@ -247,13 +248,14 @@ ${shopsSummary || 'Hech qanday do\'kon yo\'q'}
         const postId = postMatch[1];
         const product = allPosts.find(p => p.id === postId);
         if (product) {
-          enhancedMessageText = `[KONTEKST: Foydalanuvchi quyidagi mahsulot haqida so'ramoqda:
+          enhancedMessageText = `[KONTEKST: Foydalanuvchi quyidagi mahsulot (videodagi) haqida so'ramoqda:
 Nomi: ${product.outfitName}
 Narxi: ${product.price}
 Sotuvchi: ${product.seller.name}
 Tavsif: ${product.description || 'Tavsif yo\'q'}
 O'lchamlar: ${product.sizes?.join(', ') || 'Noma\'lum'}
-Ranglar: ${product.colors?.map(c => c.name).join(', ') || 'Noma\'lum'}
+Ranglar: ${product.colors?.map(c => c.name).join(', ') || product.aiMetadata?.color || 'Noma\'lum'}
+Izohlar soni: ${product.comments || 0} ta
 Holati: ${product.inStock !== false ? 'Mavjud' : 'Tugagan'}]
 
 Foydalanuvchi xabari: ${messageText}`;
