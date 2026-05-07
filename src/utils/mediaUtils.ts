@@ -133,9 +133,8 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     if (cache[url]) return cache[url];
   }
 
-  // By default, assume R2/S3 URLs are publicly accessible via their domains.
-  // If CORS or 403 issues occur, bucket settings should be adjusted on Cloudflare R2
-  // rather than proxying every video through the Node.js backend.
+  // By default, try to load R2/S3 URLs directly if they are on a public domain.
+  // Private endpoints (like r2.cloudflarestorage.com) MUST be proxied due to missing SigV4 auth here.
   if (
     url.includes('r2.dev') || 
     url.includes('pub-') || 
@@ -143,7 +142,16 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     url.includes('amazonaws.com') || 
     (import.meta.env.VITE_R2_PUBLIC_DOMAIN && url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN))
   ) {
-    return url;
+    // Always proxy private AWS/CF endpoint URLs
+    if (url.includes('r2.cloudflarestorage.com') || url.includes('amazonaws.com')) {
+      return `/api/proxy-video?url=${encodeURIComponent(url)}`;
+    }
+    
+    if (proxyIndex === 0) {
+      return url;
+    }
+    // Fallback to internal proxy if direct public access fails (e.g. CORS not configured on bucket)
+    return `/api/proxy-video?url=${encodeURIComponent(url)}`;
   }
 
   // Directly return trusted URLs when proxyIndex is 0
