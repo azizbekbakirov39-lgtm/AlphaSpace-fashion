@@ -279,17 +279,14 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       let mediaUrls: string[] = [];
       let isVideo = false;
 
-      // Use the stable uploadFile service for all media uploads
-      for (const file of files) {
-        try {
-          const url = await uploadFile(file);
-          mediaUrls.push(url);
-          if (file.type.startsWith('video/')) isVideo = true;
-        } catch (err: any) {
-          console.error("Media upload error:", err);
-          throw new Error("Faylni yuklashda xatolik yuz berdi");
-        }
-      }
+      // Parallel upload all media files for maximum speed
+      const uploadPromises = files.map(async (file) => {
+        const url = await uploadFile(file);
+        if (file.type.startsWith('video/')) isVideo = true;
+        return url;
+      });
+
+      mediaUrls = await Promise.all(uploadPromises);
 
       if (mediaUrls.length === 0) throw new Error("Fayllarni yuklash imkoni bo'lmadi");
 
