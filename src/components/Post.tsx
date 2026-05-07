@@ -115,7 +115,7 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
       )}
       <video 
         ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover z-10"
+        className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
         loop
         muted={isMuted}
         autoPlay={isActive && !isGlobalPaused}
@@ -519,7 +519,7 @@ const Post: React.FC<PostProps> = ({
 
             <video
               ref={videoRef}
-              className="absolute inset-0 w-full h-full object-cover z-10"
+              className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
               loop
               muted={isMuted || !isActive} // Force mute if not active to prevent sound overlap
               autoPlay={isActive && !isPaused}

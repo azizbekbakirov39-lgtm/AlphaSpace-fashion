@@ -309,7 +309,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       className="absolute inset-0 z-[30000] bg-black flex items-center justify-center overflow-hidden"
     >
       {isVideoUrl(currentStory.videoUrl) ? (
-        <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
+        <div 
+          className="w-full h-full relative bg-neutral-900 flex items-center justify-center"
+          onClick={handleTap}
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onTouchStart={handlePressStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handlePressEnd}
+        >
           {(currentStory.imageUrl || currentStory.thumbnailUrl) && (
             <img 
               src={getProxiedUrl(currentStory.imageUrl || currentStory.thumbnailUrl || '', 0)}
@@ -344,7 +353,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
           <video
             ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover z-10"
+            className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
             onEnded={handleNext}
             playsInline
             webkit-playsinline="true"
@@ -352,13 +361,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             x5-video-player-type="h5"
             x5-video-player-fullscreen="false"
             muted={isMuted}
-            onClick={handleTap}
-            onMouseDown={handlePressStart}
-            onMouseUp={handlePressEnd}
-            onMouseLeave={handlePressEnd}
-            onTouchStart={handlePressStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handlePressEnd}
             preload="auto"
             onLoadedData={(e) => {
               handleMediaSuccess(e.currentTarget);
