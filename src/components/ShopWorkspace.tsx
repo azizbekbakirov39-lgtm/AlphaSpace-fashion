@@ -161,8 +161,10 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const handleCreateStory = async (file: File, price?: string) => {
     if (!user) return;
     setIsCreatingStory(true);
+    const toastId = toast.loading(file.type.startsWith('video/') ? "Video optimallashmoqda..." : "Rasm tayyorlanmoqda...");
     try {
       const url = await uploadFile(file);
+      toast.loading("Story saqlanmoqda...", { id: toastId });
 
       const storyData = {
         ownerUid: user.uid,
@@ -189,11 +191,11 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       await updateDoc(doc(db, 'shops', shopData.id), { hasStory: true });
       
       setShowCreateStoryModal(false);
-      toast.success("Story muvaffaqiyatli qo'shildi!");
+      toast.success("Story muvaffaqiyatli qo'shildi!", { id: toastId });
       onUpdateShop({ ...localShopData, hasStory: true });
     } catch (error: any) {
       console.error("Story creation error:", error?.message || error);
-      toast.error("Story yuklashda xatolik yuz berdi");
+      toast.error("Story yuklashda xatolik yuz berdi", { id: toastId });
     } finally {
       setIsCreatingStory(false);
     }
@@ -273,20 +275,24 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     setIsUploading(true);
     setUploadProgress(0);
     setShowManualPostModal(false); // Close immediately
-    const toastId = toast.loading("Media yuklanmoqda...");
-
+  const toastId = toast.loading("Media yuklanmoqda...");
     try {
       let mediaUrls: string[] = [];
       let isVideo = false;
 
       // Parallel upload all media files for maximum speed
       const uploadPromises = files.map(async (file) => {
+        const isVid = file.type.startsWith('video/');
+        if (isVid) {
+          toast.loading(`Video optimallashmoqda... (${file.name})`, { id: toastId });
+        }
         const url = await uploadFile(file);
-        if (file.type.startsWith('video/')) isVideo = true;
+        if (isVid) isVideo = true;
         return url;
       });
 
       mediaUrls = await Promise.all(uploadPromises);
+      toast.loading("Media saqlanmoqda...", { id: toastId });
 
       if (mediaUrls.length === 0) throw new Error("Fayllarni yuklash imkoni bo'lmadi");
 

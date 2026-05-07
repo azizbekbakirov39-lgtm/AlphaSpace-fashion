@@ -13,7 +13,7 @@ export const uploadToR2 = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('files', file, file.name);
 
-  const response = await fetch('/api/upload-to-r2', { 
+  const response = await fetch('/api/media-hub', { 
     method: 'POST', 
     body: formData 
   });
@@ -24,19 +24,26 @@ export const uploadToR2 = async (file: File): Promise<string> => {
       const data = await response.json();
       errorMessage = data.error || errorMessage;
     } catch (e) {
-      // If response is not JSON (e.g. HTML), we just keep the status-based error
+      if (response.status === 413) {
+        errorMessage = "Fayl hajmi juda katta (Server cheklovi). Kamroq hajmdagi fayl yuklang.";
+      }
     }
     
-    if (errorMessage.includes("R2 is not configured")) {
+    if (errorMessage.includes("R2 is not configured") || errorMessage.includes("sozlanmagan")) {
       throw new Error("R2_NOT_CONFIGURED");
     }
     throw new Error(errorMessage);
   }
 
   let data;
+  const text = await response.text();
+  if (!text) {
+    throw new Error(`Empty response from server. Status: ${response.status}`);
+  }
   try {
-    data = await response.json();
+    data = JSON.parse(text);
   } catch (e) {
+    console.error("Failed to parse R2 upload response as JSON. Status:", response.status, "Text snippet:", text.substring(0, 500));
     throw new Error(`Failed to parse response as JSON. Status: ${response.status}`);
   }
 

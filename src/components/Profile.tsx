@@ -612,56 +612,26 @@ const Profile: React.FC<ProfileProps> = ({
 
       // If it's a video message (base64 from recording), upload it properly
       if (videoMessage && videoMessage.startsWith('data:')) {
-        let blob: Blob | null = null;
         try {
           const res = await fetch(videoMessage);
-          blob = await res.blob();
-          
-          const formData = new FormData();
-          formData.append('files', new File([blob], `vmsg_${Date.now()}.webm`, { type: 'video/webm' }));
-          const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
-            const data = await r.json();
-            if (!r.ok) throw new Error(data.error || "Upload failed");
-            return data;
-          });
-          videoMessage = r2Result.urls[0].url;
+          const blob = await res.blob();
+          const file = new File([blob], `vmsg_${Date.now()}.webm`, { type: 'video/webm' });
+          videoMessage = await uploadFile(file, 'chat_videos');
         } catch (err) {
-          console.error("Video message upload error with R2, falling back:", err);
-          if (blob) {
-            const fileName = `vmsg_${Date.now()}.webm`;
-            const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-            await uploadBytes(storageRef, blob);
-            videoMessage = await getDownloadURL(storageRef);
-          } else {
-            throw err;
-          }
+          console.error("Video message upload error:", err);
+          throw err;
         }
       }
 
       if (audioData && audioData.startsWith('data:')) {
-        let blob: Blob | null = null;
         try {
           const res = await fetch(audioData);
-          blob = await res.blob();
-          
-          const formData = new FormData();
-          formData.append('files', new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' }));
-          const r2Result = await fetch('/api/upload-to-r2', { method: 'POST', body: formData }).then(async r => {
-            const data = await r.json();
-            if (!r.ok) throw new Error(data.error || "Upload failed");
-            return data;
-          });
-          finalAudioUrl = r2Result.urls[0].url;
+          const blob = await res.blob();
+          const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+          finalAudioUrl = await uploadFile(file, 'chat_audio');
         } catch (err) {
-          console.error("Audio upload error with R2, falling back:", err);
-          if (blob) {
-            const fileName = `audio_${Date.now()}.webm`;
-            const storageRef = ref(storage, `chat_media/${user.uid}/${fileName}`);
-            await uploadBytes(storageRef, blob);
-            finalAudioUrl = await getDownloadURL(storageRef);
-          } else {
-            throw err;
-          }
+          console.error("Audio upload error:", err);
+          throw err;
         }
       } else if (audioData) {
         finalAudioUrl = audioData;

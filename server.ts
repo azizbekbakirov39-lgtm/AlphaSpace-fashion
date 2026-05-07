@@ -418,8 +418,8 @@ app.post("/api/get-r2-upload-url", async (req: any, res: any) => {
   }
 });
 
-app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) => {
-  console.log("POST /api/upload-to-r2 hit");
+app.post("/api/media-hub", upload.array("files"), async (req: any, res: any) => {
+  console.log("POST /api/media-hub hit");
   if (!r2Client) {
     const missing = [];
     if (!process.env.R2_ACCESS_KEY_ID) missing.push("R2_ACCESS_KEY_ID");
@@ -509,6 +509,7 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
       }
     }
 
+    console.log(`Sending upload success results for ${results.length} files`);
     res.json({ urls: results });
 
   } catch (error: any) {
@@ -522,6 +523,15 @@ app.post("/api/upload-to-r2", upload.array("files"), async (req: any, res: any) 
       details: error.message
     });
   }
+});
+
+// Global Error Handler
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("Unhandled Error:", err);
+  res.status(err.status || 500).json({
+    error: err.message || "Ichki server xatoligi",
+    details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 // Vite / Static serving
