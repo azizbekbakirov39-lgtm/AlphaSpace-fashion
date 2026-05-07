@@ -133,15 +133,17 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     if (cache[url]) return cache[url];
   }
 
-  // Handle R2/S3 URLs immediately using the internal SDK proxy to avoid CORS/403 issues
+  // By default, assume R2/S3 URLs are publicly accessible via their domains.
+  // If CORS or 403 issues occur, bucket settings should be adjusted on Cloudflare R2
+  // rather than proxying every video through the Node.js backend.
   if (
     url.includes('r2.dev') || 
     url.includes('pub-') || 
     url.includes('r2.cloudflarestorage.com') || 
-    url.includes('amazonaws.com') || // Also proxy S3 URLs
+    url.includes('amazonaws.com') || 
     (import.meta.env.VITE_R2_PUBLIC_DOMAIN && url.includes(import.meta.env.VITE_R2_PUBLIC_DOMAIN))
   ) {
-    return `/api/proxy-video?url=${encodeURIComponent(url)}`;
+    return url;
   }
 
   // Directly return trusted URLs when proxyIndex is 0

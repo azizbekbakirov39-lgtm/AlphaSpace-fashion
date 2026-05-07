@@ -48,13 +48,33 @@ export const storage = getStorage(app);
 // Auth Helpers
 export const googleProvider = new GoogleAuthProvider();
 
+let isAuthInProgress = false;
+
 export const signInWithGoogle = async () => {
+  if (isAuthInProgress) {
+    console.warn("Sign-in already in progress");
+    return null; // Ignore duplicate calls
+  }
+  
+  isAuthInProgress = true;
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error signing in with Google", error);
+    if (error.code === 'auth/popup-blocked') {
+      alert("Please allow popups for this site to sign in with Google.");
+      return null;
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      console.warn("Popup request was cancelled.");
+      return null;
+    } else if (error.code === 'auth/network-request-failed') {
+      alert("Network request failed. Please check your internet connection.");
+      return null;
+    }
     throw error;
+  } finally {
+    isAuthInProgress = false;
   }
 };
 
