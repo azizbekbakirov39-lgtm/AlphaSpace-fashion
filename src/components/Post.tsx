@@ -120,6 +120,10 @@ const CarouselVideo: React.FC<{ url: string, isActive: boolean, isNext?: boolean
         muted={isMuted}
         autoPlay={isActive && !isGlobalPaused}
         playsInline
+        webkit-playsinline="true"
+        x5-playsinline="true"
+        x5-video-player-type="h5"
+        x5-video-player-fullscreen="false"
         onContextMenu={(e) => e.preventDefault()}
         preload={isActive ? "auto" : (isNext || isUpcoming ? "metadata" : "none")}
         onPlaying={() => setIsPlaying(true)}
@@ -286,9 +290,11 @@ const Post: React.FC<PostProps> = ({
     handlePressStart(e);
     
     // "Wake up" audio on user interaction
-    if (videoRef.current && isActive && !isMuted && !isPaused) {
-      videoRef.current.muted = false;
-      videoRef.current.play().catch(() => {});
+    if (videoRef.current && isActive && !isPaused) {
+      if (!isMuted) {
+        videoRef.current.muted = false;
+      }
+      safePlayVideo(videoRef.current);
     }
   };
 
@@ -518,6 +524,10 @@ const Post: React.FC<PostProps> = ({
               muted={isMuted || !isActive} // Force mute if not active to prevent sound overlap
               autoPlay={isActive && !isPaused}
               playsInline
+              webkit-playsinline="true"
+              x5-playsinline="true"
+              x5-video-player-type="h5"
+              x5-video-player-fullscreen="false"
               onContextMenu={(e) => e.preventDefault()}
               preload={isActive ? "auto" : (isNext || isUpcoming ? "metadata" : "none")}
               onLoadedData={(e) => {

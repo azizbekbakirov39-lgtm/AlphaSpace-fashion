@@ -26,6 +26,10 @@ const ShopCoverVideo: React.FC<{ url: string }> = ({ url }) => {
       className="w-full h-full object-cover"
       muted
       playsInline
+      webkit-playsinline="true"
+      x5-playsinline="true"
+      x5-video-player-type="h5"
+      x5-video-player-fullscreen="false"
       loop
     />
   );
@@ -394,6 +398,10 @@ const ShopProfile: React.FC<ShopProfileProps> = ({
                       preload="metadata"
                       muted
                       playsInline
+                      webkit-playsinline="true"
+                      x5-playsinline="true"
+                      x5-video-player-type="h5"
+                      x5-video-player-fullscreen="false"
                     />
                   ) : (
                     <ImageWithFallback 

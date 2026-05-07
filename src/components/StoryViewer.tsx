@@ -347,6 +347,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             className="absolute inset-0 w-full h-full object-cover z-10"
             onEnded={handleNext}
             playsInline
+            webkit-playsinline="true"
+            x5-playsinline="true"
+            x5-video-player-type="h5"
+            x5-video-player-fullscreen="false"
             muted={isMuted}
             onClick={handleTap}
             onMouseDown={handlePressStart}
