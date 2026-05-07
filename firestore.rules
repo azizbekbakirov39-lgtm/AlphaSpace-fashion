@@ -38,115 +38,70 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      function isValidUser(data) {
-        return data.keys().hasAll(['uid', 'email']) &&
-               data.uid == request.auth.uid &&
-               data.email is string &&
-               (!('displayName' in data) || data.displayName is string) &&
-               (!('photoURL' in data) || data.photoURL is string);
-      }
-
       allow read: if isSignedIn();
-      allow create: if isOwner(userId) && isValidUser(incoming());
-      allow update: if isOwner(userId) && isValidUser(incoming()) && 
-                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'role', 'hasShop', 'sellerId', 'bio', 'phoneNumber']);
-      allow delete: if false;
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // Shop Rules
     match /shops/{shopId} {
-      function isValidShop(data) {
-        return data.keys().hasAll(['id', 'ownerUid', 'name']) &&
-               data.ownerUid == request.auth.uid &&
-               data.name is string && data.name.size() <= 100;
-      }
-
       allow read: if true;
-      allow create: if isVerified() && isValidShop(incoming());
-      allow update: if isOwner(existing().ownerUid) && isValidShop(incoming()) &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'logo', 'description', 'category', 'rating', 'followers', 'verified']);
-      allow delete: if isOwner(existing().ownerUid);
+      allow write: if isSignedIn();
     }
 
     // Post Rules
     match /posts/{postId} {
-      function isValidPost(data) {
-        return data.keys().hasAll(['sellerId', 'mediaUrls']) &&
-               data.sellerId is string &&
-               data.mediaUrls is list && data.mediaUrls.size() > 0;
-      }
-
       allow read: if true;
-      allow create: if isVerified() && isValidPost(incoming());
-      allow update: if isVerified() && isValidPost(incoming());
-      allow delete: if isVerified();
+      allow write: if isSignedIn();
 
       match /comments/{commentId} {
         allow read: if true;
-        allow create: if isSignedIn() && incoming().uid == request.auth.uid;
-        allow delete: if isSignedIn() && (existing().uid == request.auth.uid || get(/databases/$(database)/documents/posts/$(postId)).data.sellerId == request.auth.uid);
+        allow write: if isSignedIn();
       }
     }
 
     // Story Rules
     match /stories/{storyId} {
-      function isValidStory(data) {
-        return data.keys().hasAll(['sellerId', 'mediaUrl']) &&
-               data.sellerId is string &&
-               data.mediaUrl is string;
-      }
-
       allow read: if true;
-      allow create: if isVerified() && isValidStory(incoming());
-      allow delete: if isVerified();
+      allow write: if isSignedIn();
     }
 
     // Chat Rules
     match /chats/{chatId} {
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isShopOwner(resource.data.shopId));
-      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
-      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
-      allow delete: if false;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
 
       match /messages/{messageId} {
-        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-        allow create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
-                      incoming().senderId == request.auth.uid;
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
       }
     }
 
     // Likes, Saves, Subscriptions
     match /likes/{likeId} {
-      allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create: if isSignedIn() && incoming().uid == request.auth.uid;
-      allow delete: if isSignedIn() && existing().uid == request.auth.uid;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /saved_items/{saveId} {
-      allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create: if isSignedIn() && incoming().uid == request.auth.uid;
-      allow delete: if isSignedIn() && existing().uid == request.auth.uid;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /subscriptions/{subId} {
-      allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create: if isSignedIn() && incoming().uid == request.auth.uid;
-      allow delete: if isSignedIn() && existing().uid == request.auth.uid;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     // Telegram Links
     match /telegram_links/{linkId} {
       allow read: if true;
-      allow write: if isVerified();
+      allow write: if isSignedIn();
     }
 
     // Stats
     match /stats/{statId} {
       allow read: if true;
-      allow write: if isVerified();
+      allow write: if true;
     }
     
     // Test collection
