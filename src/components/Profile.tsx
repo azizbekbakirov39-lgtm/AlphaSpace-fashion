@@ -1797,7 +1797,7 @@ const Profile: React.FC<ProfileProps> = ({
 
           <div 
             className="p-2 border-t border-border-primary bg-bg-primary/95 backdrop-blur-xl relative z-20"
-            style={{ paddingBottom: (subView === 'chats' && activeChatSeller) ? 'calc(6rem + env(safe-area-inset-bottom))' : 'calc(8px + env(safe-area-inset-bottom))' }}
+            style={{ paddingBottom: isKeyboardOpen ? '16px' : 'calc(16px + env(safe-area-inset-bottom))' }}
           >
             <AnimatePresence>
               {(stagedImage || stagedVideo || stagedLocation) && (
