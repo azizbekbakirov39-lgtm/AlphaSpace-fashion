@@ -95,7 +95,7 @@ async function generateIcons() {
   if (!fs.existsSync(drawableDir)) fs.mkdirSync(drawableDir, { recursive: true });
   fs.writeFileSync(path.join(drawableDir, 'ic_launcher_background.xml'), `<?xml version="1.0" encoding="utf-8"?>
 <color xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#FFFFFF"/>
+    android:color="#007AFF"/>
 `);
 
   // Update mipmap-anydpi-v26 xmls
