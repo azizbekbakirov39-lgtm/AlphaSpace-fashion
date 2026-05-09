@@ -978,7 +978,6 @@ const Profile: React.FC<ProfileProps> = ({
     try {
       const chatId = [user.uid, sellerId].sort().join('_');
       await deleteDoc(doc(db, `chats/${chatId}/messages`, messageId));
-      toast.success("Xabar o'chirildi");
       
       setChatMessages(prev => ({
         ...prev,
@@ -1729,6 +1728,7 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 pb-8 space-y-4 scrollbar-hide relative z-10 min-h-0">
+            <AnimatePresence>
             {activeChatSeller && (
               <div className="flex flex-col items-center justify-center py-10 px-6 text-center border-b border-border-primary/5 mb-6">
                 <div className="relative mb-4">
@@ -1795,14 +1795,16 @@ const Profile: React.FC<ProfileProps> = ({
               const paddingStyle = hasMediaOnly ? 'p-1' : 'px-4 py-2.5';
 
               return (
-              <div 
+              <motion.div 
+                layout
                 key={msg.id}
+                exit={{ height: 0, opacity: 0, transition: { duration: 0.2 } }}
                 onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
                 className={`w-full flex ${msg.isMe ? 'justify-end' : 'justify-start'} group ${isNextSame ? 'mb-0.5' : 'mb-3'} cursor-pointer`}
               >
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                   onClick={(e) => {
                     e.stopPropagation();
                   }}
@@ -2023,9 +2025,10 @@ const Profile: React.FC<ProfileProps> = ({
                     )}
                   </AnimatePresence>
                 </motion.div>
-              </div>
-              );
+              </motion.div>
+            );
             })}
+            </AnimatePresence>
             <div ref={messagesEndRef} />
           </div>
 

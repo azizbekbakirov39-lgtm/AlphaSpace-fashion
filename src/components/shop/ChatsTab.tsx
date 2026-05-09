@@ -312,6 +312,7 @@ export const ChatsTab = ({
                   <div className="flex justify-center my-4">
                     <span className="px-3 py-1 bg-text-primary/5 rounded-full text-[9px] font-black uppercase tracking-widest text-text-primary/30 border border-text-primary/5">Bugun</span>
                   </div>
+                  <AnimatePresence>
                   {activeChat?.messages.map((msg, idx) => {
                     const isNextSame = idx < activeChat.messages.length - 1 && activeChat.messages[idx + 1].sender === msg.sender;
                     const isPrevSame = idx > 0 && activeChat.messages[idx - 1].sender === msg.sender;
@@ -325,16 +326,16 @@ export const ChatsTab = ({
                     const paddingStyle = hasMediaOnly ? 'p-1' : 'p-4';
 
                     return (
-                      <div 
+                      <motion.div 
+                        layout
                         key={msg.id}
+                        exit={{ height: 0, opacity: 0, transition: { duration: 0.2 } }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
                         className={`w-full flex flex-col cursor-pointer ${msg.sender === 'shop' ? 'items-end' : 'items-start'} ${isNextSame ? 'mb-0.5' : 'mb-3'}`}
                       >
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`flex flex-col max-w-[85%] relative ${msg.sender === 'shop' ? 'items-end' : 'items-start'}`}
-                        >
+                        <div className={`flex flex-col max-w-[85%] relative ${msg.sender === 'shop' ? 'items-end' : 'items-start'}`}>
                           {msg.replyTo && (
                             <div className={`mb-1 p-2 rounded-xl text-[10px] border-l-2 ${msg.sender === 'shop' ? 'bg-white/10 border-white/40' : 'bg-text-primary/5 border-accent-blue'} max-w-full truncate`}>
                               {activeChat.messages.find(m => m.id === msg.replyTo)?.text || "Media xabar"}
@@ -516,9 +517,11 @@ export const ChatsTab = ({
                           <span className="text-[9px] text-text-primary/30 uppercase font-black tracking-tighter">{msg.timestamp}</span>
                           {msg.sender === 'shop' && <Zap size={8} className="text-accent-blue" fill="currentColor" />}
                         </div>
-                      </motion.div>
-                    </div>
-                  )})}
+                      </div>
+                    </motion.div>
+                  );
+                  })}
+                  </AnimatePresence>
                   <div ref={messagesEndRef} />
                 </>
               )}

@@ -221,7 +221,6 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     if (!activeChatId) return;
     try {
       await deleteDoc(doc(db, `chats/${activeChatId}/messages`, messageId));
-      toast.success("Xabar o'chirildi");
     } catch (error) {
       console.error("Error deleting message:", error);
       toast.error("Xabarni o'chirib bo'lmadi");
