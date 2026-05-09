@@ -1588,7 +1588,7 @@ export default function App() {
             </main>
 
             {/* Bottom Navigation */}
-            {workspace === 'Marketplace' && (
+            {workspace === 'Marketplace' && !profileActiveChatSellerId && (
               <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} language={language} user={user} />
             )}
 

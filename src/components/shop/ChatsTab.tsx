@@ -20,6 +20,7 @@ import {
   FlipHorizontal, 
   Trash, 
   Mic, 
+  Pencil,
   Zap 
 } from 'lucide-react';
 import { Map, Placemark } from '@pbe/react-yandex-maps';
@@ -69,9 +70,12 @@ interface ChatsTabProps {
   messageInput: string;
   setMessageInput: (text: string) => void;
   handleSendMessage: (type: any, url?: string) => void;
+  handleClearChat: () => void;
   isUploading: boolean;
   replyingTo: Message | null;
   setReplyingTo: (msg: Message | null) => void;
+  editingMessage: Message | null;
+  setEditingMessage: (msg: Message | null) => void;
   showAttachmentMenu: boolean;
   setShowAttachmentMenu: (show: boolean) => void;
   handleFileUpload: (type: 'image' | 'video') => void;
@@ -84,7 +88,11 @@ interface ChatsTabProps {
   setStagedLocation: (l: { lat: number, lng: number } | null) => void;
   setStagedFile: (f: File | null) => void;
   playingMessageId: string | null;
-  handlePlayAudio: (id: string, url: string) => void;
+  isAudioPlaying: boolean;
+  playbackSpeed: number;
+  togglePlaybackSpeed: (e: React.MouseEvent) => void;
+  handlePlayAudio: (id: string, url: string, initialProgress?: number) => void;
+  handleSeekAudio: (id: string, progress: number, audioData?: string) => void;
   audioProgress: { [key: string]: number };
   handleReaction: (id: string, emoji: string) => void;
   handleDeleteMessage: (id: string) => void;
@@ -119,9 +127,12 @@ export const ChatsTab = ({
   messageInput,
   setMessageInput,
   handleSendMessage,
+  handleClearChat,
   isUploading,
   replyingTo,
   setReplyingTo,
+  editingMessage,
+  setEditingMessage,
   showAttachmentMenu,
   setShowAttachmentMenu,
   handleFileUpload,
@@ -134,7 +145,11 @@ export const ChatsTab = ({
   setStagedLocation,
   setStagedFile,
   playingMessageId,
+  isAudioPlaying,
+  playbackSpeed,
+  togglePlaybackSpeed,
   handlePlayAudio,
+  handleSeekAudio,
   audioProgress,
   handleReaction,
   handleDeleteMessage,
@@ -239,21 +254,32 @@ export const ChatsTab = ({
             className="absolute inset-0 z-[9999] flex flex-col bg-bg-primary overflow-hidden"
           >
             <div className="flex flex-col border-b border-border-primary bg-white/80 dark:bg-bg-primary/80 backdrop-blur-xl z-20 pt-[env(safe-area-inset-top)]">
-              <div className="flex items-center gap-3 p-4">
-                <button onClick={handleCloseChat} className="w-10 h-10 rounded-xl bg-text-primary/5 flex items-center justify-center text-text-primary/60 active:scale-90 transition-all">
-                  <ChevronLeft size={24} />
-                </button>
-                <div className="relative">
-                  <img src={activeChat?.customerAvatar || undefined} className="w-11 h-11 rounded-xl object-cover shadow-lg" alt="avatar" />
-                  <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-bg-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-black text-sm text-text-primary">{activeChat?.customerName}</p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                    <p className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">Online</p>
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <button onClick={handleCloseChat} className="w-10 h-10 rounded-xl bg-text-primary/5 flex items-center justify-center text-text-primary/60 active:scale-90 transition-all">
+                    <ChevronLeft size={24} />
+                  </button>
+                  <div className="relative">
+                    <img src={activeChat?.customerAvatar || undefined} className="w-11 h-11 rounded-xl object-cover shadow-lg" alt="avatar" />
+                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-bg-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-black text-sm text-text-primary">{activeChat?.customerName}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      <p className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">Online</p>
+                    </div>
                   </div>
                 </div>
+
+                <button 
+                  onClick={handleClearChat}
+                  className="p-2.5 hover:bg-red-500/10 text-red-500 rounded-xl transition-colors flex items-center gap-2 group shrink-0"
+                  title="Tarixni tozalash"
+                >
+                  <Trash2 size={18} />
+                  <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest leading-none">Tarixni tozalash</span>
+                </button>
               </div>
 
               {activeChat?.pinnedProduct && (
@@ -299,21 +325,27 @@ export const ChatsTab = ({
                     const paddingStyle = hasMediaOnly ? 'p-1' : 'p-4';
 
                     return (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        key={msg.id} 
-                        className={`flex flex-col max-w-[85%] relative ${msg.sender === 'shop' ? 'self-end items-end' : 'self-start items-start'} ${isNextSame ? 'mb-0.5' : 'mb-3'}`}
+                      <div 
+                        key={msg.id}
+                        onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
+                        className={`w-full flex flex-col cursor-pointer ${msg.sender === 'shop' ? 'items-end' : 'items-start'} ${isNextSame ? 'mb-0.5' : 'mb-3'}`}
                       >
-                        {msg.replyTo && (
-                          <div className={`mb-1 p-2 rounded-xl text-[10px] border-l-2 ${msg.sender === 'shop' ? 'bg-white/10 border-white/40' : 'bg-text-primary/5 border-accent-blue'} max-w-full truncate`}>
-                            {activeChat.messages.find(m => m.id === msg.replyTo)?.text || "Media xabar"}
-                          </div>
-                        )}
-                        <div 
-                          onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
-                          className={`${paddingStyle} text-[14px] shadow-sm cursor-pointer transition-all active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`flex flex-col max-w-[85%] relative ${msg.sender === 'shop' ? 'items-end' : 'items-start'}`}
                         >
+                          {msg.replyTo && (
+                            <div className={`mb-1 p-2 rounded-xl text-[10px] border-l-2 ${msg.sender === 'shop' ? 'bg-white/10 border-white/40' : 'bg-text-primary/5 border-accent-blue'} max-w-full truncate`}>
+                              {activeChat.messages.find(m => m.id === msg.replyTo)?.text || "Media xabar"}
+                            </div>
+                          )}
+                          <div 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            className={`${paddingStyle} text-[14px] shadow-sm transition-all ${bubbleRadius} ${bubbleStyle}`}
+                          >
                           {msg.text && <p className={`leading-relaxed whitespace-pre-wrap ${msg.type !== 'text' ? 'mb-2' : ''}`}>{msg.text}</p>}
                           {msg.type === 'image' && (
                             <div className="relative group">
@@ -371,16 +403,74 @@ export const ChatsTab = ({
                             </div>
                           )}
                           {msg.type === 'voice' && (
-                            <div className="flex items-center gap-3 min-w-[200px]">
-                              <button onClick={() => handlePlayAudio(msg.id, msg.mediaUrl || '')} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${msg.sender === 'shop' ? 'bg-white/20 hover:bg-white/30' : 'bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20'}`}>
-                                {playingMessageId === msg.id ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+                            <div className="flex items-center gap-3 min-w-[220px] relative mt-1">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePlayAudio(msg.id, msg.mediaUrl || (msg as any).audio || '');
+                                }} 
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-sm ${msg.sender === 'shop' ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20'}`}
+                              >
+                                {playingMessageId === msg.id && isAudioPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
                               </button>
-                              <div className="flex-1 space-y-1">
-                                <div className={`h-1 w-full rounded-full overflow-hidden ${msg.sender === 'shop' ? 'bg-white/20' : 'bg-text-primary/10'}`}>
-                                  <motion.div animate={{ width: `${audioProgress[msg.id] || 0}%` }} className={`h-full ${msg.sender === 'shop' ? 'bg-white' : 'bg-accent-blue'}`} />
+                              
+                              {playingMessageId === msg.id && (
+                                <button 
+                                  onClick={togglePlaybackSpeed}
+                                  className={`absolute -top-4 left-0 px-2 py-0.5 rounded-full text-[9px] font-bold border shadow-sm transition-all active:scale-95 z-20 ${msg.sender === 'shop' ? 'bg-white text-accent-blue border-white/50' : 'bg-accent-blue text-white border-accent-blue/50'}`}
+                                >
+                                  {playbackSpeed}x
+                                </button>
+                              )}
+
+                              <div className="flex-1 space-y-1 py-1">
+                                <div 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const x = e.clientX - rect.left;
+                                    const progress = (x / rect.width) * 100;
+                                    handleSeekAudio(msg.id, progress, msg.mediaUrl || (msg as any).audio);
+                                  }}
+                                  className={`h-8 w-full flex items-center justify-between gap-[2px] cursor-pointer group/seek`}
+                                >
+                                  {[...Array(32)].map((_, j) => {
+                                    const barHeights = [8, 14, 10, 18, 6, 12, 16, 8, 20, 10, 14, 6, 12, 18, 10, 16, 8, 14, 10, 18, 6, 12, 16, 8, 20, 10, 14, 6, 12, 18, 10, 16];
+                                    const barHeight = barHeights[j % barHeights.length];
+                                    const barProgress = (j / 32) * 100;
+                                    const isPlayed = (audioProgress[msg.id] || 0) > barProgress;
+                                    const isPlayingThisMsg = playingMessageId === msg.id;
+
+                                    return (
+                                      <motion.div 
+                                        key={j}
+                                        animate={isPlayingThisMsg && isPlayed && isAudioPlaying ? { 
+                                          height: [barHeight, barHeight * 1.5, barHeight],
+                                        } : { height: barHeight }}
+                                        transition={isPlayingThisMsg && isPlayed && isAudioPlaying ? { 
+                                          repeat: Infinity, 
+                                          duration: 0.8, 
+                                          delay: j * 0.03 
+                                        } : { duration: 0.2 }}
+                                        className={`w-[2.5px] rounded-full transition-all duration-300 ${
+                                          isPlayed 
+                                            ? (msg.sender === 'shop' ? 'bg-white opacity-100' : 'bg-accent-blue opacity-100') 
+                                            : (msg.sender === 'shop' ? 'bg-white opacity-25 group-hover/seek:opacity-50' : 'bg-accent-blue opacity-15 group-hover/seek:opacity-30')
+                                        }`}
+                                        style={{ height: barHeight }}
+                                      />
+                                    );
+                                  })}
                                 </div>
                                 <div className="flex justify-between items-center">
-                                  <span className={`text-[8px] font-bold uppercase tracking-widest ${msg.sender === 'shop' ? 'text-white/60' : 'text-text-primary/40'}`}>Ovozli xabar</span>
+                                  <span className={`text-[8px] font-bold uppercase tracking-widest ${msg.sender === 'shop' ? 'text-white/60' : 'text-text-primary/40'}`}>
+                                    {playingMessageId === msg.id ? "Eshitilmoqda..." : "Ovozli xabar"}
+                                  </span>
+                                  {audioProgress[msg.id] > 0 && (
+                                    <span className={`text-[8px] font-bold ${msg.sender === 'shop' ? 'text-white/80' : 'text-accent-blue'}`}>
+                                      {Math.floor(audioProgress[msg.id])}%
+                                    </span>
+                                  )}
                                   {msg.duration && <span className={`text-[8px] font-bold ${msg.sender === 'shop' ? 'text-white/60' : 'text-text-primary/40'}`}>{formatDuration(msg.duration)}</span>}
                                 </div>
                               </div>
@@ -403,7 +493,20 @@ export const ChatsTab = ({
                                 ))}
                               </div>
                               <div className="flex flex-col">
-                                <button onClick={() => { setReplyingTo(msg); setSelectedMessageId(null); }} className="flex items-center gap-3 px-4 py-3 hover:bg-text-primary/5 text-xs font-bold text-text-primary transition-colors"><Send size={14} className="rotate-[-45deg]" />Javob berish</button>
+                                <button onClick={() => { setReplyingTo(msg); setSelectedMessageId(null); setEditingMessage(null); }} className="flex items-center gap-3 px-4 py-3 hover:bg-text-primary/5 text-xs font-bold text-text-primary transition-colors"><Send size={14} className="rotate-[-45deg]" />Javob berish</button>
+                                {msg.sender === 'shop' && msg.type === 'text' && (
+                                  <button 
+                                    onClick={() => { 
+                                      setEditingMessage(msg); 
+                                      setMessageInput(msg.text || ''); 
+                                      setSelectedMessageId(null); 
+                                      setReplyingTo(null); 
+                                    }} 
+                                    className="flex items-center gap-3 px-4 py-3 hover:bg-text-primary/5 text-xs font-bold text-text-primary transition-colors"
+                                  >
+                                    <Pencil size={14} />Tahrirlash
+                                  </button>
+                                )}
                                 <button onClick={() => handleDeleteMessage(msg.id)} className="flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 text-xs font-bold text-red-500 transition-colors"><Trash2 size={14} />O'chirish</button>
                               </div>
                             </motion.div>
@@ -414,7 +517,8 @@ export const ChatsTab = ({
                           {msg.sender === 'shop' && <Zap size={8} className="text-accent-blue" fill="currentColor" />}
                         </div>
                       </motion.div>
-                    )})}
+                    </div>
+                  )})}
                   <div ref={messagesEndRef} />
                 </>
               )}
@@ -427,6 +531,13 @@ export const ChatsTab = ({
                     {stagedImage && (<div className="relative w-16 h-16 rounded-xl overflow-hidden"><img src={stagedImage || undefined} className="w-full h-full object-cover" /><button onClick={() => { setStagedImage(null); setStagedFile(null); }} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"><X size={12} /></button></div>)}
                     {stagedVideo && (<div className="relative w-16 h-16 rounded-xl overflow-hidden bg-black flex items-center justify-center"><Video size={24} className="text-white/50" /><button onClick={() => { setStagedVideo(null); setStagedFile(null); }} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"><X size={12} /></button></div>)}
                     {stagedLocation && (<div className="flex-1 flex items-center gap-2 px-2"><MapPin size={16} className="text-accent-blue" /><span className="text-[10px] font-bold text-text-primary/60 uppercase tracking-widest">Joylashuv tayyor</span><button onClick={() => setStagedLocation(null)} className="ml-auto p-1 text-text-primary/40"><X size={16} /></button></div>)}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {editingMessage && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mb-2 bg-text-primary/5 rounded-xl p-2 flex items-center gap-3 border-l-4 border-accent-blue">
+                    <Pencil size={16} className="text-accent-blue" /><div className="flex-1 min-w-0"><p className="text-[10px] font-black text-accent-blue uppercase tracking-widest">Tahrirlash</p><p className="text-xs text-text-primary/60 truncate">{editingMessage.text}</p></div><button onClick={() => { setEditingMessage(null); setMessageInput(''); }} className="p-1 text-text-primary/40"><X size={16} /></button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -450,7 +561,7 @@ export const ChatsTab = ({
               <div className="flex items-end gap-1.5 bg-text-primary/5 border border-border-primary rounded-[1.5rem] p-1 backdrop-blur-xl mt-2 relative min-h-[44px]">
                 <button onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${showAttachmentMenu ? 'bg-accent-blue text-white rotate-45 shadow-md' : 'text-text-primary/40 hover:bg-text-primary/10'}`}><Plus size={20} /></button>
                 <div className="flex-1 relative">
-                  <textarea value={messageInput} onChange={(e) => { setMessageInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage('text'); } }} placeholder="Xabar yozing..." rows={1} className="w-full bg-transparent px-2 py-2 text-[15px] focus:outline-none transition-all resize-none max-h-[120px] scrollbar-hide min-w-[80px]" />
+                  <textarea value={messageInput} onChange={(e) => { setMessageInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage('text'); } }} placeholder="Xabar yozing..." rows={1} className="w-full bg-transparent text-text-primary px-2 py-2 text-[15px] focus:outline-none transition-all resize-none max-h-[120px] scrollbar-hide min-w-[80px]" />
                 </div>
                 <div className="flex items-center gap-0.5 px-0.5 mb-0.5">
                   {messageInput.trim() || stagedImage || stagedVideo || stagedLocation ? (

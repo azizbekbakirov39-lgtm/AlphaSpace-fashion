@@ -36,6 +36,56 @@ export const useShopChat = (shopId: string, userId: string) => {
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState<{ [key: string]: number }>({});
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePlayAudio = (messageId: string, url?: string) => {
+    if (!url) {
+      toast.error("Ovozli xabar topilmadi");
+      return;
+    }
+
+    if (playingMessageId === messageId && audioRef.current) {
+      audioRef.current.pause();
+      setPlayingMessageId(null);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = ""; // Clear source to avoid memory leaks
+      audioRef.current = null;
+    }
+    const audio = new Audio(url);
+    audioRef.current = audio;
+
+    audio.ontimeupdate = () => {
+      const progress = (audio.currentTime / audio.duration) * 100;
+      setAudioProgress(prev => ({ ...prev, [messageId]: progress }));
+    };
+
+    audio.onended = () => {
+      setPlayingMessageId(null);
+      setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
+    };
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        setPlayingMessageId(messageId);
+      }).catch(e => {
+        if (e.name !== 'AbortError') {
+          console.error('Audio play error:', e);
+          toast.error("Ovozli xabarni o'qib bo'lmadi");
+          setPlayingMessageId(null);
+          setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
+        }
+      });
+    } else {
+      setPlayingMessageId(messageId);
+    }
+  };
+
   // Listen for chats
   useEffect(() => {
     if (!shopId) return;
@@ -102,7 +152,7 @@ export const useShopChat = (shopId: string, userId: string) => {
       await addDoc(collection(db, `chats/${activeChatId}/messages`), msgData);
       
       await updateDoc(chatRef, {
-        lastMessage: type === 'text' ? messageInput : `[${type}]`,
+        lastMessage: type === 'text' ? messageInput : (type === 'voice' ? 'Ovozli xabar' : `[${type}]`),
         lastInteraction: serverTimestamp(),
         status: 'replied'
       });
@@ -113,6 +163,70 @@ export const useShopChat = (shopId: string, userId: string) => {
       console.error('Error sending message:', error);
       toast.error('Xabar yuborishda xatolik');
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz audio yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
+      if (window.navigator.vibrate) window.navigator.vibrate(50);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        setIsUploading(true);
+        try {
+          const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const file = new File([blob], `audio_${Date.now()}.${ext}`, { type: mimeType });
+          const url = await uploadFile(file, `chats/${activeChatId}/audio`);
+          await handleSendMessage('voice', { mediaUrl: url, duration: recordingDuration });
+        } catch (error) {
+          console.error("Audio recording upload error:", error);
+          toast.error("Ovozli xabarni yuborib bo'lmadi");
+        } finally {
+          setIsUploading(false);
+          stream.getTracks().forEach(track => track.stop());
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error("Recording error:", error);
+      toast.error("Mikrofonga ruxsat berilmadi");
+    }
+  };
+
+  const stopRecording = (cancelled: boolean = false) => {
+    if (!mediaRecorderRef.current) return;
+    
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    if (cancelled) {
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+      };
+    }
+
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    setDragX(0);
   };
 
   const handleFileUpload = async (file: File, type: 'image' | 'video') => {
@@ -148,10 +262,15 @@ export const useShopChat = (shopId: string, userId: string) => {
     videoPreviewRef,
     handleSendMessage,
     handleFileUpload,
+    startRecording,
+    stopRecording,
     setIsRecording,
     setIsVideoRecording,
     setRecordingDuration,
     mediaRecorderRef,
-    recordingTimerRef
+    recordingTimerRef,
+    playingMessageId,
+    audioProgress,
+    handlePlayAudio
   };
 };

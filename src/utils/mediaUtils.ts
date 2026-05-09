@@ -52,7 +52,7 @@ export const safePlayVideo = async (video: HTMLVideoElement | null) => {
   }
 };
 
-export const isVideoUrl = (url: string): boolean => {
+export const isMediaUrl = (url: string): boolean => {
   if (!url) return false;
   
   // Fix double protocol
@@ -60,25 +60,35 @@ export const isVideoUrl = (url: string): boolean => {
   
   const lowerUrl = url.toLowerCase();
   
-  // Typical video extensions
-  if (lowerUrl.match(/\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|wmv|m3u8)($|\?|&)/)) {
+  // Typical media extensions
+  if (lowerUrl.match(/\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|wmv|m3u8|mp3|wav|ogg|m4a|aac)($|\?|&)/)) {
     return true;
   }
   
-  // Common video hosting patterns
+  // Common media patterns
   if (
     lowerUrl.includes('video') || 
     lowerUrl.includes('reel') || 
     lowerUrl.includes('clip') ||
     lowerUrl.includes('blob') ||
-    lowerUrl.includes('upload')
+    lowerUrl.includes('upload') ||
+    lowerUrl.includes('audio') ||
+    lowerUrl.includes('voice')
   ) {
-    // Ensure it's not an image with these keywords in URL
+    // Ensure it's not an image 
     const isLikelyImage = lowerUrl.match(/\.(jpg|jpeg|png|webp|gif|heic|bmp|tiff)($|\?|&)/);
     if (isLikelyImage) return false;
     return true;
   }
   
+  return false;
+};
+
+export const isVideoUrl = (url: string): boolean => {
+  if (!url) return false;
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.match(/\.(mp4|mov|webm|mkv|avi|m4v|3gp|flv|wmv|m3u8)($|\?|&)/)) return true;
+  if (lowerUrl.includes('video') || lowerUrl.includes('reel') || lowerUrl.includes('clip')) return true;
   return false;
 };
 
@@ -111,9 +121,17 @@ const setCache = (originalUrl: string, proxiedUrl: string) => {
 };
 
 export const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined' && (window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    // Return backend deployed URL when running natively via Capacitor
-    return 'https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app';
+  if (typeof window !== 'undefined') {
+    // If we are on one of our known ais-dev or ais-pre domains, use relative paths
+    if (window.location.hostname.includes('asia-east1.run.app')) {
+      return '';
+    }
+    
+    if (window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Return backend deployed URL when running natively via Capacitor or local dev
+      // Use the pre-production URL which matches the user's metadata
+      return 'https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app';
+    }
   }
   return '';
 };
@@ -132,13 +150,15 @@ const PROXY_POOL = [
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
   if (!url) return url;
 
-  // APK (Capacitor) da videoni backend proxy orqali o'tkazish
   const isNative = typeof window !== 'undefined' && 
     (window.location.protocol === 'capacitor:' || 
      window.location.hostname === 'localhost' ||
      window.location.hostname === '127.0.0.1');
+
+  // APK (Capacitor) da videoni backend proxy orqali o'tkazish
+  const isMedia = isMediaUrl(url);
   
-  if (isNative && isVideoUrl(url)) {
+  if (isNative && isMedia) {
     return `${getApiBaseUrl()}/api/proxy-video?url=${encodeURIComponent(url)}`;
   }
   
@@ -177,15 +197,11 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
     return url;
   }
   
-  // console.log('getProxiedUrl', { url, proxyIndex });
-
-  const isVid = isVideoUrl(url) || url.includes('.mp4');
-
-  // Video specific proxy sequencing
-  if (isVid) {
+  // Audio/Video specific proxy sequencing
+  if (isMedia) {
     if (proxyIndex === 0) return url;
-    if (proxyIndex === 1) return PROXY_POOL[6](url); // internal proxy
-    return url; // Don't use HTML/JSON proxies for video
+    if (proxyIndex === 1) return `${getApiBaseUrl()}/api/proxy-video?url=${encodeURIComponent(url)}`;
+    return url; 
   }
 
   // Use specified proxy for images

@@ -335,7 +335,7 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
 
     // Set headers for streaming
     res.status(response.status); // 200 or 206
-    res.setHeader('Content-Type', response.headers['content-type'] || 'video/mp4');
+    res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     
@@ -439,6 +439,7 @@ app.post("/api/media-hub", upload.array("files"), async (req: any, res: any) => 
     return res.status(400).json({ error: "Fayllar tanlanmagan" });
   }
 
+  const folder = req.body.folder || "manual";
   const results = [];
 
   try {
@@ -446,11 +447,11 @@ app.post("/api/media-hub", upload.array("files"), async (req: any, res: any) => 
       console.log(`Processing file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
       const isVideo = file.mimetype.startsWith("video/");
       const isImage = file.mimetype.startsWith("image/");
+      const isAudio = file.mimetype.startsWith("audio/");
       let finalPath = file.path;
-      let contentType = isVideo ? "video/mp4" : file.mimetype; // Keep original mimetype for images if possible
-      const extension = isVideo ? "mp4" : (file.originalname.split('.').pop() || "jpg");
-      const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
-
+      let contentType = isVideo ? "video/mp4" : file.mimetype; 
+      let extension = isVideo ? "mp4" : (file.originalname.split('.').pop() || "jpg");
+      
       if (process.env.R2_BUCKET_NAME) {
         if (isVideo) {
           const compressedPath = `${file.path}-compressed.mp4`;
@@ -460,8 +461,8 @@ app.post("/api/media-hub", upload.array("files"), async (req: any, res: any) => 
               ffmpeg(finalPath)
                 .outputOptions([
                   '-c:v libx264',
-                  '-crf 28',         // 0-51 (lower is better quality, higher is smaller size)
-                  '-preset veryfast',// faster encoding
+                  '-crf 28',         
+                  '-preset veryfast',
                   '-c:a aac',
                   '-b:a 128k',
                   '-movflags +faststart'
@@ -475,9 +476,32 @@ app.post("/api/media-hub", upload.array("files"), async (req: any, res: any) => 
           } catch (compressErr) {
             console.error("Video compression error, using original file:", compressErr);
           }
+        } else if (isAudio) {
+          const convertedPath = `${file.path}-converted.mp3`;
+          console.log(`Converting audio to MP3: ${finalPath} -> ${convertedPath}`);
+          try {
+            await new Promise((resolve, reject) => {
+              ffmpeg(finalPath)
+                .toFormat('mp3')
+                .on('end', resolve)
+                .on('error', (err) => {
+                  console.error("FFmpeg error:", err);
+                  reject(err);
+                })
+                .save(convertedPath);
+            });
+            finalPath = convertedPath;
+            contentType = "audio/mpeg";
+            extension = "mp3";
+            console.log("Audio conversion successful");
+          } catch (audioErr) {
+            console.error("Audio conversion error, using original file:", audioErr);
+          }
         }
+
         const stats = await fs.promises.stat(finalPath);
         const fileStream = fs.createReadStream(finalPath);
+        const key = `${folder}/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
         
         await r2Client.send(new PutObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
@@ -498,12 +522,12 @@ app.post("/api/media-hub", upload.array("files"), async (req: any, res: any) => 
 
         results.push({
           url: publicUrl,
-          type: isVideo ? "video" : "image"
+          type: isVideo ? "video" : (isAudio ? "audio" : (isImage ? "image" : "file"))
         });
 
         // Clean up temp files
         try { if (fs.existsSync(file.path)) await unlink(file.path); } catch (e) {}
-        if (isVideo && finalPath !== file.path) {
+        if ((isVideo || isAudio) && finalPath !== file.path) {
           try { if (fs.existsSync(finalPath)) await unlink(finalPath); } catch (e) {}
         }
       } else {

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Seller, PostData, User } from '../types';
 import { Language } from '../translations';
 import { uploadFile } from '../services/uploadService';
+import { getProxiedUrl } from '../utils/mediaUtils';
 import { 
   db, 
   storage,
@@ -26,6 +27,8 @@ import {
   getDoc, 
   setDoc, 
   addDoc,
+  getDocs,
+  writeBatch,
   serverTimestamp,
   Timestamp,
   ref, 
@@ -81,10 +84,183 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const [messageInput, setMessageInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState<{[key: string]: number}>({});
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const timerRef = useRef<any>(null);
+
+  const handlePlayAudio = (messageId: string, url?: string, initialProgress?: number) => {
+    if (!url) {
+      console.warn('handlePlayAudio: No URL provided for message', messageId);
+      return;
+    }
+
+    if (playingMessageId === messageId && audioRef.current) {
+      if (audioRef.current.paused) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => setIsAudioPlaying(true)).catch(e => console.error("Play error:", e));
+        }
+      } else {
+        audioRef.current.pause();
+        setIsAudioPlaying(false);
+      }
+      return;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = ""; 
+      audioRef.current = null;
+    }
+
+    try {
+      const proxiedUrl = getProxiedUrl(url, 1);
+      const audio = new Audio(proxiedUrl);
+      audio.playbackRate = playbackSpeed;
+      audioRef.current = audio;
+
+      const setInitialTime = () => {
+        if (initialProgress !== undefined && !isNaN(audio.duration) && isFinite(audio.duration)) {
+          audio.currentTime = (initialProgress / 100) * audio.duration;
+          setAudioProgress(prev => ({ ...prev, [messageId]: initialProgress }));
+        }
+      };
+
+      if (audio.readyState >= 1) {
+        setInitialTime();
+      } else {
+        audio.addEventListener('loadedmetadata', setInitialTime, { once: true });
+        audio.addEventListener('canplay', setInitialTime, { once: true });
+      }
+
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          const progress = (audio.currentTime / audio.duration) * 100;
+          setAudioProgress(prev => ({ ...prev, [messageId]: progress }));
+        }
+      };
+
+      audio.onended = () => {
+        setIsAudioPlaying(false);
+        setPlayingMessageId(null);
+        setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
+
+        // Sequential playback for shop owner side
+        const activeChat = chats.find(c => c.id === activeChatId);
+        if (activeChat) {
+          const currentIndex = activeChat.messages.findIndex(m => m.id === messageId);
+          const nextVoiceMsg = activeChat.messages.slice(currentIndex + 1).find(m => m.type === 'voice' || m.mediaUrl?.includes('audio') || (m as any).audio);
+          if (nextVoiceMsg) {
+            setTimeout(() => {
+              handlePlayAudio(nextVoiceMsg.id, nextVoiceMsg.mediaUrl || (nextVoiceMsg as any).audio);
+            }, 500);
+          }
+        }
+      };
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setPlayingMessageId(messageId);
+          setIsAudioPlaying(true);
+        }).catch(e => {
+          if (e.name !== 'AbortError') {
+            console.error('Audio play error:', e);
+            toast.error("Ovozli xabarni o'qi bo'lmadi");
+            setPlayingMessageId(null);
+            setIsAudioPlaying(false);
+            setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
+          }
+        });
+      } else {
+        setPlayingMessageId(messageId);
+        setIsAudioPlaying(true);
+      }
+    } catch (err) {
+      console.error('Audio setup error:', err);
+      toast.error("Audio pleyerda xatolik");
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!activeChatId) return;
+    if (!window.confirm("Haqiqatdan ham ushbu chat tarixini tozalamoqchimisiz?")) return;
+
+    try {
+      const messagesRef = collection(db, `chats/${activeChatId}/messages`);
+      const snapshot = await getDocs(messagesRef);
+      
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+
+      const chatRef = doc(db, 'chats', activeChatId);
+      await updateDoc(chatRef, {
+        lastMessage: "Tarix tozalandi",
+        lastInteraction: serverTimestamp()
+      });
+
+      toast.success("Tarix tozalandi");
+    } catch (error) {
+      console.error("Error clearing chat:", error);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!activeChatId) return;
+    try {
+      await deleteDoc(doc(db, `chats/${activeChatId}/messages`, messageId));
+      toast.success("Xabar o'chirildi");
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Xabarni o'chirib bo'lmadi");
+    }
+  };
+
+  const togglePlaybackSpeed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const speeds = [1, 1.5, 2];
+    const nextSpeed = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+    setPlaybackSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  };
+
+  const handleSeekAudio = (messageId: string, progress: number, audioData?: string) => {
+    const safeProgress = Math.max(0, Math.min(100, progress));
+    setAudioProgress(prev => ({ ...prev, [messageId]: safeProgress }));
+    
+    if (playingMessageId === messageId && audioRef.current) {
+      if (!isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
+        audioRef.current.currentTime = (safeProgress / 100) * audioRef.current.duration;
+      } else {
+        const onMetadata = () => {
+          if (!isNaN(audioRef.current!.duration) && isFinite(audioRef.current!.duration)) {
+            audioRef.current!.currentTime = (safeProgress / 100) * audioRef.current!.duration;
+          }
+        };
+        audioRef.current.addEventListener('loadedmetadata', onMetadata, { once: true });
+        audioRef.current.addEventListener('canplay', onMetadata, { once: true });
+      }
+      return;
+    }
+
+    if (audioData) {
+      handlePlayAudio(messageId, audioData, safeProgress);
+    }
+  };
 
   // Media Capture States
   const [isRecording, setIsRecording] = useState(false);
@@ -346,8 +522,137 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     }
   };
 
-  const handleSendMessage = async (type: string, url?: string) => {
-    // Logic for message sending...
+  const handleSendMessage = async (type: string, payload?: any) => {
+    if (!activeChatId) return;
+
+    try {
+      const chatRef = doc(db, 'chats', activeChatId);
+      
+      // IF EDITING
+      if (editingMessage && type === 'text') {
+        const messageText = messageInput.trim();
+        if (!messageText) return;
+
+        const msgDocRef = doc(db, `chats/${activeChatId}/messages`, editingMessage.id);
+        await updateDoc(msgDocRef, {
+          text: messageText,
+          isEdited: true,
+          updatedAt: serverTimestamp()
+        });
+
+        await updateDoc(chatRef, {
+          lastMessage: messageText,
+          lastInteraction: serverTimestamp()
+        });
+
+        setMessageInput('');
+        setEditingMessage(null);
+        return;
+      }
+
+      const msgData: any = {
+        sender: 'shop',
+        type,
+        timestamp: serverTimestamp(),
+        ...payload
+      };
+
+      if (type === 'text') {
+        if (!messageInput.trim()) return;
+        msgData.text = messageInput;
+      }
+      if (replyingTo) msgData.replyTo = replyingTo.id;
+
+      await addDoc(collection(db, `chats/${activeChatId}/messages`), msgData);
+      
+      await updateDoc(chatRef, {
+        lastMessage: type === 'text' ? messageInput : (type === 'voice' ? 'Ovozli xabar' : `[${type}]`),
+        lastInteraction: serverTimestamp(),
+        status: 'replied'
+      });
+
+      setMessageInput('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Xabar yuborishda xatolik');
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz audio yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        setIsUploading(true);
+        try {
+          const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          const file = new File([blob], `audio_${Date.now()}.${extension}`, { type: mimeType });
+          const url = await uploadFile(file, `chats/${activeChatId}/audio`);
+          await handleSendMessage('voice', { mediaUrl: url });
+        } catch (error) {
+          console.error("Audio recording upload error:", error);
+          toast.error("Ovozli xabarni yuborib bo'lmadi");
+        } finally {
+          setIsUploading(false);
+          stream.getTracks().forEach(track => track.stop());
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error("Recording error:", error);
+      toast.error("Mikrofonga ruxsat berilmadi");
+    }
+  };
+
+  const stopRecording = (cancelled: boolean = false) => {
+    if (!mediaRecorderRef.current) return;
+    
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (cancelled) {
+      mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+      };
+    }
+
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    setDragX(0);
+  };
+
+  const handleFileUpload = async (file: File, type: 'image' | 'video') => {
+    if (!activeChatId) return;
+    setIsUploading(true);
+    try {
+      const url = await uploadFile(file, `chats/${activeChatId}`);
+      await handleSendMessage(type, { mediaUrl: url });
+    } catch (error: any) {
+      console.error("Chat file upload error:", error);
+      toast.error("Fayl yuklashda xatolik yuz berdi");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleOpenChat = (id: string) => setActiveChatId(id);
@@ -413,13 +718,26 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 selectedMessageId={selectedMessageId}
                 messageInput={messageInput}
                 setMessageInput={setMessageInput}
-                handleSendMessage={handleSendMessage}
-                isUploading={isUploading}
+                editingMessage={editingMessage}
+                setEditingMessage={setEditingMessage}
                 replyingTo={replyingTo}
                 setReplyingTo={setReplyingTo}
+                handleSendMessage={handleSendMessage}
+                handleDeleteMessage={handleDeleteMessage}
+                handleClearChat={handleClearChat}
+                isUploading={isUploading}
                 showAttachmentMenu={showAttachmentMenu}
                 setShowAttachmentMenu={setShowAttachmentMenu}
-                handleFileUpload={() => {}}
+                handleFileUpload={(type: 'image' | 'video') => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = type === 'image' ? 'image/*' : 'video/*';
+                  input.onchange = (e: any) => {
+                    const file = e.target.files[0];
+                    if (file) handleFileUpload(file, type);
+                  };
+                  input.click();
+                }}
                 handleLocationShare={() => {}}
                 stagedImage={null}
                 setStagedImage={() => {}}
@@ -429,10 +747,13 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 setStagedLocation={() => {}}
                 setStagedFile={() => {}}
                 playingMessageId={playingMessageId}
-                handlePlayAudio={() => {}}
+                isAudioPlaying={isAudioPlaying}
+                playbackSpeed={playbackSpeed}
+                togglePlaybackSpeed={togglePlaybackSpeed}
+                handlePlayAudio={handlePlayAudio}
+                handleSeekAudio={handleSeekAudio}
                 audioProgress={audioProgress}
                 handleReaction={() => {}}
-                handleDeleteMessage={() => {}}
                 messagesEndRef={messagesEndRef}
                 videoPreviewRef={videoPreviewRef}
                 isFrontCamera={isFrontCamera}
@@ -444,8 +765,8 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 formatDuration={(s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2, '0')}`}
                 startVideoMessage={() => {}}
                 stopVideoMessage={() => {}}
-                startRecording={() => {}}
-                stopRecording={() => {}}
+                startRecording={startRecording}
+                stopRecording={stopRecording}
                 setDragX={setDragX}
                 dragStartRef={{current: 0} as any}
               />

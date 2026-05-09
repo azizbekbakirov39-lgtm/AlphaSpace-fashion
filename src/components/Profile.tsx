@@ -23,6 +23,7 @@ import {
   Play,
   Pause,
   Trash2,
+  Pencil,
   X,
   Image as ImageIcon,
   Video,
@@ -46,7 +47,7 @@ import { useKeyboard } from '../hooks/useKeyboard';
 import { usePWA } from '../hooks/usePWA';
 import { showChatNotification } from '../utils/notifications';
 import { PostData, Seller, User } from '../types';
-import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, getDoc, updateDoc, increment, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
+import { db, collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, setDoc, getDoc, updateDoc, increment, storage, ref, uploadBytes, getDownloadURL, getDocs, writeBatch, deleteDoc } from '../firebase';
 import { uploadFile } from '../services/uploadService';
 
 import { InAppBrowserGuide } from './InAppBrowserGuide';
@@ -97,10 +98,12 @@ interface ChatMessage {
   videoMessage?: string; // Square video message
   location?: { lat: number, lng: number };
   post?: PostData;
-  isMe: boolean;
-  time: string;
+  duration?: number; // Audio duration in seconds
   reactions?: string[];
   replyTo?: string; // ID of the message being replied to
+  type?: string;
+  isMe: boolean;
+  time: string;
 }
 
 const Profile: React.FC<ProfileProps> = ({ 
@@ -283,11 +286,14 @@ const Profile: React.FC<ProfileProps> = ({
 
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   
   // Audio Playback State
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState<{[key: string]: number}>({});
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [activeClosetCategory, setActiveClosetCategory] = useState<'all' | 'clothing' | 'outfits' | 'other'>('all');
@@ -320,6 +326,7 @@ const Profile: React.FC<ProfileProps> = ({
   const [dragX, setDragX] = useState(0);
   const dragXRef = useRef(0);
   const dragStartRef = useRef<number | null>(null);
+  const recordingDurationRef = useRef<number>(0);
   const [stagedImage, setStagedImage] = useState<string | null>(null);
   const [stagedVideo, setStagedVideo] = useState<string | null>(null);
   const [stagedLocation, setStagedLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -341,18 +348,20 @@ const Profile: React.FC<ProfileProps> = ({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       const chunks: BlobPart[] = [];
 
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = async () => {
         if (!isCancelAreaHoveredRef.current && dragXRef.current > -100) {
-          const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+          const finalType = recorder.mimeType || (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
+          const blob = new Blob(chunks, { type: finalType });
           const reader = new FileReader();
           reader.readAsDataURL(blob);
           reader.onloadend = () => {
             const base64Audio = reader.result as string;
-            handleSendMessage(undefined, base64Audio);
+            const capturedDuration = Math.max(1, recordingDurationRef.current);
+            handleSendMessage(undefined, base64Audio, undefined, undefined, undefined, undefined, undefined, undefined, capturedDuration);
           };
         }
         stream.getTracks().forEach(track => track.stop());
@@ -367,8 +376,12 @@ const Profile: React.FC<ProfileProps> = ({
       setMediaRecorder(recorder);
       setIsRecording(true);
       setRecordingDuration(0);
+      recordingDurationRef.current = 0;
       timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
+        setRecordingDuration(prev => {
+          recordingDurationRef.current = prev + 1;
+          return prev + 1;
+        });
       }, 1000);
     } catch (err) {
       console.error("Microphone access denied:", err);
@@ -562,11 +575,37 @@ const Profile: React.FC<ProfileProps> = ({
     { code: 'en', name: "English" },
   ];
 
-  const handleSendMessage = async (text?: string, audio?: string, image?: string, video?: string, videoMessage?: string, location?: {lat: number, lng: number}, post?: PostData, targetSellerId?: string) => {
+  // handleClearChat definition
+  const handleClearChat = async (sId: string) => {
+    if (!user) return;
+    if (!window.confirm("Haqiqatdan ham barcha xabarlarni o'chirib tashlamoqchimisiz?")) return;
+    try {
+      const chatId = [user.uid, sId].sort().join('_');
+      const messagesRef = collection(db, `chats/${chatId}/messages`);
+      const snapshot = await getDocs(messagesRef);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      const chatRef = doc(db, 'chats', chatId);
+      await updateDoc(chatRef, { lastMessage: "Xabarlar tozalandi", updatedAt: serverTimestamp() });
+      toast.success("Tarix tozalandi");
+    } catch (error) {
+      console.error("Clear chat error:", error);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
+  const handleSendMessage = async (text?: string, audio?: string, image?: string, video?: string, videoMessage?: string, location?: {lat: number, lng: number}, post?: PostData, targetSellerId?: string, audioDurationParam?: number) => {
     if (isSendingRef.current) return;
     isSendingRef.current = true;
     
     const messageText = text || newMessage;
+    const sellerId = targetSellerId || activeChatSeller?.id;
+
+    if (!sellerId || !user) {
+      isSendingRef.current = false;
+      return;
+    }
     
     const prohibitedPattern = /🌈|🏳️‍🌈|🏳️‍⚧️|lgbt|gay|lesbian|homo/i;
     if (prohibitedPattern.test(messageText)) {
@@ -575,15 +614,46 @@ const Profile: React.FC<ProfileProps> = ({
       return;
     }
 
-    const audioData = audio || recordedAudio;
-    const locationData = location || stagedLocation;
-    
-    const sellerId = targetSellerId || activeChatSeller?.id;
-    if (!sellerId || !user) {
-      isSendingRef.current = false;
+    // IF EDITING
+    if (editingMessage && !text && !audio && !image && !video && !videoMessage && !location && !post) {
+      if (!messageText.trim()) {
+        isSendingRef.current = false;
+        return;
+      }
+
+      setIsUploading(true);
+      try {
+        const chatId = [user.uid, sellerId].sort().join('_');
+        const msgDocRef = doc(db, `chats/${chatId}/messages`, editingMessage.id);
+        
+        await updateDoc(msgDocRef, {
+          text: messageText,
+          isEdited: true,
+          updatedAt: serverTimestamp()
+        });
+
+        // Update chat last message if it was the edited one
+        const chatRef = doc(db, 'chats', chatId);
+        await updateDoc(chatRef, {
+          lastMessage: messageText,
+          updatedAt: serverTimestamp()
+        });
+
+        setNewMessage('');
+        setEditingMessage(null);
+      } catch (error) {
+        console.error("Error editing message:", error);
+        toast.error("Xabarni tahrirlashda xatolik yuz berdi");
+      } finally {
+        setIsUploading(false);
+        isSendingRef.current = false;
+      }
       return;
     }
 
+    const audioData = audio || recordedAudio;
+    const locationData = location || stagedLocation;
+    
     if (!messageText.trim() && !audioData && !stagedFile && !image && !video && !videoMessage && !locationData && !post) {
       isSendingRef.current = false;
       return;
@@ -627,7 +697,19 @@ const Profile: React.FC<ProfileProps> = ({
         try {
           const res = await fetch(audioData);
           const blob = await res.blob();
-          const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+          
+          // Better mime type detection for base64 data
+          let mimeType = blob.type;
+          if (!mimeType || mimeType === 'application/octet-stream') {
+            const match = audioData.match(/^data:([^;]+);/);
+            if (match) mimeType = match[1];
+            else mimeType = 'audio/webm'; // Fallback
+          }
+          
+          const isMp4 = mimeType.includes('mp4') || mimeType.includes('m4a');
+          const ext = isMp4 ? 'mp4' : 'webm';
+          
+          const file = new File([blob], `audio_${Date.now()}.${ext}`, { type: mimeType });
           finalAudioUrl = await uploadFile(file, 'chat_audio');
         } catch (err) {
           console.error("Audio upload error:", err);
@@ -646,12 +728,13 @@ const Profile: React.FC<ProfileProps> = ({
       // Ensure chat document exists
       await setDoc(chatRef, {
         id: chatId,
+        shopId: sellerId,
         participants: participants,
-        lastMessage: messageText || "Media xabar",
+        lastMessage: messageText || (finalAudioUrl ? "Ovozli xabar" : "Media xabar"),
         lastSender: user.uid,
         readBy: [user.uid],
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
 
       let finalType = 'text';
       let mediaUrl = undefined;
@@ -686,6 +769,7 @@ const Profile: React.FC<ProfileProps> = ({
         videoMessage: videoMessage,
         location: locationData,
         post: post,
+        duration: audioDurationParam,
         
         // ShopWorkspace.tsx compat
         type: finalType,
@@ -757,39 +841,153 @@ const Profile: React.FC<ProfileProps> = ({
     setSelectedMessageId(null);
   };
 
-  const handlePlayAudio = (messageId: string, audioData: string) => {
-    if (playingMessageId === messageId) {
-      audioRef.current?.pause();
-      setPlayingMessageId(null);
+  const handlePlayAudio = (messageId: string, audioData?: string, initialProgress?: number) => {
+    if (!audioData) {
+      console.warn('handlePlayAudio: No audio data provided for message', messageId);
+      toast.error("Ovozli xabar topilmadi");
+      return;
+    }
+    
+    if (playingMessageId === messageId && audioRef.current) {
+      if (audioRef.current.paused) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => setIsAudioPlaying(true)).catch(e => console.error("Play error:", e));
+        }
+      } else {
+        audioRef.current.pause();
+        setIsAudioPlaying(false);
+      }
       return;
     }
 
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.src = ""; 
+      audioRef.current = null;
     }
 
-    const audio = new Audio(audioData);
-    audioRef.current = audio;
-    setPlayingMessageId(messageId);
+    try {
+      const proxiedUrl = getProxiedUrl(audioData, 1);
+      const audio = new Audio(proxiedUrl);
+      audio.playbackRate = playbackSpeed;
+      audioRef.current = audio;
 
-    audio.ontimeupdate = () => {
-      const progress = (audio.currentTime / audio.duration) * 100;
-      setAudioProgress(prev => ({ ...prev, [messageId]: progress }));
-    };
+      const setInitialTime = () => {
+        if (initialProgress !== undefined && !isNaN(audio.duration) && isFinite(audio.duration)) {
+          audio.currentTime = (initialProgress / 100) * audio.duration;
+          setAudioProgress(prev => ({ ...prev, [messageId]: initialProgress }));
+        }
+      };
 
-    audio.onended = () => {
-      setPlayingMessageId(null);
-      setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
-    };
+      if (audio.readyState >= 1) {
+        setInitialTime();
+      } else {
+        audio.addEventListener('loadedmetadata', setInitialTime, { once: true });
+        audio.addEventListener('canplay', setInitialTime, { once: true });
+      }
 
-    audio.play();
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          const progress = (audio.currentTime / audio.duration) * 100;
+          setAudioProgress(prev => ({ ...prev, [messageId]: progress }));
+        }
+      };
+
+      audio.onended = () => {
+        setIsAudioPlaying(false);
+        setPlayingMessageId(null);
+        setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
+        
+        // Sequential playback: find next voice message
+        const currentChatId = activeChatSeller?.id;
+        if (currentChatId) {
+          const currentChat = chatMessages[currentChatId];
+          if (currentChat) {
+            const currentIndex = currentChat.findIndex(m => m.id === messageId);
+            const nextVoiceMsg = currentChat.slice(currentIndex + 1).find(m => m.audio || (m as any).mediaUrl?.includes('audio') || (m as any).type === 'voice');
+            if (nextVoiceMsg) {
+              setTimeout(() => {
+                handlePlayAudio(nextVoiceMsg.id, nextVoiceMsg.audio || (nextVoiceMsg as any).mediaUrl);
+              }, 500);
+            }
+          }
+        }
+      };
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setPlayingMessageId(messageId);
+          setIsAudioPlaying(true);
+        }).catch(e => {
+          if (e.name !== 'AbortError') {
+            console.error('Audio play error:', e);
+            toast.error("Ovozli xabarni o'qib bo'lmadi");
+            setPlayingMessageId(null);
+            setIsAudioPlaying(false);
+            setAudioProgress(prev => ({ ...prev, [messageId]: 0 }));
+          }
+        });
+      } else {
+        setPlayingMessageId(messageId);
+        setIsAudioPlaying(true);
+      }
+    } catch (err) {
+      console.error('Audio setup error:', err);
+      toast.error("Audio pleyerda xatolik");
+    }
   };
 
-  const handleDeleteMessage = (sellerId: string, messageId: string) => {
-    setChatMessages(prev => ({
-      ...prev,
-      [sellerId]: prev[sellerId].filter(m => m.id !== messageId)
-    }));
+  const togglePlaybackSpeed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const speeds = [1, 1.5, 2];
+    const nextSpeed = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+    setPlaybackSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  };
+
+  const handleSeekAudio = (messageId: string, progress: number, audioData?: string) => {
+    const safeProgress = Math.max(0, Math.min(100, progress));
+    setAudioProgress(prev => ({ ...prev, [messageId]: safeProgress }));
+    
+    if (playingMessageId === messageId && audioRef.current) {
+      if (!isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
+        audioRef.current.currentTime = (safeProgress / 100) * audioRef.current.duration;
+      } else {
+        const onMetadata = () => {
+          if (!isNaN(audioRef.current!.duration) && isFinite(audioRef.current!.duration)) {
+            audioRef.current!.currentTime = (safeProgress / 100) * audioRef.current!.duration;
+          }
+        };
+        audioRef.current.addEventListener('loadedmetadata', onMetadata, { once: true });
+        audioRef.current.addEventListener('canplay', onMetadata, { once: true });
+      }
+      return;
+    }
+
+    if (audioData) {
+      handlePlayAudio(messageId, audioData, safeProgress);
+    }
+  };
+
+  const handleDeleteMessage = async (sellerId: string, messageId: string) => {
+    if (!user) return;
+    try {
+      const chatId = [user.uid, sellerId].sort().join('_');
+      await deleteDoc(doc(db, `chats/${chatId}/messages`, messageId));
+      toast.success("Xabar o'chirildi");
+      
+      setChatMessages(prev => ({
+        ...prev,
+        [sellerId]: prev[sellerId].filter(m => m.id !== messageId)
+      }));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Xabarni o'chirib bo'lmadi");
+    }
   };
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -1597,15 +1795,18 @@ const Profile: React.FC<ProfileProps> = ({
               const paddingStyle = hasMediaOnly ? 'p-1' : 'px-4 py-2.5';
 
               return (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                key={msg.id} 
-                className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'} group ${isNextSame ? 'mb-0.5' : 'mb-3'}`}
+              <div 
+                key={msg.id}
+                onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
+                className={`w-full flex ${msg.isMe ? 'justify-end' : 'justify-start'} group ${isNextSame ? 'mb-0.5' : 'mb-3'} cursor-pointer`}
               >
-                <div 
-                  onClick={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
-                  className={`relative max-w-[85%] ${paddingStyle} text-[14px] transition-all cursor-pointer active:scale-[0.98] ${bubbleRadius} ${bubbleStyle}`}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className={`relative max-w-[85%] ${paddingStyle} text-[14px] transition-all ${bubbleRadius} ${bubbleStyle}`}
                 >
                   {msg.replyTo && (
                     <div className="mb-2 p-2 bg-black/5 rounded-lg border-l-4 border-accent-blue text-[11px] opacity-70 truncate">
@@ -1679,37 +1880,71 @@ const Profile: React.FC<ProfileProps> = ({
                   )}
 
                   {msg.audio ? (
-                    <div className="flex items-center gap-2 min-w-[200px] py-1">
+                    <div className="flex items-center gap-2 min-w-[220px] py-1 relative">
                       <button 
-                        onClick={() => handlePlayAudio(msg.id, msg.audio!)}
-                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-90 ${msg.isMe ? 'bg-white text-accent-blue' : 'bg-accent-blue text-white'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayAudio(msg.id, msg.audio || (msg as any).mediaUrl);
+                        }}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-sm ${msg.isMe ? 'bg-white text-accent-blue' : 'bg-accent-blue text-white'}`}
                       >
-                        {playingMessageId === msg.id ? (
-                          <Pause size={20} fill="currentColor" />
+                        {playingMessageId === msg.id && isAudioPlaying ? (
+                          <Pause size={22} fill="currentColor" />
                         ) : (
-                          <Play size={20} fill="currentColor" className="ml-1" />
+                          <Play size={22} fill="currentColor" className="ml-1" />
                         )}
                       </button>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1 h-6 relative">
-                          {[...Array(20)].map((_, j) => {
-                            const barProgress = (j / 20) * 100;
+
+                      {playingMessageId === msg.id && (
+                        <button 
+                          onClick={togglePlaybackSpeed}
+                          className={`absolute -top-3 left-0 px-2 py-0.5 rounded-full text-[9px] font-bold border-2 transition-all active:scale-95 z-20 ${msg.isMe ? 'bg-white text-accent-blue border-accent-blue shadow-md' : 'bg-accent-blue text-white border-white shadow-md'}`}
+                        >
+                          {playbackSpeed}x
+                        </button>
+                      )}
+
+                      <div className="flex-1 px-1">
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const progress = (x / rect.width) * 100;
+                            handleSeekAudio(msg.id, progress, msg.audio || (msg as any).mediaUrl);
+                          }}
+                          className="flex items-center gap-[2px] h-8 relative cursor-pointer group/wave w-full"
+                        >
+                          {[...Array(32)].map((_, j) => {
+                            const barHeights = [8, 14, 10, 18, 6, 12, 16, 8, 20, 10, 14, 6, 12, 18, 10, 16, 8, 14, 10, 18, 6, 12, 16, 8, 20, 10, 14, 6, 12, 18, 10, 16];
+                            const currHeight = barHeights[j % barHeights.length];
+                            const barProgress = (j / 32) * 100;
                             const isPlayed = (audioProgress[msg.id] || 0) > barProgress;
+                            const isPlayingThisMsg = playingMessageId === msg.id;
+                            
                             return (
-                              <div 
-                                key={j} 
-                                className={`w-[2px] rounded-full transition-colors duration-200 ${
+                              <motion.div 
+                                key={j}
+                                animate={isPlayingThisMsg && isPlayed && isAudioPlaying ? { 
+                                  height: [currHeight, currHeight * 1.5, currHeight],
+                                } : { height: currHeight }}
+                                transition={isPlayingThisMsg && isPlayed && isAudioPlaying ? { 
+                                  repeat: Infinity, 
+                                  duration: 0.8, 
+                                  delay: j * 0.03 
+                                } : { duration: 0.2 }}
+                                className={`w-[2.5px] rounded-full transition-colors duration-300 ${
                                   isPlayed 
-                                  ? (msg.isMe ? 'bg-white' : 'bg-accent-blue') 
-                                  : (msg.isMe ? 'bg-white/30' : 'bg-accent-blue/30')
+                                    ? (msg.isMe ? 'bg-white' : 'bg-accent-blue') 
+                                    : (msg.isMe ? 'bg-white/30 group-hover/wave:bg-white/50' : 'bg-accent-blue/15 group-hover/wave:bg-accent-blue/30')
                                 }`}
-                                style={{ height: `${20 + Math.random() * 80}%` }}
+                                style={{ height: currHeight }}
                               />
                             );
                           })}
                         </div>
                         <div className="flex items-center justify-between mt-1">
-                          <p className={`text-[10px] font-medium ${msg.isMe ? 'text-white/80' : 'text-accent-blue'}`}>Ovozli xabar</p>
+                          <p className={`text-[10px] font-medium ${msg.isMe ? 'text-white/80' : 'text-accent-blue'}`}>Ovozli xabar {msg.duration ? `• ${formatDuration(msg.duration)}` : ''}</p>
                         </div>
                       </div>
                     </div>
@@ -1764,6 +1999,20 @@ const Profile: React.FC<ProfileProps> = ({
                         >
                           <Reply size={16} className="text-accent-blue" /> Javob berish
                         </button>
+                        {msg.isMe && (msg.text || msg.type === 'text') && (
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setEditingMessage(msg); 
+                              setNewMessage(msg.text || '');
+                              setSelectedMessageId(null); 
+                              setReplyingTo(null);
+                            }}
+                            className="w-full px-4 py-2.5 flex items-center gap-3 text-xs font-bold hover:bg-text-primary/5 text-text-primary"
+                          >
+                            <Pencil size={16} className="text-accent-blue" /> Tahrirlash
+                          </button>
+                        )}
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDeleteMessage(activeChatSeller.id, msg.id); }}
                           className="w-full px-4 py-2.5 flex items-center gap-3 text-xs font-bold hover:bg-red-500/5 text-red-500"
@@ -1773,8 +2022,8 @@ const Profile: React.FC<ProfileProps> = ({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
               );
             })}
             <div ref={messagesEndRef} />
@@ -1824,6 +2073,26 @@ const Profile: React.FC<ProfileProps> = ({
                     onClick={() => { setStagedImage(null); setStagedVideo(null); setStagedLocation(null); setStagedFile(null); }} 
                     className="p-1 text-text-primary/40 hover:text-red-500"
                   >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {editingMessage && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="mb-2 bg-text-primary/5 rounded-xl p-2 flex items-center gap-3 border-l-4 border-accent-blue"
+                >
+                  <Pencil size={14} className="text-accent-blue" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-black text-accent-blue uppercase tracking-widest">Tahrirlash</p>
+                    <p className="text-[11px] text-text-primary/60 truncate">{editingMessage.text}</p>
+                  </div>
+                  <button onClick={() => { setEditingMessage(null); setNewMessage(''); }} className="p-1 text-text-primary/40">
                     <X size={14} />
                   </button>
                 </motion.div>
@@ -1960,7 +2229,7 @@ const Profile: React.FC<ProfileProps> = ({
                 }}
                 placeholder="Xabar yozing..."
                 rows={1}
-                className="flex-1 bg-transparent border-none outline-none text-[15px] px-2 min-w-[80px] resize-none max-h-32 py-2 scrollbar-hide self-center"
+                className="flex-1 bg-transparent border-none outline-none text-[15px] text-text-primary px-2 min-w-[80px] resize-none max-h-32 py-2 scrollbar-hide self-center"
                 disabled={isRecording || isVideoRecording}
               />
               
@@ -2348,35 +2617,45 @@ const Profile: React.FC<ProfileProps> = ({
           </button>
         )}
         {subView === 'chats' && activeChatSeller ? (
-          <div 
-            className="flex items-center gap-3 flex-1 cursor-pointer active:opacity-70 transition-opacity"
-            onClick={() => onOpenShopProfile(activeChatSeller.id)}
-          >
-            <div className="relative w-10 h-10 overflow-hidden rounded-full border border-border-primary bg-accent-blue/10">
-              <div className="absolute inset-0 flex items-center justify-center text-accent-blue font-black text-lg">
-                {activeChatSeller.name.charAt(0).toUpperCase()}
+          <div className="flex items-center gap-3 flex-1 overflow-hidden">
+            <div 
+              className="flex items-center gap-3 flex-1 cursor-pointer active:opacity-70 transition-opacity min-w-0"
+              onClick={() => onOpenShopProfile(activeChatSeller.id)}
+            >
+              <div className="relative w-10 h-10 overflow-hidden rounded-full border border-border-primary bg-accent-blue/10 shrink-0">
+                <div className="absolute inset-0 flex items-center justify-center text-accent-blue font-black text-lg">
+                  {activeChatSeller.name.charAt(0).toUpperCase()}
+                </div>
+                {activeChatSeller.logo && (
+                  <img 
+                    src={activeChatSeller.logo} 
+                    alt={activeChatSeller.name} 
+                    className="absolute inset-0 w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-header-bg rounded-full z-10" />
               </div>
-              {activeChatSeller.logo && (
-                <img 
-                  src={activeChatSeller.logo} 
-                  alt={activeChatSeller.name} 
-                  className="absolute inset-0 w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              )}
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-header-bg rounded-full z-10" />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-sm font-black truncate leading-tight uppercase tracking-tighter italic">
+                  {activeChatSeller.name}
+                </h1>
+                <p className="text-[10px] font-black text-accent-blue uppercase tracking-widest leading-none">
+                  Online
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-sm font-black truncate leading-tight uppercase tracking-tighter italic">
-                {activeChatSeller.name}
-              </h1>
-              <p className="text-[10px] font-black text-accent-blue uppercase tracking-widest leading-none">
-                Online
-              </p>
-            </div>
+            <button 
+              onClick={() => handleClearChat(activeChatSeller.id)}
+              className="p-2.5 hover:bg-red-500/10 text-red-500 rounded-xl transition-colors flex items-center gap-2 group shrink-0"
+              title="Tarixni tozalash"
+            >
+              <Trash2 size={18} />
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest leading-none">Tarixni tozalash</span>
+            </button>
           </div>
         ) : (
           <div className="flex items-center justify-between w-full">

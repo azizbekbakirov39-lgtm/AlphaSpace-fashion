@@ -72,7 +72,9 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isSignedIn();
-        allow write: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
       }
     }
 

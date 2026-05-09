@@ -6,13 +6,14 @@ export const uploadToFirebase = async (file: File, folder: string): Promise<stri
   const extension = file.name.split('.').pop() || (file.type.startsWith('video') ? 'mp4' : 'jpg');
   const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
   const fileRef = ref(storage, fileName);
-  const result = await uploadBytes(fileRef, file);
+  const result = await uploadBytes(fileRef, file, { contentType: file.type });
   return await getDownloadURL(result.ref);
 };
 
-export const uploadToR2 = async (file: File): Promise<string> => {
+export const uploadToR2 = async (file: File, folder: string = 'uploads'): Promise<string> => {
   const formData = new FormData();
   formData.append('files', file, file.name);
+  formData.append('folder', folder);
 
   const response = await fetch(`${getApiBaseUrl()}/api/media-hub`, { 
     method: 'POST', 
@@ -57,17 +58,18 @@ export const uploadToR2 = async (file: File): Promise<string> => {
 
 export const uploadFile = async (file: File, folder: string = 'uploads'): Promise<string> => {
   try {
-    // Try R2 first
-    return await uploadToR2(file);
+    // Only use R2 as requested
+    return await uploadToR2(file, folder);
   } catch (error: any) {
-    console.error("R2 upload error, falling back to Firebase:", error);
-    try {
-      return await uploadToFirebase(file, folder);
-    } catch (fbError: any) {
-      console.error("Firebase upload error:", fbError);
-      toast.error("Faylni yuklab bo'lmadi.");
-      throw new Error("Faylni yuklab bo'lmadi.");
+    console.error("R2 upload error:", error);
+    
+    if (error.message === "R2_NOT_CONFIGURED") {
+      toast.error("Cloudflare R2 sozlanmagan. Iltimos, Secret sozlamalarini tekshiring.");
+    } else {
+      toast.error(`Faylni yuklab bo'lmadi: ${error.message}`);
     }
+    
+    throw error;
   }
 };
 

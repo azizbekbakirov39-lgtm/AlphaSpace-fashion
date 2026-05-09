@@ -32,7 +32,8 @@ import {
   Timestamp,
   limit,
   startAfter,
-  getDocFromServer
+  getDocFromServer,
+  writeBatch
 } from 'firebase/firestore';
 import { 
   getStorage, 
@@ -138,7 +139,8 @@ export {
   Timestamp,
   limit,
   startAfter,
-  getDocFromServer
+  getDocFromServer,
+  writeBatch
 };
 
 // Storage Exports
