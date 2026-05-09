@@ -190,7 +190,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
     const searchKeywords = ['top', 'qidir', 'ko\'rsat', 'kerak', 'bor', 'qanaqa', 'kiyim', 'shim', 'koylak', 'ko\'ylak', 'razmer', 'narx', 'sotuvchi', 'natija', 'topildimi', 'topdingmi', 'mln', 'sum', 'so\'m', 'm', 'k', 'ming'];
     const isSearchQuery = searchKeywords.some(kw => messageText.toLowerCase().includes(kw)) || !!selectedImage;
     setIsSearching(isSearchQuery);
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '' });
 
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -198,7 +198,7 @@ const SearchAI: React.FC<SearchAIProps> = ({
       for (let i = 0; i < retries; i++) {
         try {
           return await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.0-flash',
             contents: contents,
             config: config
           });
