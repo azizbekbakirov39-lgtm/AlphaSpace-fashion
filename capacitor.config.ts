@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.alphaspace.app',
   appName: 'AlphaSpace',
   webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 0,

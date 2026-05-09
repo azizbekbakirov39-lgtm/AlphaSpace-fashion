@@ -336,6 +336,8 @@ app.get("/api/proxy-video", async (req: any, res: any) => {
     // Set headers for streaming
     res.status(response.status); // 200 or 206
     res.setHeader('Content-Type', response.headers['content-type'] || 'video/mp4');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     
     if (response.headers['content-length']) {
       res.setHeader('Content-Length', response.headers['content-length']);

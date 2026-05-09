@@ -131,6 +131,16 @@ const PROXY_POOL = [
 
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
   if (!url) return url;
+
+  // APK (Capacitor) da videoni backend proxy orqali o'tkazish
+  const isNative = typeof window !== 'undefined' && 
+    (window.location.protocol === 'capacitor:' || 
+     window.location.hostname === 'localhost' ||
+     window.location.hostname === '127.0.0.1');
+  
+  if (isNative && isVideoUrl(url)) {
+    return `${getApiBaseUrl()}/api/proxy-video?url=${encodeURIComponent(url)}`;
+  }
   
   // Fix double protocol from malformed database strings
   url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
