@@ -14,32 +14,42 @@ export async function analyzeProductImage(imageUrl: string) {
       Faqat JSON qaytar.
     `;
 
-    const model = 'gemini-3-flash-preview';
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const model = 'gemini-2.0-flash';
     
     // We need to pass the image data as inlineData in the SDK
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
 
-    const result = await ai.models.generateContent({
-      model: model,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: base64Data
+    const res = await fetch('/api/gemini/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: base64Data
+                }
               }
-            }
-          ]
+            ]
+          }
+        ],
+        config: {
+          responseMimeType: "application/json"
         }
-      ],
-      config: {
-        responseMimeType: "application/json"
-      }
+      })
     });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Server Error: ${res.status}`);
+    }
+
+    const result = await res.json();
 
     const text = result.text;
     const jsonMatch = text?.match(/\{.*\}/s);
