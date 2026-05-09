@@ -190,27 +190,18 @@ const SearchAI: React.FC<SearchAIProps> = ({
     const searchKeywords = ['top', 'qidir', 'ko\'rsat', 'kerak', 'bor', 'qanaqa', 'kiyim', 'shim', 'koylak', 'ko\'ylak', 'razmer', 'narx', 'sotuvchi', 'natija', 'topildimi', 'topdingmi', 'mln', 'sum', 'so\'m', 'm', 'k', 'ming'];
     const isSearchQuery = searchKeywords.some(kw => messageText.toLowerCase().includes(kw)) || !!selectedImage;
     setIsSearching(isSearchQuery);
+    
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const callAiWithRetry = async (contents: any, config: any, retries = 3): Promise<any> => {
       for (let i = 0; i < retries; i++) {
         try {
-          const res = await fetch('/api/gemini/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'gemini-2.0-flash',
-              contents,
-              config
-            })
+          return await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents,
+            config
           });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `Server Error: ${res.status}`);
-          }
-
-          return await res.json();
         } catch (error: any) {
           if (error.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED')) && i < retries - 1) {
             const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;

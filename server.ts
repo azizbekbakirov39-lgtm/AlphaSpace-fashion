@@ -15,7 +15,6 @@ import ffmpegStatic from "ffmpeg-static";
 import sharp from "sharp";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { GoogleGenAI } from '@google/genai';
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -264,37 +263,6 @@ app.delete("/api/db/:collection/:id", async (req, res) => {
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/gemini/generate", async (req, res) => {
-  try {
-    const { model, contents, config } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-    const result = await ai.models.generateContent({
-      model: model || 'gemini-1.5-flash',
-      contents,
-      config
-    });
-    
-    res.json({
-      text: result.text,
-      functionCalls: result.functionCalls
-    });
-  } catch (error: any) {
-    console.error("Gemini Proxy Error:", error);
-    res.status(500).json({ 
-      error: error.message || "Internal Server Error",
-      status: error.status,
-      details: error.details,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
   }
 });
 
