@@ -198,9 +198,9 @@ const SearchAI: React.FC<SearchAIProps> = ({
       for (let i = 0; i < retries; i++) {
         try {
           return await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: contents,
-            config: config
+            model: 'gemini-3-flash-preview',
+            contents,
+            config
           });
         } catch (error: any) {
           if (error.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED')) && i < retries - 1) {
@@ -469,7 +469,7 @@ Foydalanuvchi xabari: ${messageText}`;
       if (isSearchQuery) {
         await sleep(2500); 
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Error:', error);
       const errorMessage: AIMessage = {
         id: (Date.now() + 1).toString(),

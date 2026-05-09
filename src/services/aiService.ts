@@ -1,7 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export async function analyzeProductImage(imageUrl: string) {
   try {
     const prompt = `
@@ -16,7 +14,8 @@ export async function analyzeProductImage(imageUrl: string) {
       Faqat JSON qaytar.
     `;
 
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-3-flash-preview';
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
     // We need to pass the image data as inlineData in the SDK
     const base64Data = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
@@ -43,7 +42,7 @@ export async function analyzeProductImage(imageUrl: string) {
     });
 
     const text = result.text;
-    const jsonMatch = text.match(/\{.*\}/s);
+    const jsonMatch = text?.match(/\{.*\}/s);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
