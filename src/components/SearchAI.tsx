@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Loader2, Image as ImageIcon, X, LayoutGrid, Shirt, Search } from 'lucide-react';
-import { Type } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { AIMessage, PostData } from '../types';
 import { isVideoUrl, getProxiedUrl, getPostThumbnailUrl } from '../utils/mediaUtils';
 import { ImageWithFallback } from './ImageWithFallback';
@@ -191,27 +191,17 @@ const SearchAI: React.FC<SearchAIProps> = ({
     const isSearchQuery = searchKeywords.some(kw => messageText.toLowerCase().includes(kw)) || !!selectedImage;
     setIsSearching(isSearchQuery);
     
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const callAiWithRetry = async (contents: any, config: any, retries = 3): Promise<any> => {
       for (let i = 0; i < retries; i++) {
         try {
-          const res = await fetch('/api/gemini/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'gemini-3-flash-preview',
-              contents,
-              config
-            })
+          return await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents,
+            config
           });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `Server Error: ${res.status}`);
-          }
-
-          return await res.json();
         } catch (error: any) {
           if (error.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED')) && i < retries - 1) {
             const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
