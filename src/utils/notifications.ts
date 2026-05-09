@@ -1,5 +1,7 @@
 import { toast } from 'sonner';
 import { safeJsonStringify } from './jsonUtils';
+import { getApiBaseUrl } from './mediaUtils';
+
 export const requestNotificationPermission = () => {
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission().catch(console.error);
@@ -26,7 +28,7 @@ export const playNotificationSound = () => {
 // Orqa fon (Push) xabarlar yuborish uchun funksiya
 export const sendPushNotification = async (targetToken: String, title: string, body: string, data?: any) => {
   try {
-    await fetch('/api/send-push', {
+    await fetch(`${getApiBaseUrl()}/api/send-push`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

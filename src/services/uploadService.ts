@@ -1,5 +1,6 @@
 import { auth, storage, ref, uploadBytes, getDownloadURL } from '../firebase';
 import { toast } from 'sonner';
+import { getApiBaseUrl } from '../utils/mediaUtils';
 
 export const uploadToFirebase = async (file: File, folder: string): Promise<string> => {
   const extension = file.name.split('.').pop() || (file.type.startsWith('video') ? 'mp4' : 'jpg');
@@ -13,7 +14,7 @@ export const uploadToR2 = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('files', file, file.name);
 
-  const response = await fetch('/api/media-hub', { 
+  const response = await fetch(`${getApiBaseUrl()}/api/media-hub`, { 
     method: 'POST', 
     body: formData 
   });

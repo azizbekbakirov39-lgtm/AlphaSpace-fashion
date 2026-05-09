@@ -110,6 +110,14 @@ const setCache = (originalUrl: string, proxiedUrl: string) => {
   }
 };
 
+export const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    // Return backend deployed URL when running natively via Capacitor
+    return 'https://ais-pre-36ab24ncun33qp6nccdmm4-294424582679.asia-east1.run.app';
+  }
+  return '';
+};
+
 // Available robust proxies
 const PROXY_POOL = [
   (url: string) => url, // Direct (often works with no-referrer)
@@ -118,7 +126,7 @@ const PROXY_POOL = [
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, // AllOrigins
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`, // CorsProxy.io
   (url: string) => `https://proxy.cors.sh/${url}`, // Proxy.cors.sh (fallback)
-  (url: string) => `/api/proxy-video?url=${encodeURIComponent(url)}`, // Internal fallback
+  (url: string) => `${getApiBaseUrl()}/api/proxy-video?url=${encodeURIComponent(url)}`, // Internal fallback
 ];
 
 export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
@@ -144,14 +152,14 @@ export const getProxiedUrl = (url: string, proxyIndex: number = 0): string => {
   ) {
     // Always proxy private AWS/CF endpoint URLs
     if (url.includes('r2.cloudflarestorage.com') || url.includes('amazonaws.com')) {
-      return `/api/proxy-video?url=${encodeURIComponent(url)}`;
+      return `${getApiBaseUrl()}/api/proxy-video?url=${encodeURIComponent(url)}`;
     }
     
     if (proxyIndex === 0) {
       return url;
     }
     // Fallback to internal proxy if direct public access fails (e.g. CORS not configured on bucket)
-    return `/api/proxy-video?url=${encodeURIComponent(url)}`;
+    return `${getApiBaseUrl()}/api/proxy-video?url=${encodeURIComponent(url)}`;
   }
 
   // Directly return trusted URLs when proxyIndex is 0
