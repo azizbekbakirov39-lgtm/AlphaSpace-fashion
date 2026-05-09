@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInWithPopup, 
+  signInWithCredential,
   GoogleAuthProvider, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -10,6 +11,8 @@ import {
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { 
   getFirestore, 
   collection, 
@@ -48,6 +51,15 @@ export const storage = getStorage(app);
 // Auth Helpers
 export const googleProvider = new GoogleAuthProvider();
 
+// IMPORTANT: Requires "YOUR_SERVER_CLIENT_ID" in capacitor.config.ts / strings.xml 
+if (Capacitor.isNativePlatform()) {
+  GoogleAuth.initialize({
+    clientId: '692431917555-2ut6tiqfbuplb78shl5r6tnr9sv31bph.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+    grantOfflineAccess: true,
+  });
+}
+
 let isAuthInProgress = false;
 
 export const signInWithGoogle = async () => {
@@ -58,8 +70,15 @@ export const signInWithGoogle = async () => {
   
   isAuthInProgress = true;
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
+    if (Capacitor.isNativePlatform()) {
+      const googleUser = await GoogleAuth.signIn();
+      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+      const result = await signInWithCredential(auth, credential);
+      return result.user;
+    } else {
+      const result = await signInWithPopup(auth, googleProvider);
+      return result.user;
+    }
   } catch (error: any) {
     console.error("Error signing in with Google", error);
     if (error.code === 'auth/popup-blocked') {

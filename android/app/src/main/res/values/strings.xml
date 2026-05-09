@@ -4,4 +4,5 @@
     <string name="title_activity_main">AlphaSpace</string>
     <string name="package_name">com.alphaspace.app</string>
     <string name="custom_url_scheme">com.alphaspace.app</string>
+    <string name="server_client_id">692431917555-2ut6tiqfbuplb78shl5r6tnr9sv31bph.apps.googleusercontent.com</string>
 </resources>
