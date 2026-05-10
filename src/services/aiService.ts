@@ -2,13 +2,16 @@
 export async function analyzeProductImage(imageUrl: string) {
   try {
     const prompt = `
-      Ushbu mahsulot rasmini tahlil qil va quyidagi JSON formatida ma'lumot ber:
+      Ushbu mahsulot rasmini tahlil qil va quyidagi JSON formatida batafsil ma'lumot ber:
       {
         "color": "asosiy rang",
-        "category": "kategoriya",
-        "style": "stil",
-        "description": "qisqa tavsif",
-        "tags": ["tag1", "tag2"]
+        "category": "kategoriya (masalan: ko'ylak, shim, poyabzal, aksessuar)",
+        "style": "stil (masalan: klassik, sport, casual)",
+        "description": "qisqa va aniq tavsif",
+        "tags": ["tag1", "tag2"],
+        "season": "qaysi fasl uchun mos (masalan: yoz, qish, bahor, kuz)",
+        "purpose": "nima uchun mo'ljallangan (masalan: to'y, ofis, sport, kundalik)",
+        "targetAudience": "kimlar uchun (masalan: erkaklar, ayollar, bolalar, yoshlar)"
       }
       Faqat JSON qaytar.
     `;

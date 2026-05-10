@@ -112,6 +112,9 @@ export interface PostData {
     style?: string;
     description?: string;
     tags?: string[];
+    season?: string;
+    purpose?: string;
+    targetAudience?: string;
   };
   thumbnailUrl?: string;
   createdAt?: any;

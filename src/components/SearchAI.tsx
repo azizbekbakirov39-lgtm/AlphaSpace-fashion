@@ -95,16 +95,16 @@ interface SearchAIProps {
 }
 
 const SYSTEM_INSTRUCTION = `Siz AlphaSpace Marketplace-da foydalanuvchilarga xarid qilishda juda tez va aniq yordam beruvchi SmartSeller (Aqlli Sotuvchi) sun'iy intellektisiz.
-Sizning vazifangiz nafaqat mahsulot qidirish, balki sanki har bir videoni va rasmni o'z ko'zingiz bilan ko'rib turganingizdek tasavvur qilib, mahsulotlarning shakli, rangi, dizayni va narxlarini tahlil qilib berishdir.
+Sizning vazifangiz nafaqat mahsulot qidirish, balki har bir videoni va rasmni o'z ko'zingiz bilan ko'rib turganingizdek tasavvur qilib, mahsulotlarning shakli, rangi, dizayni, narxlari va qanday maqsadlarda ishlatilishini tahlil qilib berishdir.
 
-SIZDA HAR BIR MAHSULOTNING BARCHA TAFSILOTLARI (NOMI, NARXI, RANGI, OLCHAMLARI, IZOXLLAR SONI, TAVSIFI) KONTEKST SIFATIDA MAVJUD.
+SIZDA HAR BIR MAHSULOTNING BARCHA TAFSILOTLARI (NOMI, NARXI, RANGI, OLCHAMLARI, IZOXLLAR SONI, TAVSIFI, FASLI, MAQSADI, AUDITORIYASI) KONTEKST SIFATIDA MAVJUD.
 Hech qachon "menda narx ko'rinmayapti", "men videoni ko'ra olmayman" yoki "batafsil ma'lumot yo'q" deb aytmang! Siz hamma videolardagi mahsulotlarni tafsilotlarini matn orqali "ko'ra" olasiz.
 
 Qoidalar:
-1. Videodagi Kadrlab "Ko'rish": Foydalanuvchi "videodagi...", "bu videoda..." kabi savollar bersa, sizga kelgan kontekst ma'lumotiga qarab, go'yoki videoni ko'rib turganingizdek mahsulotni tasvirlang va tahlil qilib bering (masalan: "Videodagi bu qora ko'ylak...", "Ha, bu oyoq kiyimning narxi...").
-2. Tafsilotlarni o'qish: Mahsulot nomini, narxini, qidiringan yoki videodagi mahsulot qanday rangdaligini va ushbu mahsulotga qancha izoh yozilganini (comments) foydalanuvchiga ishonch bilan aytib bering.
-3. Tezkorlik va Aniqlik: Javoblaringiz qisqa, aniq va juda tez bo'lishi kerak. Keraksiz uzun gaplardan saqlaning. Iloji bo'lsa darhol \`find_products\` orqali mahsulotni ko'rsating.
-4. Tabiiy va O'ziga Xos: Foydalanuvchi bilan xuddi haqiqiy tajribali sotuvchi va stilist kabi muomala qiling. Narxlarni qisqa va aniq (masalan, "250,000 so'm") ko'rinishida yozing.
+1. Videodagi Kadrlab "Ko'rish": Foydalanuvchi "videodagi...", "bu videoda..." kabi savollar bersa, sizga kelgan kontekst ma'lumotiga qarab, go'yoki videoni ko'rib turganingizdek mahsulotni tasvirlang va tahlil qilib bering.
+2. Tafsilotlarni o'qish: Mahsulot tavsifi (izohi) ni diqqat bilan o'qing. Agar foydalanuvchi "yoz uchun", "to'yga", "sport uchun" desa, tavsifdagi mantiqdan kelib chiqib eng mos mahsulotlarni tanlang.
+3. Tezkorlik va Aniqlik: Javoblaringiz qisqa, aniq va juda tez bo'lishi kerak. Iloji bo'lsa darhol \`find_products\` orqali mahsulotni ko'rsating.
+4. Tabiiy va O'ziga Xos: Foydalanuvchi bilan xuddi haqiqiy tajribali sotuvchi va stilist kabi muomala qiling.
 `;
 
 const TypewriterText: React.FC<{ text: string; speed?: number }> = ({ text, speed = 15 }) => {
@@ -233,8 +233,10 @@ Narxi: ${p.price}
 Tavsif: ${p.description || 'Yo\'q'}
 Kategoriya: ${p.aiMetadata?.category || 'Noma\'lum'}
 Rangi: ${p.aiMetadata?.color || p.colors?.map((c: any) => c.name).join(', ') || 'Noma\'lum'}
-O'lchamlari: ${p.sizes?.join(', ') || 'Noma\'lum'}
-Izohlar soni: ${p.comments || 0} ta izoh
+Fasl: ${p.aiMetadata?.season || 'Noma\'lum'}
+Maqsad: ${p.aiMetadata?.purpose || 'Noma\'lum'}
+Auditoriya: ${p.aiMetadata?.targetAudience || 'Noma\'lum'}
+Izohlar: ${p.comments || 0} ta
 Holati: ${p.inStock !== false ? 'Mavjud' : 'Tugagan'}
 ---`;
       }).join('\n');
@@ -358,7 +360,16 @@ Foydalanuvchi xabari: ${messageText}`;
               // 3. Keyword / Query Match
               if (args.query) {
                 const q = args.query.toLowerCase();
-                const searchableText = `${p.outfitName} ${p.description || ''} ${p.seller.name} ${p.aiMetadata?.category || ''}`.toLowerCase();
+                const searchableText = [
+                  p.outfitName,
+                  p.description || '',
+                  p.seller.name,
+                  p.aiMetadata?.category || '',
+                  p.aiMetadata?.season || '',
+                  p.aiMetadata?.purpose || '',
+                  p.aiMetadata?.targetAudience || '',
+                  ...(p.aiMetadata?.tags || [])
+                ].join(' ').toLowerCase();
                 if (!searchableText.includes(q)) return false;
               }
 
