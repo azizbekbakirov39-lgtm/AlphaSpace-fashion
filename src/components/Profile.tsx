@@ -199,8 +199,11 @@ const Profile: React.FC<ProfileProps> = ({
     const unsubChats = onSnapshot(q, (snapshot) => {
       snapshot.docs.forEach(chatDoc => {
         const chatId = chatDoc.id;
-        const sellerId = chatId.replace(user.uid, '').replace('_', '');
+        const chatData = chatDoc.data();
+        const sellerId = chatData.shopId || chatId.split('_').find(id => id !== user.uid);
         
+        if (!sellerId) return;
+
         // Only add listener if we don't already have one for this chat
         if (!messageUnsubs.current[chatId]) {
           const msgQ = query(collection(db, `chats/${chatId}/messages`), orderBy('timestamp', 'asc'));
@@ -543,6 +546,7 @@ const Profile: React.FC<ProfileProps> = ({
           id: initialChatSellerId,
           name: initialChatProduct ? initialChatProduct.seller.name : `Sotuvchi ${initialChatSellerId.substring(0, 4)}`,
           logo: initialChatProduct ? initialChatProduct.seller.logo : '',
+          ownerUid: initialChatProduct ? initialChatProduct.seller.ownerUid : undefined,
           followers: 0,
           isVerified: false,
           hasStory: false,
@@ -722,16 +726,20 @@ const Profile: React.FC<ProfileProps> = ({
       const chatId = [user.uid, sellerId].sort().join('_');
       const chatRef = doc(db, 'chats', chatId);
       
-      const shopOwnerUid = sellerId.includes('_') ? sellerId.split('_')[1] : null;
-      const participants = Array.from(new Set([user.uid, sellerId, shopOwnerUid].filter(Boolean)));
+      const shopOwnerUid = activeChatSeller?.ownerUid || null;
+      const participants = Array.from(new Set([user.uid, sellerId, shopOwnerUid].filter(Boolean) as string[]));
       
       // Ensure chat document exists
       await setDoc(chatRef, {
         id: chatId,
         shopId: sellerId,
+        customerName: user.displayName || user.email?.split('@')[0] || "Mijoz",
+        customerAvatar: user.photoURL || '',
         participants: participants,
         lastMessage: messageText || (finalAudioUrl ? "Ovozli xabar" : "Media xabar"),
         lastSender: user.uid,
+        lastSenderType: 'customer',
+        status: 'new',
         readBy: [user.uid],
         updatedAt: serverTimestamp()
       }, { merge: true });
@@ -760,6 +768,7 @@ const Profile: React.FC<ProfileProps> = ({
       const msgData: any = {
         chatId: chatId,
         senderUid: user.uid,
+        sender: 'customer',
         text: (finalAudioUrl || finalImageUrl || finalVideoUrl || videoMessage || locationData || post) ? (text || "") : messageText,
         
         // Profile.tsx compat
@@ -786,7 +795,8 @@ const Profile: React.FC<ProfileProps> = ({
 
       // Send push notification to target seller
       try {
-        const targetUserDoc = await getDoc(doc(db, 'users', sellerId));
+        const targetUid = shopOwnerUid || sellerId;
+        const targetUserDoc = await getDoc(doc(db, 'users', targetUid));
         if (targetUserDoc.exists() && targetUserDoc.data().fcmToken) {
           const { sendPushNotification } = await import('../utils/notifications');
           const pushText = messageText || `[${finalType}]`;
@@ -1728,9 +1738,12 @@ const Profile: React.FC<ProfileProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 pb-8 space-y-4 scrollbar-hide relative z-10 min-h-0">
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
             {activeChatSeller && (
-              <div className="flex flex-col items-center justify-center py-10 px-6 text-center border-b border-border-primary/5 mb-6">
+              <div 
+                key={`chat-header-${activeChatSeller.id}`}
+                className="flex flex-col items-center justify-center py-10 px-6 text-center border-b border-border-primary/5 mb-6"
+              >
                 <div className="relative mb-4">
                   <div className="p-1 bg-gradient-to-br from-accent-blue/40 to-accent-light/40 rounded-full">
                     <div className="relative w-24 h-24 overflow-hidden rounded-full border-4 border-bg-primary bg-accent-blue/10 shadow-2xl">
@@ -1769,7 +1782,10 @@ const Profile: React.FC<ProfileProps> = ({
             )}
             
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-text-primary/40 pt-20">
+              <div 
+                key="empty-messages-placeholder"
+                className="flex flex-col items-center justify-center h-full text-text-primary/40 pt-20"
+              >
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center mb-4">
                   <MessageSquare size={40} className="text-accent-blue opacity-50" />
                 </div>
@@ -1971,7 +1987,7 @@ const Profile: React.FC<ProfileProps> = ({
                   {/* Reactions */}
                   {msg.reactions && msg.reactions.length > 0 && (
                     <div className={`absolute -bottom-3 ${msg.isMe ? 'right-0' : 'left-0'} flex gap-0.5 bg-white dark:bg-neutral-800 rounded-full px-1.5 py-0.5 shadow-md border border-border-primary scale-75 origin-top`}>
-                      {msg.reactions.map((r, idx) => <span key={idx}>{r}</span>)}
+                      {msg.reactions.map((r, rIdx) => <span key={`msg-${msg.id}-reaction-${rIdx}`}>{r}</span>)}
                     </div>
                   )}
 
@@ -1987,7 +2003,7 @@ const Profile: React.FC<ProfileProps> = ({
                         <div className="flex p-2 gap-2 border-b border-border-primary overflow-x-auto scrollbar-hide">
                           {['❤️', '👍', '🔥', '😂', '😮', '😢'].map(emoji => (
                             <button 
-                              key={emoji} 
+                              key={`emoji-selector-${emoji}`} 
                               onClick={(e) => { e.stopPropagation(); handleReaction(msg.id, emoji); }}
                               className="text-lg hover:scale-125 transition-transform"
                             >
@@ -2673,7 +2689,7 @@ const Profile: React.FC<ProfileProps> = ({
                 <div className="flex -space-x-3 items-center">
                   {userShops.slice(0, 3).map((shop, i) => (
                     <motion.div
-                      key={shop.id}
+                      key={`profile-header-shop-${shop.id}`}
                       initial={{ x: -10, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: i * 0.1 }}

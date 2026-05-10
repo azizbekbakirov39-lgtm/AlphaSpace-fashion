@@ -207,7 +207,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       const chatRef = doc(db, 'chats', activeChatId);
       await updateDoc(chatRef, {
         lastMessage: "Tarix tozalandi",
-        lastInteraction: serverTimestamp()
+        updatedAt: serverTimestamp()
       });
 
       toast.success("Tarix tozalandi");
@@ -541,7 +541,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
         await updateDoc(chatRef, {
           lastMessage: messageText,
-          lastInteraction: serverTimestamp()
+          updatedAt: serverTimestamp()
         });
 
         setMessageInput('');
@@ -551,6 +551,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       const msgData: any = {
         sender: 'shop',
+        senderUid: user.uid,
         type,
         timestamp: serverTimestamp(),
         ...payload
@@ -566,9 +567,28 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
       
       await updateDoc(chatRef, {
         lastMessage: type === 'text' ? messageInput : (type === 'voice' ? 'Ovozli xabar' : `[${type}]`),
-        lastInteraction: serverTimestamp(),
-        status: 'replied'
+        updatedAt: serverTimestamp(),
+        status: 'replied',
+        lastSender: user.uid
       });
+
+      // Send push notification to customer
+      try {
+        const chatSnap = await getDoc(chatRef);
+        const chatData = chatSnap.data();
+        const customerId = chatData?.customerId || activeChatId.split('_').find(id => id !== user.uid);
+        
+        if (customerId) {
+          const customerDoc = await getDoc(doc(db, 'users', customerId));
+          if (customerDoc.exists() && customerDoc.data().fcmToken) {
+            const { sendPushNotification } = await import('../utils/notifications');
+            const pushText = type === 'text' ? messageInput : `[${type}]`;
+            await sendPushNotification(customerDoc.data().fcmToken, `${shopData.name}dan xabar`, pushText, { chatId: activeChatId });
+          }
+        }
+      } catch (e) {
+        console.error("Customer push notification error:", e);
+      }
 
       setMessageInput('');
       setReplyingTo(null);

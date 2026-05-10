@@ -28,13 +28,30 @@ import { isVideoUrl, safePlayVideo, getProxiedUrl } from '../../utils/mediaUtils
 import { ImageWithFallback } from '../ImageWithFallback';
 import { PostData } from '../../types';
 
+const formatTime = (ts: any) => {
+  if (!ts) return "";
+  try {
+    const date = ts?.toDate ? ts.toDate() : (ts instanceof Date ? ts : new Date(ts));
+    if (isNaN(date.getTime())) {
+      // If it's the {seconds, nanoseconds} object but not a class instance
+      if (ts && typeof ts === 'object' && 'seconds' in ts) {
+        return new Date(ts.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      return "";
+    }
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return "";
+  }
+};
+
 interface Message {
   id: string;
   text?: string;
   type: 'text' | 'image' | 'video' | 'voice' | 'location' | 'post' | 'videoMessage';
   mediaUrl?: string;
   sender: 'shop' | 'customer';
-  timestamp: string;
+  timestamp: any;
   location?: { lat: number; lng: number };
   post?: PostData;
   replyTo?: string;
@@ -47,7 +64,7 @@ interface Chat {
   customerName: string;
   customerAvatar: string;
   lastMessage: string;
-  timestamp: string;
+  timestamp: any;
   messages: Message[];
   status: 'new' | 'in-progress' | 'completed';
   pinnedProduct?: {
@@ -172,8 +189,8 @@ export const ChatsTab = ({
 }: ChatsTabProps) => {
   const activeChat = chats.find(c => c.id === activeChatId);
   const filteredChats = chats.filter(chat => 
-    chat.customerName.toLowerCase().includes(chatSearchQuery.toLowerCase()) || 
-    chat.lastMessage.toLowerCase().includes(chatSearchQuery.toLowerCase())
+    (chat.customerName || "").toLowerCase().includes(chatSearchQuery.toLowerCase()) || 
+    (chat.lastMessage || "").toLowerCase().includes(chatSearchQuery.toLowerCase())
   );
 
   return (
@@ -221,7 +238,7 @@ export const ChatsTab = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
                         <p className="font-black text-sm text-text-primary truncate">{chat.customerName}</p>
-                        <span className="text-[9px] font-bold text-text-primary/30 uppercase tracking-tighter">{chat.timestamp}</span>
+                        <span className="text-[9px] font-bold text-text-primary/30 uppercase tracking-tighter">{formatTime(chat.timestamp)}</span>
                       </div>
                       <p className="text-xs text-text-primary/50 truncate font-medium">{chat.lastMessage}</p>
                     </div>
@@ -514,7 +531,7 @@ export const ChatsTab = ({
                           )}
                         </AnimatePresence>
                         <div className="flex items-center gap-1.5 mt-1.5 px-1">
-                          <span className="text-[9px] text-text-primary/30 uppercase font-black tracking-tighter">{msg.timestamp}</span>
+                        <span className="text-[9px] text-text-primary/30 uppercase font-black tracking-tighter">{formatTime(msg.timestamp)}</span>
                           {msg.sender === 'shop' && <Zap size={8} className="text-accent-blue" fill="currentColor" />}
                         </div>
                       </div>

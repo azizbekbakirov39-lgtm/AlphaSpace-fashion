@@ -1452,7 +1452,7 @@ export default function App() {
                       <div className="flex -space-x-3 items-center">
                         {userShops.slice(0, 3).map((shop, i) => (
                           <motion.div
-                            key={shop.id}
+                            key={`header-shop-${shop.id}`}
                             initial={{ x: -10, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             transition={{ delay: i * 0.1 }}

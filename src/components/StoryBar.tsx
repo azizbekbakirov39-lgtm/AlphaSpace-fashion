@@ -14,8 +14,32 @@ interface StoryBarProps {
 
 const StoryBar: React.FC<StoryBarProps> = ({ stories, onMarkStoryViewed, onOpenStories, onOpenLive, language }) => {
   // Sort stories: live first, then unviewed, then viewed
-  const sortedStories = React.useMemo(() => {
-    return [...stories].sort((a, b) => {
+  // Group stories by seller - only show the most recent or live story for each seller in the bar
+  const groupedStories = React.useMemo(() => {
+    const map = new Map<string, Story>();
+    stories.forEach(s => {
+      if (!s.seller?.id) return;
+      const existing = map.get(s.seller.id);
+      
+      // Keep live stories, or most recent unviewed, or most recent viewed
+      if (!existing) {
+        map.set(s.seller.id, s);
+      } else {
+        if (s.isLive && !existing.isLive) {
+          map.set(s.seller.id, s);
+        } else if (!existing.isLive) {
+          if (!s.isViewed && existing.isViewed) {
+            map.set(s.seller.id, s);
+          } else if (s.isViewed === existing.isViewed) {
+             const sTime = s.createdAt?.seconds || 0;
+             const eTime = existing.createdAt?.seconds || 0;
+             if (sTime > eTime) map.set(s.seller.id, s);
+          }
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
       if (a.isLive && !b.isLive) return -1;
       if (!a.isLive && b.isLive) return 1;
       if (a.isViewed === b.isViewed) return 0;
@@ -27,15 +51,19 @@ const StoryBar: React.FC<StoryBarProps> = ({ stories, onMarkStoryViewed, onOpenS
     if (story.isLive) {
       onOpenLive(story);
     } else {
-      onOpenStories(sortedStories, index);
+      // Find all stories for this seller to pass to the viewer
+      const sellerStories = stories
+        .filter(s => s.seller.id === story.seller.id)
+        .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+      onOpenStories(sellerStories, 0);
     }
   };
 
   return (
     <div className="flex gap-4 overflow-x-auto scrollbar-hide py-4 px-4 bg-bg-primary">
-      {sortedStories.map((story, index) => (
+      {groupedStories.map((story, index) => (
         <div 
-          key={story.id} 
+          key={`story-seller-${story.seller.id}`} 
           onClick={() => handleStoryClick(story, index)}
           className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group"
         >
