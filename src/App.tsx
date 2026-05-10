@@ -39,6 +39,7 @@ import {
   setDoc, 
   updateDoc, 
   getDoc, 
+  getDocs,
   deleteDoc, 
   collection, 
   query, 
@@ -47,6 +48,7 @@ import {
   serverTimestamp,
   Timestamp,
   increment,
+  writeBatch,
   handleFirestoreError,
   OperationType
 } from './firebase';
@@ -131,24 +133,103 @@ export default function App() {
       const storiesData = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as Story))
         .filter(story => {
-           // Allow stories without expiresAt, or check if expiresAt is in the future
-           if (!story.expiresAt) return true;
+           // Default to 24h from createdAt if expiresAt is missing
            let expiresAtMs = 0;
-           if (typeof story.expiresAt.toMillis === 'function') {
-             expiresAtMs = story.expiresAt.toMillis();
-           } else if ((story.expiresAt as any).seconds) {
-             expiresAtMs = (story.expiresAt as any).seconds * 1000;
-           } else if (story.expiresAt instanceof Date) {
-             expiresAtMs = story.expiresAt.getTime();
-           } else if (typeof story.expiresAt === 'number') {
-             expiresAtMs = story.expiresAt;
+           if (story.expiresAt) {
+             if (typeof story.expiresAt.toMillis === 'function') {
+               expiresAtMs = story.expiresAt.toMillis();
+             } else if ((story.expiresAt as any).seconds) {
+               expiresAtMs = (story.expiresAt as any).seconds * 1000;
+             } else if (story.expiresAt instanceof Date) {
+               expiresAtMs = story.expiresAt.getTime();
+             } else if (typeof story.expiresAt === 'number') {
+               expiresAtMs = story.expiresAt;
+             }
+           } else if (story.createdAt) {
+             let createdAtMs = 0;
+             if (typeof story.createdAt.toMillis === 'function') {
+               createdAtMs = story.createdAt.toMillis();
+             } else if ((story.createdAt as any).seconds) {
+               createdAtMs = (story.createdAt as any).seconds * 1000;
+             } else if (story.createdAt instanceof Date) {
+               createdAtMs = story.createdAt.getTime();
+             } else if (typeof story.createdAt === 'number') {
+               createdAtMs = story.createdAt;
+             }
+             expiresAtMs = createdAtMs + (24 * 60 * 60 * 1000);
+           } else {
+             // If both are missing (shouldn't happen), discard if older than 24h from now as fallback
+             return false; 
            }
+           
            return expiresAtMs > now;
         });
       setStories(storiesData);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'stories');
     });
+
+    // One-time cleanup of expired stories from Firestore
+    const cleanupStories = async () => {
+      try {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        
+        // 1. Delete stories with expiresAt in the past
+        const expiredByDateQuery = query(
+          collection(db, 'stories'),
+          where('expiresAt', '<', Timestamp.fromDate(now))
+        );
+        const expiredByDateSnap = await getDocs(expiredByDateQuery);
+        
+        // 2. Also check for stories WITHOUT expiresAt that are older than 24h
+        const oldStoriesQuery = query(
+          collection(db, 'stories'),
+          where('createdAt', '<', Timestamp.fromDate(yesterday))
+        );
+        const oldStoriesSnap = await getDocs(oldStoriesQuery);
+
+        const batch = writeBatch(db);
+        const toDeleteIds = new Set<string>();
+        const affectedSellerIds = new Set<string>();
+
+        expiredByDateSnap.docs.forEach(doc => {
+          batch.delete(doc.ref);
+          toDeleteIds.add(doc.id);
+          affectedSellerIds.add(doc.data().sellerId);
+        });
+
+        oldStoriesSnap.docs.forEach(doc => {
+          if (!toDeleteIds.has(doc.id)) {
+            batch.delete(doc.ref);
+            affectedSellerIds.add(doc.data().sellerId);
+          }
+        });
+
+        if (affectedSellerIds.size > 0) {
+          await batch.commit();
+          console.log(`Cleaned up ${toDeleteIds.size + oldStoriesSnap.docs.length} expired stories.`);
+          
+          // Re-check hasStory for affected sellers
+          for (const sId of affectedSellerIds) {
+             const activeStoriesQuery = query(collection(db, 'stories'), where('sellerId', '==', sId));
+             const activeStoriesSnap = await getDocs(activeStoriesQuery);
+             const stillHasStories = activeStoriesSnap.docs.some(doc => {
+               const data = doc.data();
+               const exp = data.expiresAt?.toMillis?.() || (data.createdAt?.toMillis?.() + 24*60*60*1000) || Date.now() + 1000;
+               return exp > Date.now();
+             });
+             
+             if (!stillHasStories) {
+               await updateDoc(doc(db, 'shops', sId), { hasStory: false });
+             }
+          }
+        }
+      } catch (err) {
+        console.error("Story cleanup error:", err);
+      }
+    };
+    cleanupStories();
 
     return () => {
       unsubSellers();
