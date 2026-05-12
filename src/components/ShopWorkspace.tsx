@@ -94,6 +94,21 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<any>(null);
+  const dragStartRef = useRef<number | null>(null);
+
+  // Chat Recording States
+  const [isRecording, setIsRecording] = useState(false);
+  const [isVideoRecording, setIsVideoRecording] = useState(false);
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [dragX, setDragX] = useState(0);
+
+  // Staged Media in chat
+  const [stagedImage, setStagedImage] = useState<string | null>(null);
+  const [stagedVideo, setStagedVideo] = useState<string | null>(null);
+  const [stagedLocation, setStagedLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
 
   const handlePlayAudio = (messageId: string, url?: string, initialProgress?: number) => {
     if (!url) {
@@ -262,11 +277,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
   };
 
   // Media Capture States
-  const [isRecording, setIsRecording] = useState(false);
-  const [isVideoRecording, setIsVideoRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [dragX, setDragX] = useState(0);
-  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  // Moved state to upper block
 
   // Modal States
   const [showMap, setShowMap] = useState(false);
@@ -525,12 +536,32 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     if (!activeChatId) return;
 
     try {
+      if (type === 'text' && !messageInput.trim() && !stagedFile && !stagedLocation && !payload) return;
+
+      setIsUploading(true);
+      let mediaUrl = null;
+      let finalType = type;
+
+      // Ensure uploading logic
+      if (stagedFile && (stagedImage || stagedVideo)) {
+        mediaUrl = await uploadFile(stagedFile, stagedImage ? 'chat_images' : 'chat_videos');
+        finalType = stagedImage ? 'image' : 'video';
+      }
+
+      if (stagedLocation) {
+        finalType = 'location';
+        payload = { ...payload, location: stagedLocation };
+      }
+
       const chatRef = doc(db, 'chats', activeChatId);
       
       // IF EDITING
-      if (editingMessage && type === 'text') {
+      if (editingMessage && finalType === 'text') {
         const messageText = messageInput.trim();
-        if (!messageText) return;
+        if (!messageText) {
+          setIsUploading(false);
+          return;
+        }
 
         const msgDocRef = doc(db, `chats/${activeChatId}/messages`, editingMessage.id);
         await updateDoc(msgDocRef, {
@@ -546,27 +577,42 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
         setMessageInput('');
         setEditingMessage(null);
+        setIsUploading(false);
         return;
       }
 
       const msgData: any = {
         sender: 'shop',
         senderUid: user.uid,
-        type,
+        type: finalType,
         timestamp: serverTimestamp(),
         ...payload
       };
 
-      if (type === 'text') {
-        if (!messageInput.trim()) return;
-        msgData.text = messageInput;
+      if (mediaUrl) {
+        msgData.mediaUrl = mediaUrl;
       }
+
+      if (messageInput.trim()) {
+        msgData.text = messageInput.trim();
+      }
+
       if (replyingTo) msgData.replyTo = replyingTo.id;
 
       await addDoc(collection(db, `chats/${activeChatId}/messages`), msgData);
       
+      let chatLastMessage = messageInput;
+      if (!chatLastMessage) {
+        if (finalType === 'image') chatLastMessage = '📷 Rasm';
+        else if (finalType === 'video') chatLastMessage = '🎥 Video';
+        else if (finalType === 'location') chatLastMessage = '📍 Joylashuv';
+        else if (finalType === 'voice') chatLastMessage = '🎤 Ovozli xabar';
+        else if (finalType === 'videoMessage') chatLastMessage = '🎥 Video xabar';
+        else chatLastMessage = 'Xabar';
+      }
+
       await updateDoc(chatRef, {
-        lastMessage: type === 'text' ? messageInput : (type === 'voice' ? 'Ovozli xabar' : `[${type}]`),
+        lastMessage: chatLastMessage,
         updatedAt: serverTimestamp(),
         status: 'replied',
         lastSender: user.uid
@@ -582,7 +628,7 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
           const customerDoc = await getDoc(doc(db, 'users', customerId));
           if (customerDoc.exists() && customerDoc.data().fcmToken) {
             const { sendPushNotification } = await import('../utils/notifications');
-            const pushText = type === 'text' ? messageInput : `[${type}]`;
+            const pushText = chatLastMessage;
             await sendPushNotification(customerDoc.data().fcmToken, `${shopData.name}dan xabar`, pushText, { chatId: activeChatId });
           }
         }
@@ -592,9 +638,15 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
 
       setMessageInput('');
       setReplyingTo(null);
+      setStagedImage(null);
+      setStagedVideo(null);
+      setStagedLocation(null);
+      setStagedFile(null);
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Xabar yuborishda xatolik');
+      toast.error('Xabar yuborishda xatolik yuz berdi');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -638,6 +690,79 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
     } catch (error) {
       console.error("Recording error:", error);
       toast.error("Mikrofonga ruxsat berilmadi");
+    }
+  };
+
+  const startVideoMessage = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Brauzeringiz video yozishni qo'llab-quvvatlamaydi.");
+        return;
+      }
+
+      if (window.navigator.vibrate) window.navigator.vibrate(50);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true, 
+        video: { facingMode: isFrontCamera ? 'user' : 'environment' }
+      });
+      
+      setVideoStream(stream);
+      setIsVideoRecording(true);
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+        videoPreviewRef.current.play().catch(e => console.error("Auto-play blocked:", e));
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') 
+        ? 'video/webm;codecs=vp8,opus' 
+        : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
+        
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+      
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+        setIsUploading(true);
+        try {
+          const file = new File([blob], `vmsg_${Date.now()}.webm`, { type: 'video/webm' });
+          const url = await uploadFile(file, `chat_videos`);
+          await handleSendMessage('videoMessage', { mediaUrl: url });
+        } catch (error) {
+          console.error("Video message upload error:", error);
+          toast.error("Video xabarni yuborib bo'lmadi");
+        } finally {
+          setIsUploading(false);
+          stream.getTracks().forEach(track => track.stop());
+          setVideoStream(null);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(1000);
+      setRecordingDuration(0);
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+    } catch (err) {
+      console.error("Video access denied:", err);
+      toast.error("Kamera va mikrofonga ruxsat berilmadi");
+    }
+  };
+
+  const stopVideoMessage = () => {
+    if (mediaRecorderRef.current && isVideoRecording) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setIsVideoRecording(false);
+      setVideoStream(null);
+      mediaRecorderRef.current.stop();
     }
   };
 
@@ -753,18 +878,39 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                   input.accept = type === 'image' ? 'image/*' : 'video/*';
                   input.onchange = (e: any) => {
                     const file = e.target.files[0];
-                    if (file) handleFileUpload(file, type);
+                    if (file) {
+                      setStagedFile(file);
+                      setStagedVideo(type === 'video' ? URL.createObjectURL(file) : null);
+                      setStagedImage(type === 'image' ? URL.createObjectURL(file) : null);
+                      setStagedLocation(null);
+                      setShowAttachmentMenu(false);
+                    }
                   };
                   input.click();
                 }}
-                handleLocationShare={() => {}}
-                stagedImage={null}
-                setStagedImage={() => {}}
-                stagedVideo={null}
-                setStagedVideo={() => {}}
-                stagedLocation={null}
-                setStagedLocation={() => {}}
-                setStagedFile={() => {}}
+                handleLocationShare={() => {
+                  if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        setStagedLocation({lat: position.coords.latitude, lng: position.coords.longitude});
+                        setStagedFile(null);
+                        setStagedImage(null);
+                        setStagedVideo(null);
+                        setShowAttachmentMenu(false);
+                      },
+                      (error) => toast.error("Joylashuvni aniqlab bo'lmadi")
+                    );
+                  } else {
+                    toast.error("Brauzeringiz joylashuvni qo'llab quvvatlamaydi");
+                  }
+                }}
+                stagedImage={stagedImage}
+                setStagedImage={setStagedImage}
+                stagedVideo={stagedVideo}
+                setStagedVideo={setStagedVideo}
+                stagedLocation={stagedLocation}
+                setStagedLocation={setStagedLocation}
+                setStagedFile={setStagedFile}
                 playingMessageId={playingMessageId}
                 isAudioPlaying={isAudioPlaying}
                 playbackSpeed={playbackSpeed}
@@ -782,12 +928,12 @@ const ShopWorkspace: React.FC<ShopWorkspaceProps> = ({
                 recordingDuration={recordingDuration}
                 dragX={dragX}
                 formatDuration={(s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2, '0')}`}
-                startVideoMessage={() => {}}
-                stopVideoMessage={() => {}}
+                startVideoMessage={startVideoMessage}
+                stopVideoMessage={stopVideoMessage}
                 startRecording={startRecording}
                 stopRecording={stopRecording}
                 setDragX={setDragX}
-                dragStartRef={{current: 0} as any}
+                dragStartRef={dragStartRef}
               />
             </motion.div>
           )}
