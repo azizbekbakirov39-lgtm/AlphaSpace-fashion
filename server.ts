@@ -270,10 +270,13 @@ app.delete("/api/db/:collection/:id", async (req, res) => {
 app.post("/api/gemini/generate", async (req, res) => {
   try {
     const { model, contents, config } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    let apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
+    }
     
-    if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
+    if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.startsWith('your_')) {
+      return res.status(500).json({ error: "GEMINI_API_KEY is not configured properly on the server." });
     }
 
     const ai = new GoogleGenAI({ apiKey });

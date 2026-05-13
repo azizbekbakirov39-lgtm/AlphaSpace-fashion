@@ -30,8 +30,7 @@ export const useShopChat = (shopId: string, userId: string) => {
   const [isVideoRecording, setIsVideoRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [dragX, setDragX] = useState(0);
-  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
-
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -211,67 +210,6 @@ export const useShopChat = (shopId: string, userId: string) => {
     }
   };
 
-  const startVideoMessage = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error("Brauzeringiz video yozishni qo'llab-quvvatlamaydi.");
-        return;
-      }
-
-      if (window.navigator.vibrate) window.navigator.vibrate(50);
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: true, 
-        video: { facingMode: 'user' }
-      });
-      
-      setVideoStream(stream);
-      setIsVideoRecording(true);
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-        videoPreviewRef.current.play().catch(e => console.error("Auto-play blocked:", e));
-      }
-
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') 
-        ? 'video/webm;codecs=vp8,opus' 
-        : (MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '');
-        
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      const chunks: BlobPart[] = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunks.push(e.data);
-      };
-      
-      recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
-        setIsUploading(true);
-        try {
-          const file = new File([blob], `vmsg_${Date.now()}.webm`, { type: 'video/webm' });
-          const url = await uploadFile(file, `chats/${activeChatId}/videos`);
-          await handleSendMessage('videoMessage', { mediaUrl: url, duration: recordingDuration });
-        } catch (error) {
-          console.error("Video message upload error:", error);
-          toast.error("Video xabarni yuborib bo'lmadi");
-        } finally {
-          setIsUploading(false);
-          stream.getTracks().forEach(track => track.stop());
-          setVideoStream(null);
-        }
-      };
-
-      mediaRecorderRef.current = recorder;
-      recorder.start(1000);
-      setRecordingDuration(0);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-      
-    } catch (err) {
-      console.error("Video access denied:", err);
-      toast.error("Kamera va mikrofonga ruxsat berilmadi");
-    }
-  };
-
   const stopRecording = (cancelled: boolean = false) => {
     if (!mediaRecorderRef.current) return;
     
@@ -289,18 +227,6 @@ export const useShopChat = (shopId: string, userId: string) => {
     mediaRecorderRef.current.stop();
     setIsRecording(false);
     setDragX(0);
-  };
-
-  const stopVideoMessage = () => {
-    if (mediaRecorderRef.current && isVideoRecording) {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-      setIsVideoRecording(false);
-      setVideoStream(null);
-      mediaRecorderRef.current.stop();
-    }
   };
 
   const handleFileUpload = async (file: File, type: 'image' | 'video') => {
@@ -338,8 +264,6 @@ export const useShopChat = (shopId: string, userId: string) => {
     handleFileUpload,
     startRecording,
     stopRecording,
-    startVideoMessage,
-    stopVideoMessage,
     setIsRecording,
     setIsVideoRecording,
     setRecordingDuration,
