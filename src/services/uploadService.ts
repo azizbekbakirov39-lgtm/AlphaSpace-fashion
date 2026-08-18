@@ -11,11 +11,13 @@ export const uploadToFirebase = async (file: File, folder: string): Promise<stri
 };
 
 export const uploadToR2 = async (file: File, folder: string = 'uploads'): Promise<string> => {
+  const fileType = file.type || 'application/octet-stream';
+
   // 1. Serverdan presigned URL olish (kichik so'rov, Vercel limitiga tushmaydi)
   const presignResponse = await fetch(`${getApiBaseUrl()}/api/get-r2-upload-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fileName: file.name, fileType: file.type, folder }),
+    body: JSON.stringify({ fileName: file.name, fileType: fileType, folder }),
   });
 
   if (!presignResponse.ok) {
@@ -38,7 +40,7 @@ export const uploadToR2 = async (file: File, folder: string = 'uploads'): Promis
   const uploadResponse = await fetch(uploadUrl, {
     method: 'PUT',
     body: file,
-    headers: { 'Content-Type': file.type },
+    headers: { 'Content-Type': fileType },
   });
 
   if (!uploadResponse.ok) {

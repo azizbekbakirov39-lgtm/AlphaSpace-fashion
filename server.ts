@@ -53,15 +53,27 @@ const readFile = promisify(fs.readFile);
 
 // Cloudflare R2 Logic
 let r2Client: any = null;
-if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_ENDPOINT) {
+let cleanR2Endpoint = process.env.R2_ENDPOINT || "";
+if (cleanR2Endpoint) {
+  try {
+    const url = new URL(cleanR2Endpoint);
+    if (url.pathname !== "/") {
+      url.pathname = "/";
+      cleanR2Endpoint = url.toString().replace(/\/$/, "");
+    }
+  } catch(e) {}
+}
+
+if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && cleanR2Endpoint) {
   try {
     r2Client = new S3Client({
       region: "auto",
-      endpoint: process.env.R2_ENDPOINT,
+      endpoint: cleanR2Endpoint,
       credentials: {
         accessKeyId: process.env.R2_ACCESS_KEY_ID,
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
       },
+      forcePathStyle: true,
     });
     console.log("Cloudflare R2 Client initialized");
   } catch (err) {
@@ -438,11 +450,11 @@ app.post("/api/get-r2-upload-url", async (req: any, res: any) => {
     
     let publicUrl = "";
     if (process.env.R2_PUBLIC_DOMAIN) {
-      const domain = process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "");
+      const domain = process.env.R2_PUBLIC_DOMAIN.replace(/^https?:\/\//, "").replace(/\/$/, "");
       publicUrl = `https://${domain}/${key}`;
     } else {
-      const endpoint = process.env.R2_ENDPOINT?.replace(/^https?:\/\//, "");
-      publicUrl = `https://${process.env.R2_BUCKET_NAME}.${endpoint}/${key}`;
+      const endpoint = cleanR2Endpoint.replace(/^https?:\/\//, "");
+      publicUrl = `https://${endpoint}/${process.env.R2_BUCKET_NAME}/${key}`;
     }
     
     res.json({ uploadUrl, publicUrl, key });
