@@ -11,49 +11,41 @@ export const uploadToFirebase = async (file: File, folder: string): Promise<stri
 };
 
 export const uploadToR2 = async (file: File, folder: string = 'uploads'): Promise<string> => {
-  const formData = new FormData();
-  formData.append('files', file, file.name);
-  formData.append('folder', folder);
-
-  const response = await fetch(`${getApiBaseUrl()}/api/media-hub`, { 
-    method: 'POST', 
-    body: formData 
+  // 1. Serverdan presigned URL olish (kichik so'rov, Vercel limitiga tushmaydi)
+  const presignResponse = await fetch(`${getApiBaseUrl()}/api/get-r2-upload-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName: file.name, fileType: file.type, folder }),
   });
 
-  if (!response.ok) {
-    let errorMessage = `Upload failed with status ${response.status}`;
+  if (!presignResponse.ok) {
+    let errorMessage = `Presigned URL olishda xato: ${presignResponse.status}`;
     try {
-      const data = await response.json();
+      const data = await presignResponse.json();
       errorMessage = data.error || errorMessage;
-    } catch (e) {
-      if (response.status === 413) {
-        errorMessage = "Fayl hajmi juda katta (Server cheklovi). Kamroq hajmdagi fayl yuklang.";
+      if (errorMessage.includes("sozlanmagan") || errorMessage.includes("R2")) {
+        throw new Error("R2_NOT_CONFIGURED");
       }
-    }
-    
-    if (errorMessage.includes("R2 is not configured") || errorMessage.includes("sozlanmagan")) {
-      throw new Error("R2_NOT_CONFIGURED");
+    } catch (e: any) {
+      if (e.message === "R2_NOT_CONFIGURED") throw e;
     }
     throw new Error(errorMessage);
   }
 
-  let data;
-  const text = await response.text();
-  if (!text) {
-    throw new Error(`Empty response from server. Status: ${response.status}`);
-  }
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    console.error("Failed to parse R2 upload response as JSON. Status:", response.status, "Text snippet:", text.substring(0, 500));
-    throw new Error(`Failed to parse response as JSON. Status: ${response.status}`);
+  const { uploadUrl, publicUrl } = await presignResponse.json();
+
+  // 2. Faylni to'g'ridan-to'g'ri R2 ga yuklash (Vercel bypass — cheksiz hajm!)
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': file.type },
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error(`R2 ga yuklashda xato: ${uploadResponse.status}`);
   }
 
-  if (data.urls && data.urls.length > 0) {
-    return data.urls[0].url;
-  }
-  
-  throw new Error("No URL returned from server");
+  return publicUrl;
 };
 
 export const uploadFile = async (file: File, folder: string = 'uploads'): Promise<string> => {

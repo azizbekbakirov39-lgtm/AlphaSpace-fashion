@@ -422,10 +422,11 @@ app.post("/api/get-r2-upload-url", async (req: any, res: any) => {
       details: "Missing R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT or R2_BUCKET_NAME"
     });
   }
-  const { fileName, fileType } = req.body;
+  const { fileName, fileType, folder } = req.body;
+  const targetFolder = folder || "manual";
   const isVideo = fileType?.startsWith('video/');
   const extension = fileName?.split('.').pop() || (isVideo ? "mp4" : "jpg");
-  const key = `manual/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
+  const key = `${targetFolder}/${crypto.randomBytes(8).toString("hex")}_${Date.now()}.${extension}`;
 
   try {
     const command = new PutObjectCommand({
